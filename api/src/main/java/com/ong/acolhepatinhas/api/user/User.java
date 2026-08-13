@@ -1,5 +1,6 @@
 package com.ong.acolhepatinhas.api.user;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 
 import org.hibernate.annotations.DynamicInsert;
@@ -12,29 +13,30 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Getter @Setter
 @DynamicInsert @DynamicUpdate
+@Builder
 @Table(name = "users")
 public class User implements UserDetails {
     
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @NotEmpty @Size(min = 3, max = 50)
     private String name;
 
-    @NotBlank @Size(max = 50)
     private String email;
 
-    @NotEmpty @Size(max = 256)
     private String password;
+
+    private OffsetDateTime createdAt;
+
+    private OffsetDateTime deletedAt;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
