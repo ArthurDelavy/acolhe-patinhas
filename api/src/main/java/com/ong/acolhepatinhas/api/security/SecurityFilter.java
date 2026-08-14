@@ -1,6 +1,7 @@
 package com.ong.acolhepatinhas.api.security;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,7 +36,7 @@ public class SecurityFilter extends OncePerRequestFilter {
 
                 LoggedUserPayload user = new LoggedUserPayload(email);
                 
-                var authentication = new UsernamePasswordAuthenticationToken(user, null, null); 
+                var authentication = new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList()); 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }

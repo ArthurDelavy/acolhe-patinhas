@@ -1,6 +1,9 @@
 package com.ong.acolhepatinhas.api.user;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,13 +15,19 @@ import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 
 @Service
 @Transactional(readOnly = true)
-public class UserService {
+public class UserService implements UserDetailsService {
     
     @Autowired
     private UserRepository usrRep;
 
     @Autowired
     private PasswordEncoder pswEcd;
+
+    
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return usrRep.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("Usuário não cadastrado."));
+    }
 
     @Transactional
     public UserResponse newUser(RegisterRequest data) {
