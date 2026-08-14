@@ -1,5 +1,7 @@
 package com.ong.acolhepatinhas.api.user;
 
+import java.time.OffsetDateTime;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -37,6 +39,7 @@ public class UserService implements UserDetailsService {
             .name(data.name())
             .email(data.email())
             .password(pswEcd.encode(data.password()))
+            .createdAt(OffsetDateTime.now())
             .build();
 
         user = usrRep.save(user);
