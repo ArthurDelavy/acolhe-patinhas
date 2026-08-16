@@ -1,6 +1,8 @@
 package com.ong.acolhepatinhas.api.user;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.List;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -12,34 +14,37 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Getter @Setter
+@AllArgsConstructor @NoArgsConstructor
 @DynamicInsert @DynamicUpdate
+@Builder
 @Table(name = "users")
 public class User implements UserDetails {
     
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @NotEmpty @Size(min = 3, max = 50)
     private String name;
 
-    @NotBlank @Size(max = 50)
     private String email;
 
-    @NotEmpty @Size(max = 256)
     private String password;
+
+    private OffsetDateTime createdAt;
+
+    private OffsetDateTime deletedAt;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // TODO Auto-generated method stub
-        return null;
+        return List.of();
     }
 
     @Override
@@ -47,5 +52,25 @@ public class User implements UserDetails {
         return this.email;
     }
 
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
     
 }

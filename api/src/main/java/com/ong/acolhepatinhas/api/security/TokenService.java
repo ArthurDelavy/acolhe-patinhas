@@ -1,0 +1,49 @@
+package com.ong.acolhepatinhas.api.security;
+
+import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTCreationException;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.ong.acolhepatinhas.api.user.User;
+
+@Service
+public class TokenService {
+
+    private final String ISSUER = "acolhePatinhas";
+    
+    @Value("${api.security.token.secret}")
+    private String secret;
+
+    public String generateToken(User user) {
+        try {
+            Algorithm signature = Algorithm.HMAC256(secret);
+
+            return JWT.create()
+                .withIssuer(ISSUER)
+                .withSubject(user.getEmail())
+                .withExpiresAt(new Date(System.currentTimeMillis() + 32000000))
+                .sign(signature);
+        } catch (JWTCreationException e) {
+            throw new RuntimeException("Erro ao gerar token: " + e.getMessage());
+        }
+    }
+
+    public DecodedJWT validateToken(String token) {
+        try {
+            Algorithm signature = Algorithm.HMAC256(secret);
+
+            return JWT.require(signature)
+                .withIssuer(ISSUER)
+                .build()
+                .verify(token);
+        } catch (JWTVerificationException e) {
+            return null;
+        }
+    }
+}
