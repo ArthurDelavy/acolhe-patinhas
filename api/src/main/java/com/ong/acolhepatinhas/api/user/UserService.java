@@ -9,14 +9,18 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.auth.DTO.RegisterRequest;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 
+import jakarta.validation.Valid;
+
 
 @Service
 @Transactional(readOnly = true)
+@Validated
 public class UserService implements UserDetailsService {
     
     @Autowired
@@ -32,7 +36,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public UserResponse newUser(RegisterRequest data) {
+    public UserResponse newUser(@Valid RegisterRequest data) {
         if (usrRep.existsByEmail(data.email())) throw new DuplicatedValueException("E-mail já cadastrado.");
 
         User user = User.builder()
