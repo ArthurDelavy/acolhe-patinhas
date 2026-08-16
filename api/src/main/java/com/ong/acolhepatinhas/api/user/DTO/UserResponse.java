@@ -4,22 +4,20 @@ import java.time.OffsetDateTime;
 
 import com.ong.acolhepatinhas.api.user.User;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record UserResponse(
 
-    @PositiveOrZero
+    @Schema(example = "1")
     Integer id,
 
-    @NotBlank
+    @Schema(example = "Fulano de Tal")
     String name,
 
-    @NotBlank
+    @Schema(example = "email@dominio.com")
     String email,
 
-    @NotNull
+    @Schema(example = "2026-08-16T18:18:35Z")
     OffsetDateTime createdAt
 ) {
 
