@@ -1,21 +1,21 @@
 package com.ong.acolhepatinhas.api.user.DTO;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record NewUserResponse(
 
-    @NotBlank
+    @Schema(example = "Bearer Yhue38493...", description = "Token JWT")
     String accessToken,
 
-    @NotNull
+    @Schema(example = "Bearer")
+    String tokenType,
+
+    @Schema(description = "Dados do usuario")
     UserResponse user
 
 ) {
 
-    public NewUserResponse {
-        if (accessToken != null && !accessToken.startsWith("Bearer ")) {
-            accessToken = "Bearer " + accessToken;
-        }
+    public NewUserResponse(String accessToken, UserResponse user) {
+        this(accessToken, "Bearer", user);
     }
 }
