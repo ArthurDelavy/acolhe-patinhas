@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.LoginRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.PasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.RegisterRequest;
@@ -77,4 +78,9 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(token);
     }
     
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> startForgotPasswordProcess(@RequestBody @Valid ForgotPasswordRequest data) {
+        usrSvc.passwordTokenProcess(data);
+        return ResponseEntity.ok().build();
+    }
 }

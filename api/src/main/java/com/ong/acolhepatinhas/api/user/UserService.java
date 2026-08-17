@@ -12,9 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.PasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.RegisterRequest;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
+import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCodeService;
+import com.ong.acolhepatinhas.api.services.EmailService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 
@@ -32,11 +35,18 @@ public class UserService implements UserDetailsService {
     @Autowired
     private PasswordEncoder pswEcd;
 
+    @Autowired
+    private PasswordChangeCodeService pswSvc;
+
+    @Autowired
+    private EmailService emlSvc;
+
     
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return usrRep.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("Usuário não cadastrado."));
     }
+
 
     @Transactional
     public UserResponse newUser(@Valid RegisterRequest data) {
@@ -63,5 +73,14 @@ public class UserService implements UserDetailsService {
         if (pswEcd.matches(data.newPassword(), user.getPassword())) throw new DuplicatedValueException("A nova senha não pode ser igual à antiga");
 
         user.setPassword(pswEcd.encode(data.newPassword()));
+    }
+
+
+    public void passwordTokenProcess(@Valid ForgotPasswordRequest data) {
+
+        usrRep.findByEmail(data.email()).ifPresent(user -> {
+            String code = pswSvc.newCode(user);
+            emlSvc.resetPasswordEmail(user.getEmail(), code);
+        });
     }
 }
