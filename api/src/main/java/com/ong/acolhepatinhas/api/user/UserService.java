@@ -12,10 +12,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.PasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.RegisterRequest;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCode;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCodeService;
 import com.ong.acolhepatinhas.api.services.EmailService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
@@ -67,10 +70,10 @@ public class UserService implements UserDetailsService {
     @Transactional
     public void changePassword(LoggedUserPayload requester, @Valid PasswordChangeRequest data) {
         
-        User user = usrRep.findByEmail(requester.email()).orElseThrow(() -> new UsernameNotFoundException("Usuário não cadastrado"));
+        User user = usrRep.findByEmail(requester.email()).orElseThrow(() -> new UsernameNotFoundException("Usuário não cadastrado."));
 
         if (!pswEcd.matches(data.oldPassword(), user.getPassword())) throw new BadCredentialsException("Senha incorreta.");
-        if (pswEcd.matches(data.newPassword(), user.getPassword())) throw new DuplicatedValueException("A nova senha não pode ser igual à antiga");
+        if (pswEcd.matches(data.newPassword(), user.getPassword())) throw new DuplicatedValueException("A nova senha não pode ser igual à antiga.");
 
         user.setPassword(pswEcd.encode(data.newPassword()));
     }
@@ -82,5 +85,17 @@ public class UserService implements UserDetailsService {
             String code = pswSvc.newCode(user);
             emlSvc.resetPasswordEmail(user.getEmail(), code);
         });
+    }
+
+    @Transactional
+    public void resetPassword(@Valid ForgotPasswordChangeRequest data) {
+        User user = usrRep.findByEmail(data.email()).orElseThrow(() -> new ValueNotFoundException("Usuário não cadastrado."));
+        PasswordChangeCode code = pswSvc.getByUser(user);
+
+        if (!pswEcd.matches(data.passwordChangeToken(), code.getCode())) throw new BadCredentialsException("Código inválido.");
+        if (pswEcd.matches(data.newPassword(), user.getPassword())) throw new DuplicatedValueException("A nova senha não pode ser igual à antiga.");
+
+        user.setPassword(pswEcd.encode(data.newPassword()));
+        pswSvc.deleteCode(code);
     }
 }

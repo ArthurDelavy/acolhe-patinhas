@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ong.acolhepatinhas.api.exceptions.custom.ExpiredDataException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
 import com.ong.acolhepatinhas.api.utils.PasswordCode;
@@ -41,5 +43,21 @@ public class PasswordChangeCodeService {
         pswRep.save(pswCode);
 
         return code;
+    }
+
+    @Transactional
+    public PasswordChangeCode getByUser(User user) {
+        PasswordChangeCode code = pswRep.findByUser(user).orElseThrow(() -> new ValueNotFoundException("Nenhum código solicitado para o usuário."));
+        if (code.getExpiresAt().isBefore(OffsetDateTime.now())) {
+            pswRep.delete(code);
+            throw new ExpiredDataException("Código expirado.");
+        }
+
+        return code;
+    }
+
+    @Transactional
+    public void deleteCode(PasswordChangeCode code) {
+        if (pswRep.existsById(code.getId())) pswRep.delete(code);
     }
 }

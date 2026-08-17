@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.LoginRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.PasswordChangeRequest;
@@ -80,10 +81,21 @@ public class AuthController {
     
     @PostMapping("/forgot-password")
     @Operation(summary = "Solicitação de código para alteração de senha")
-        @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Sempre retorna 200, mesmo que o usuário não exista")
     public ResponseEntity<Void> startForgotPasswordProcess(@RequestBody @Valid ForgotPasswordRequest data) {
         usrSvc.passwordTokenProcess(data);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Alteração de senha por código")
+        @ApiResponse(responseCode = "200", description = "Senha alterada com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Código expirado ou inválido", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Senha igual à antiga", content = @Content)
+    public ResponseEntity<TokenResponse> resetPassword(@RequestBody @Valid ForgotPasswordChangeRequest data) {
+        usrSvc.resetPassword(data);
+        TokenResponse token = new TokenResponse(authSvc.authUser(new LoginRequest(data.email(), data.newPassword())));
+        return ResponseEntity.status(HttpStatus.OK).body(token);
     }
 }
