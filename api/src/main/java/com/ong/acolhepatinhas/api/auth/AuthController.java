@@ -79,6 +79,9 @@ public class AuthController {
     }
     
     @PostMapping("/forgot-password")
+    @Operation(summary = "Solicitação de código para alteração de senha")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "200", description = "Sempre retorna 200, mesmo que o usuário não exista")
     public ResponseEntity<Void> startForgotPasswordProcess(@RequestBody @Valid ForgotPasswordRequest data) {
         usrSvc.passwordTokenProcess(data);
         return ResponseEntity.ok().build();
