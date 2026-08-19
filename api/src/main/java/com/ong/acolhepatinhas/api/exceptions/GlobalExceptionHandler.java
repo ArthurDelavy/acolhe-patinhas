@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ExpiredDataException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -37,18 +39,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
-    // Usuario/senha errado
-    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
-    public ResponseEntity<ErrorResponse> handleBadCredentials(Exception e) {
+    
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException e) {
         ErrorResponse error = new ErrorResponse(
             HttpStatus.UNAUTHORIZED.value(),
-            "E-mail ou senha incorretos.",
+            e.getMessage(),
             OffsetDateTime.now()
         );
         
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUsernameNotFound(UsernameNotFoundException e) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.NOT_FOUND.value(),
+            e.getMessage(),
+            OffsetDateTime.now()
+        );
+        
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
     
+
 
     @ExceptionHandler(DuplicatedValueException.class)
     public ResponseEntity<ErrorResponse> handleDuplicatedValue(DuplicatedValueException e) {
@@ -59,5 +73,29 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    
+    @ExceptionHandler(ValueNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleValueNotFound(ValueNotFoundException e) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.NOT_FOUND.value(), 
+            e.getMessage(), 
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+
+    @ExceptionHandler(ExpiredDataException.class)
+    public ResponseEntity<ErrorResponse> handleExpiredData(ExpiredDataException e) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.UNAUTHORIZED.value(),
+            e.getMessage(),
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 }
