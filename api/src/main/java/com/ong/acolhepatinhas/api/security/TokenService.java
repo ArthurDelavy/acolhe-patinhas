@@ -1,6 +1,6 @@
 package com.ong.acolhepatinhas.api.security;
 
-import java.util.Date;
+import java.time.Instant;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,19 +15,23 @@ import com.ong.acolhepatinhas.api.user.User;
 @Service
 public class TokenService {
 
-    private final String ISSUER = "acolhePatinhas";
+    @Value("${app.tokenIssuer")
+    private String ISSUER;
+    
+    @Value("${app.jwtTokenExpirationMs}")
+    private Long EXPIRATION_TIME;
     
     @Value("${api.security.token.secret}")
-    private String secret;
+    private String SECRET;
 
     public String generateToken(User user) {
         try {
-            Algorithm signature = Algorithm.HMAC256(secret);
+            Algorithm signature = Algorithm.HMAC256(SECRET);
 
             return JWT.create()
                 .withIssuer(ISSUER)
                 .withSubject(user.getEmail())
-                .withExpiresAt(new Date(System.currentTimeMillis() + 32000000))
+                .withExpiresAt(Instant.now().plusMillis(EXPIRATION_TIME))
                 .sign(signature);
         } catch (JWTCreationException e) {
             throw new RuntimeException("Erro ao gerar token: " + e.getMessage());
@@ -36,7 +40,7 @@ public class TokenService {
 
     public DecodedJWT validateToken(String token) {
         try {
-            Algorithm signature = Algorithm.HMAC256(secret);
+            Algorithm signature = Algorithm.HMAC256(SECRET);
 
             return JWT.require(signature)
                 .withIssuer(ISSUER)

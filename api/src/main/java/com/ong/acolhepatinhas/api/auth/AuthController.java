@@ -47,8 +47,8 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
         @ApiResponse(responseCode = "401", description = "Usuário e/ou senha incorretos", content = @Content)
     public ResponseEntity<TokenResponse> authenticateUser(@RequestBody @Valid LoginRequest data) {
-        TokenResponse token = new TokenResponse(authSvc.authUser(data));
-        return ResponseEntity.status(HttpStatus.OK).body(token);
+        TokenResponse tokens = authSvc.authUser(data);
+        return ResponseEntity.status(HttpStatus.OK).body(tokens);
     }
 
     @PostMapping("/register")
@@ -58,8 +58,8 @@ public class AuthController {
         @ApiResponse(responseCode = "409", description = "E-mail já cadastrado", content = @Content)
     public ResponseEntity<NewUserResponse> registerUser(@RequestBody @Valid RegisterRequest data) {
         UserResponse userData = usrSvc.newUser(data);
-        String token = authSvc.authUser(new LoginRequest(data.email(), data.password()));
-        NewUserResponse response = new NewUserResponse(token, userData);
+        TokenResponse tokens = authSvc.authUser(new LoginRequest(data.email(), data.password()));
+        NewUserResponse response = new NewUserResponse(tokens, userData);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -75,8 +75,8 @@ public class AuthController {
         @ApiResponse(responseCode = "409", description = "Senha igual à antiga", content = @Content)        
     public ResponseEntity<TokenResponse> changePassword(@AuthenticationPrincipal LoggedUserPayload user, @RequestBody @Valid PasswordChangeRequest data) {
         usrSvc.changePassword(user, data);
-        TokenResponse token = new TokenResponse(authSvc.authUser(new LoginRequest(user.email(), data.newPassword())));
-        return ResponseEntity.status(HttpStatus.OK).body(token);
+        TokenResponse tokens = authSvc.authUser(new LoginRequest(user.email(), data.newPassword()));
+        return ResponseEntity.status(HttpStatus.OK).body(tokens);
     }
     
     @PostMapping("/forgot-password")
@@ -95,7 +95,7 @@ public class AuthController {
         @ApiResponse(responseCode = "409", description = "Senha igual à antiga", content = @Content)
     public ResponseEntity<TokenResponse> resetPassword(@RequestBody @Valid ForgotPasswordChangeRequest data) {
         usrSvc.resetPassword(data);
-        TokenResponse token = new TokenResponse(authSvc.authUser(new LoginRequest(data.email(), data.newPassword())));
-        return ResponseEntity.status(HttpStatus.OK).body(token);
+        TokenResponse tokens = authSvc.authUser(new LoginRequest(data.email(), data.newPassword()));
+        return ResponseEntity.status(HttpStatus.OK).body(tokens);
     }
 }
