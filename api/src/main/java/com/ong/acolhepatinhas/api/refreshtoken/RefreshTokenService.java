@@ -10,7 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import com.ong.acolhepatinhas.api.auth.DTO.RefreshSessionRequest;
+import com.ong.acolhepatinhas.api.exceptions.custom.ExpiredDataException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.user.User;
+
+import jakarta.validation.Valid;
 
 @Service
 @Transactional(readOnly = true)
@@ -41,5 +46,27 @@ public class RefreshTokenService {
             .build();
 
         return rftRep.save(token).getCode();
+    }
+
+    @Transactional
+    public RefreshToken refreshToken(@Valid RefreshSessionRequest data) {
+
+        RefreshToken currentToken = rftRep.findByCode(data.refreshToken()).orElseThrow(() -> new ValueNotFoundException("Token inválido."));
+
+        if (currentToken.getExpiresAt().isBefore(Instant.now())) {
+            rftRep.delete(currentToken);
+            throw new ExpiredDataException("Token expirado");
+        }
+        
+
+        RefreshToken newToken = RefreshToken.builder()
+            .user(currentToken.getUser())
+            .code(UUID.randomUUID())
+            .expiresAt(Instant.now().plusMillis(EXPIRATION_TIME))
+            .build();
+
+        rftRep.delete(currentToken);
+        
+        return rftRep.save(newToken);
     }
 }
