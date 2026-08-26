@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/validators.dart';
+import '../../services/auth_service.dart';
 
 class AuthRegisterModal extends StatefulWidget {
   const AuthRegisterModal({super.key});
@@ -11,12 +12,31 @@ class AuthRegisterModal extends StatefulWidget {
 class _AuthRegisterModalState extends State<AuthRegisterModal> {
   bool _obscurePassword = true;
   bool _isVerifyingCode = false;
+  bool _isEmailVerified = false;
 
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  late final AuthService _authService;
+  bool _isRegistering = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _authService = AuthService(baseUrl: 'http://localhost:8080');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   static const Color primaryColor = Color(0xFFFFA94D);
   static const Color secondaryColor = Color(0xFFFF8C42);
@@ -75,6 +95,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
               color: Color(0xFF2D3142),
             ),
           ),
+
           const SizedBox(height: 20),
 
           _buildField(
@@ -83,12 +104,14 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
             icon: Icons.person_outline,
             controller: _nameController,
             validator: (value) {
-              if (value == null || value.isEmpty) {
+              if (value == null || value.trim().isEmpty) {
                 return 'Digite seu nome';
               }
+
               return null;
             },
           ),
+
           const SizedBox(height: 14),
 
           _buildField(
@@ -98,17 +121,18 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
             keyboardType: TextInputType.emailAddress,
             controller: _emailController,
             validator: (value) {
-              if (value == null || value.isEmpty) {
+              if (value == null || value.trim().isEmpty) {
                 return 'Digite seu e-mail';
               }
 
-              if (!Validators.isValidEmail(value)) {
+              if (!Validators.isValidEmail(value.trim())) {
                 return 'Digite um e-mail válido';
               }
 
               return null;
             },
           ),
+
           const SizedBox(height: 14),
 
           _buildField(
@@ -136,7 +160,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
               }
 
               if (!Validators.isValidPassword(value)) {
-                return 'Mínimo 6 caracteres, um número e um caractere especial';
+                return 'Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial';
               }
 
               return null;
@@ -149,9 +173,13 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
             text: 'Cadastrar',
             // Updates the screen by triggering a layout change
             onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                setState(() => _isVerifyingCode = true);
+              if (!_formKey.currentState!.validate()) {
+                return;
               }
+
+              setState(() {
+                _isVerifyingCode = true;
+              });
             },
           ),
         ],
@@ -159,7 +187,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     );
   }
 
-  //first screen (code verification)
+  //second screen (code verification)
 
   Widget _buildCodeStep() {
     return Column(
@@ -177,6 +205,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
             ),
           ),
         ),
+
         const SizedBox(height: 16),
 
         const Text(
@@ -208,42 +237,74 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
         const SizedBox(height: 24),
 
         _buildGradientButton(
-          text: 'Verificar e Concluir',
-          onPressed: () {
-            final messenger = ScaffoldMessenger.of(context);
-            Navigator.pop(context);
+          text: _isRegistering ? 'Cadastrando...' : 'Verificar e Concluir',
+          onPressed: _isRegistering
+              ? null
+              : () async {
+                  setState(() => _isRegistering = true);
 
-            //displays the message
-            messenger.showSnackBar(
-              SnackBar(
-                content: const Row(
-                  children: [
-                    Icon(
-                      Icons.check_circle_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      'Conta criada com sucesso!',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                  try {
+                    await _authService.register(
+                      name: _nameController.text.trim(),
+                      email: _emailController.text.trim(),
+                      password: _passwordController.text,
+                    );
+
+                    if (!mounted) return;
+
+                    setState(() {
+                      _isRegistering = false;
+                      _isVerifyingCode = false;
+                      _isEmailVerified = true;
+                    });
+
+                    final messenger = ScaffoldMessenger.of(context);
+
+                    //displays the message
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'Conta criada com sucesso!',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: const Color(0xFF2E7D32),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        margin: const EdgeInsets.all(16),
                       ),
-                    ),
-                  ],
-                ),
-                backgroundColor: const Color(0xFF2E7D32),
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                margin: const EdgeInsets.all(16),
-              ),
-            );
-          },
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+
+                    setState(() => _isRegistering = false);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          e.toString().replaceFirst('Exception: ', ''),
+                        ),
+                      ),
+                    );
+                  }
+                },
         ),
+
         const SizedBox(height: 8),
 
         TextButton(
@@ -253,6 +314,32 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
             style: TextStyle(color: Colors.grey, fontSize: 13),
           ),
         ),
+
+        if (_isEmailVerified) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 18),
+                SizedBox(width: 6),
+                Text(
+                  'E-mail verificado',
+                  style: TextStyle(
+                    color: Color(0xFF2E7D32),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -297,14 +384,14 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     bool obscureText = false,
     TextInputType? keyboardType,
     Widget? suffixIcon,
-    String? Function(String?)? validator,
     TextEditingController? controller,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
-      obscureText: obscureText,
-      keyboardType: keyboardType,
       controller: controller,
       validator: validator,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
       style: const TextStyle(fontSize: 14, color: Color(0xFF2D3142)),
       decoration: InputDecoration(
         labelText: label,
@@ -332,7 +419,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: secondaryColor, width: 1.5),
         ),
-        errorMaxLines: 2,
       ),
     );
   }
@@ -340,7 +426,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
   //button constructor with gradient background
   Widget _buildGradientButton({
     required String text,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     return SizedBox(
       height: 48,

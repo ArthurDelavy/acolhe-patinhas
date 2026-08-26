@@ -2,20 +2,35 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  final String baseUrl = 'http://10.0.2.2:8080';
+  final String baseUrl;
 
-  Future<bool> login(String email, String password) async {
-    final url = Uri.parse('$baseUrl/login');
+  AuthService({required this.baseUrl});
+
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
     final response = await http.post(
-      url,
+      Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({'name': name, 'email': email, 'password': password}),
     );
 
-    if (response.statusCode == 200) {
-      return true;
-    } else {
-      return false;
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
     }
+
+    if (response.statusCode == 409) {
+      throw Exception('E-mail já cadastrado');
+    }
+
+    if (response.statusCode == 400) {
+      throw Exception('Dados inválidos');
+    }
+
+    throw Exception(
+      'Erro ao cadastrar usuário. Código: ${response.statusCode}',
+    );
   }
 }
