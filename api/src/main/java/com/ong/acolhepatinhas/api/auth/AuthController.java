@@ -14,6 +14,7 @@ import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.LoginRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.PasswordChangeRequest;
+import com.ong.acolhepatinhas.api.auth.DTO.RefreshSessionRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.RegisterRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.TokenResponse;
 import com.ong.acolhepatinhas.api.user.UserService;
@@ -51,6 +52,17 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(tokens);
     }
 
+    @PostMapping("/refresh")
+    @Operation(summary = "Renovação de token")
+        @ApiResponse(responseCode = "200", description = "Sessão renovada com sucesso!")
+        @ApiResponse(responseCode = "400", description = "Token inválido", content = @Content)
+        @ApiResponse(responseCode = "401", description = "Token expirado", content = @Content)
+    public ResponseEntity<TokenResponse> refreshSession(@RequestBody @Valid RefreshSessionRequest data) {
+        TokenResponse tokens = authSvc.refreshSession(data);
+        return ResponseEntity.status(HttpStatus.OK).body(tokens);
+    }
+
+    
     @PostMapping("/register")
     @Operation(summary = "Cadastro de usuário")
         @ApiResponse(responseCode = "200", description = "Usuário criado com sucesso!")
