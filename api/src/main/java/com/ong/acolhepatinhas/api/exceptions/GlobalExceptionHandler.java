@@ -1,5 +1,6 @@
 package com.ong.acolhepatinhas.api.exceptions;
 
+import java.nio.file.AccessDeniedException;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -97,5 +98,17 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handlerAccessDenied(AccessDeniedException e) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.FORBIDDEN.value(), 
+            e.getMessage(), 
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 }
