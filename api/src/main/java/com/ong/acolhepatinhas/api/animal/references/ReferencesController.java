@@ -21,7 +21,7 @@ public class ReferencesController {
     @Autowired
     ReferencesService rfcSvc;
 
-    @GetMapping @PreAuthorize("hasAuthority('animal:read')")
+    @GetMapping @PreAuthorize("hasAnyAuthority('animal:create', 'animal:edit')")
     @Operation(summary = "Todos detalhes listáveis dos animais")
         @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
