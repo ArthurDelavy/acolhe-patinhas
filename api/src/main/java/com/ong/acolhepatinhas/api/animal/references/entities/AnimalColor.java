@@ -1,12 +1,12 @@
-package com.ong.acolhepatinhas.api.animal.reference.entities;
+package com.ong.acolhepatinhas.api.animal.references.entities;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
+import org.springframework.data.annotation.Id;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,8 +18,8 @@ import lombok.Setter;
 @Getter @Setter
 @AllArgsConstructor @NoArgsConstructor @Builder
 @DynamicInsert @DynamicUpdate
-@Table(name = "discharge_reasons")
-public class DischargeReason {
+@Table(name = "animal_colors")
+public class AnimalColor {
     
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;

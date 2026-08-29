@@ -7,9 +7,9 @@ import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
 import com.ong.acolhepatinhas.api.animal.enums.Genders;
-import com.ong.acolhepatinhas.api.animal.reference.entities.Breed;
-import com.ong.acolhepatinhas.api.animal.reference.entities.Color;
-import com.ong.acolhepatinhas.api.animal.reference.entities.DischargeReason;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReason;
 import com.ong.acolhepatinhas.api.user.User;
 
 import jakarta.persistence.Entity;
@@ -44,10 +44,10 @@ public class Animal {
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "breeds_id")
-    private Breed breed;
+    private AnimalBreed breed;
 
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "colors_id")
-    private Color color;
+    private AnimalColor color;
 
     @Enumerated(EnumType.STRING)
     private Genders gender;
@@ -56,8 +56,8 @@ public class Animal {
     private OffsetDateTime intakeDate;
     private OffsetDateTime dischargeDate;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "discharge_reasons.id")
-    private DischargeReason dischargeReason;
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "discharge_reason.id")
+    private AnimalDischargeReason dischargeReason;
 
     private boolean toAdoption;
 

@@ -1,4 +1,4 @@
-package com.ong.acolhepatinhas.api.animal.reference.entities;
+package com.ong.acolhepatinhas.api.animal.references.entities;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -21,14 +21,14 @@ import lombok.Setter;
 @Getter @Setter
 @AllArgsConstructor @NoArgsConstructor @Builder
 @DynamicInsert @DynamicUpdate
-@Table(name = "breeds")
-public class Breed {
+@Table(name = "animal_breeds")
+public class AnimalBreed {
     
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "specie_id")
-    private Specie specie;
+    private AnimalSpecie specie;
 
     private String name;
 }
