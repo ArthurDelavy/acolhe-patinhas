@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'auth_modal.dart';
 import '../../utils/validators.dart';
-
-//FIRST
-//VERSION OF THE SCREEN # I LOVE PHP
+import '../../services/auth_service.dart';
+import '../home/feed.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -19,10 +18,74 @@ class _AuthScreenState extends State<AuthScreen> {
   // Form key
   final _formKey = GlobalKey<FormState>();
 
+  late AuthService _authService;
+  bool _isLoggingIn = false;
+
   //palet of colors
   static const Color primaryColor = Color(0xFFFFA94D);
   static const Color secondaryColor = Color(0xFFFF8C42);
 
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _authService = AuthService(baseUrl: 'http://192.168.2.104:8080');
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoggingIn = true;
+    });
+
+    try {
+      await _authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacementNamed(context, '/feed');
+    } catch (e) {
+      if (!mounted) return;
+
+      String message = 'Erro ao realizar login';
+
+      if (e.toString().contains('E-mail ou senha incorretos')) {
+        message = 'E-mail ou senha incorretos';
+      } else if (e.toString().contains('Dados inválidos')) {
+        message = 'Verifique os dados informados';
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoggingIn = false;
+        });
+      }
+    }
+  }
+
+  //reused inputs
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,7 +149,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
                     const SizedBox(height: 32),
 
-                    //reused inputs
                     AnimatedCrossFade(
                       duration: const Duration(milliseconds: 200),
                       crossFadeState: anonymousEntry
@@ -99,10 +161,14 @@ class _AuthScreenState extends State<AuthScreen> {
                             label: 'E-mail',
                             hint: 'Digite seu e-mail',
                             icon: Icons.email_outlined,
+                            controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.email],
                             validator: (value) {
+                              // Ignora a validação de email se estiver entrando como anônimo
+                              if (anonymousEntry) return null;
+
                               if (value == null || value.isEmpty) {
                                 return 'Digite seu e-mail';
                               }
@@ -121,6 +187,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             label: 'Senha',
                             hint: 'Digite sua senha',
                             icon: Icons.lock_outline,
+                            controller: _passwordController,
                             obscureText: obscurePassword,
                             textInputAction: TextInputAction.done,
                             suffixIcon: IconButton(
@@ -136,6 +203,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                             ),
                             validator: (value) {
+                              // Ignora a validação de senha se estiver entrando como anônimo
+                              if (anonymousEntry) return null;
+
                               if (value == null || value.isEmpty) {
                                 return 'Digite sua senha';
                               }
@@ -213,9 +283,13 @@ class _AuthScreenState extends State<AuthScreen> {
                           label: 'Nome',
                           hint: 'Digite seu nome',
                           icon: Icons.person_outline,
+                          controller: _nameController,
                           textInputAction: TextInputAction.done,
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
+                            // Só exige o nome se for entrada anônima
+                            if (!anonymousEntry) return null;
+
+                            if (value == null || value.trim().isEmpty) {
                               return 'Digite seu nome';
                             }
 
@@ -231,10 +305,20 @@ class _AuthScreenState extends State<AuthScreen> {
                     SizedBox(
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {}
-                        },
-
+                        onPressed: _isLoggingIn
+                            ? null
+                            : () {
+                                if (anonymousEntry) {
+                                  if (_formKey.currentState!.validate()) {
+                                    Navigator.pushReplacementNamed(
+                                      context,
+                                      '/feed',
+                                    );
+                                  }
+                                } else {
+                                  _login();
+                                }
+                              },
                         style:
                             ElevatedButton.styleFrom(
                               padding: EdgeInsets.zero,
@@ -257,14 +341,25 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           child: Container(
                             alignment: Alignment.center,
-                            child: Text(
-                              anonymousEntry ? 'Entrar como Anônimo' : 'Entrar',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: _isLoggingIn
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    anonymousEntry
+                                        ? 'Entrar como Anônimo'
+                                        : 'Entrar',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
                         ),
                       ),
@@ -356,6 +451,7 @@ class _AuthScreenState extends State<AuthScreen> {
     required String label,
     required String hint,
     required IconData icon,
+    TextEditingController? controller,
     TextInputType? keyboardType,
     TextInputAction? textInputAction,
     bool obscureText = false,
@@ -364,6 +460,7 @@ class _AuthScreenState extends State<AuthScreen> {
     String? Function(String?)? validator,
   }) {
     return TextFormField(
+      controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       textInputAction: textInputAction,

@@ -20,14 +20,19 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  final List<TextEditingController> _codeControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
+  final List<FocusNode> _codeFocusNodes = List.generate(4, (_) => FocusNode());
+
   late final AuthService _authService;
   bool _isRegistering = false;
 
   @override
   void initState() {
     super.initState();
-
-    _authService = AuthService(baseUrl: 'http://localhost:8080');
+    _authService = AuthService(baseUrl: 'http://192.168.2.104:8080');
   }
 
   @override
@@ -35,6 +40,12 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    for (var controller in _codeControllers) {
+      controller.dispose();
+    }
+    for (var focusNode in _codeFocusNodes) {
+      focusNode.dispose();
+    }
     super.dispose();
   }
 
@@ -43,7 +54,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
 
   @override
   Widget build(BuildContext context) {
-    // controls the mobile phone keyboard
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -57,21 +67,18 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
         physics: const BouncingScrollPhysics(),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          //controls which screen to render
           child: _isVerifyingCode ? _buildCodeStep() : _buildFormStep(),
         ),
       ),
     );
   }
 
-  //first screen (the modal)
-
   Widget _buildFormStep() {
     return Form(
       key: _formKey,
       child: Column(
         key: const ValueKey('form_step'),
-        mainAxisSize: MainAxisSize.min, //the height of the modal
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
@@ -107,7 +114,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
               if (value == null || value.trim().isEmpty) {
                 return 'Digite seu nome';
               }
-
               return null;
             },
           ),
@@ -124,11 +130,9 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
               if (value == null || value.trim().isEmpty) {
                 return 'Digite seu e-mail';
               }
-
               if (!Validators.isValidEmail(value.trim())) {
                 return 'Digite um e-mail válido';
               }
-
               return null;
             },
           ),
@@ -149,8 +153,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
                 color: Colors.grey[500],
                 size: 20,
               ),
-
-              //view password
               onPressed: () =>
                   setState(() => _obscurePassword = !_obscurePassword),
             ),
@@ -158,11 +160,9 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
               if (value == null || value.isEmpty) {
                 return 'Digite uma senha';
               }
-
               if (!Validators.isValidPassword(value)) {
                 return 'Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial';
               }
-
               return null;
             },
           ),
@@ -171,7 +171,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
 
           _buildGradientButton(
             text: 'Cadastrar',
-            // Updates the screen by triggering a layout change
             onPressed: () {
               if (!_formKey.currentState!.validate()) {
                 return;
@@ -186,8 +185,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
       ),
     );
   }
-
-  //second screen (code verification)
 
   Widget _buildCodeStep() {
     return Column(
@@ -228,10 +225,9 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
 
         const SizedBox(height: 24),
 
-        //Build a box with 4 squares.
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(4, (_) => _buildCodeBox()),
+          children: List.generate(4, (index) => _buildCodeBox(index)),
         ),
 
         const SizedBox(height: 24),
@@ -244,6 +240,10 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
                   setState(() => _isRegistering = true);
 
                   try {
+                    final enteredCode = _codeControllers
+                        .map((c) => c.text)
+                        .join();
+
                     await _authService.register(
                       name: _nameController.text.trim(),
                       email: _emailController.text.trim(),
@@ -252,15 +252,10 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
 
                     if (!mounted) return;
 
-                    setState(() {
-                      _isRegistering = false;
-                      _isVerifyingCode = false;
-                      _isEmailVerified = true;
-                    });
-
                     final messenger = ScaffoldMessenger.of(context);
 
-                    //displays the message
+                    Navigator.of(context).pop(true);
+
                     messenger.showSnackBar(
                       SnackBar(
                         content: const Row(
@@ -314,42 +309,17 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
             style: TextStyle(color: Colors.grey, fontSize: 13),
           ),
         ),
-
-        if (_isEmailVerified) ...[
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 18),
-                SizedBox(width: 6),
-                Text(
-                  'E-mail verificado',
-                  style: TextStyle(
-                    color: Color(0xFF2E7D32),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }
 
-  //square constructor for later use
-  Widget _buildCodeBox() {
+  Widget _buildCodeBox(int index) {
     return SizedBox(
       width: 50,
       height: 55,
       child: TextField(
+        controller: _codeControllers[index],
+        focusNode: _codeFocusNodes[index],
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
         maxLength: 1,
@@ -358,7 +328,15 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
           fontWeight: FontWeight.bold,
           color: Color(0xFF2D3142),
         ),
-
+        onChanged: (value) {
+          if (value.isNotEmpty && index < 3) {
+            _codeFocusNodes[index + 1].requestFocus();
+          }
+          // Volta para o quadradinho anterior se apagar
+          else if (value.isEmpty && index > 0) {
+            _codeFocusNodes[index - 1].requestFocus();
+          }
+        },
         decoration: InputDecoration(
           counterText: '',
           filled: true,
@@ -376,7 +354,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     );
   }
 
-  //input constructor
   Widget _buildField({
     required String label,
     required String hint,
@@ -423,7 +400,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     );
   }
 
-  //button constructor with gradient background
   Widget _buildGradientButton({
     required String text,
     required VoidCallback? onPressed,
