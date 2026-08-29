@@ -1,7 +1,7 @@
 package com.ong.acolhepatinhas.api.security.enums;
 
 public enum Permission {
-    ;
+    ANIMAL_READ("animal:read");
 
 
 
