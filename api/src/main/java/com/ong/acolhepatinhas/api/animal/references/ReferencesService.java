@@ -11,6 +11,7 @@ import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.animal.AnimalRepository;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewBreedRequest;
+import com.ong.acolhepatinhas.api.animal.references.DTO.NewColorRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewSpecieRequest;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
@@ -106,6 +107,20 @@ public class ReferencesService {
     }
 
 
+    @Transactional
+    @CacheEvict(value = "animalColors", allEntries = true)
+    public AnimalColor newColor(@Valid NewColorRequest data) {
+
+        if (clrRep.existsByName(data.name())) throw new DuplicatedValueException("Cor já cadastrada.");
+
+        AnimalColor color = AnimalColor.builder()
+            .name(data.name())
+            .build();
+
+        return clrRep.save(color);
+    }
+
+
 
 
 
@@ -135,5 +150,16 @@ public class ReferencesService {
         if (anmRep.existsBySpecie(specie)) throw new ResourceInUseException("A espécie não pôde ser deletada pois está vinculada a um animal.");
 
         spcRep.delete(specie);
+    }
+
+
+    @Transactional
+    @CacheEvict(value = "animalColors", allEntries = true)
+    public void deleteColor(int colorId) {
+
+        AnimalColor color = clrRep.findById(colorId).orElseThrow(() -> new ValueNotFoundException("Cor não encontrada."));
+        if (anmRep.existsByColor(color)) throw new ResourceInUseException("A cor não pôde ser deletada pois está vinculada a um animal.");
+
+        clrRep.delete(color);
     }
 }

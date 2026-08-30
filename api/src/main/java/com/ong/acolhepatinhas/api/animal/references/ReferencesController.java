@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.animal.references.DTO.BreedResponse;
+import com.ong.acolhepatinhas.api.animal.references.DTO.ColorResponse;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewBreedRequest;
+import com.ong.acolhepatinhas.api.animal.references.DTO.NewColorRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewSpecieRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.ReferencesResponse;
 import com.ong.acolhepatinhas.api.animal.references.DTO.SpecieResponse;
@@ -89,6 +91,7 @@ public class ReferencesController {
     }
 
 
+
     // Especie
     
     @GetMapping("/specie") @PreAuthorize("hasAnyAuthority('animal:create', 'animal:edit', 'animalReference:manage')")
@@ -128,4 +131,44 @@ public class ReferencesController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
+
+
+    // Cor
+    
+    @GetMapping("/color") @PreAuthorize("hasAnyAuthority('animal:create', 'animal:edit', 'animalReference:manage')")
+    @Operation(summary = "Lista de cores cadastradas")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
+    public ResponseEntity<ColorResponse> listAllColors() {
+        ColorResponse responseData = new ColorResponse(rfcSvc.listAllColors());
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
+    @PostMapping("/color") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @Operation(summary = "Incluir nova cor")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "201", description = "Criado com sucesso!")
+        @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Cor já cadastrada", content = @Content)
+    public ResponseEntity<Void> newColor(@RequestBody @Valid NewColorRequest data) {
+        rfcSvc.newColor(data);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @DeleteMapping("/color/{colorId}") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @Operation(summary = "Excluir cor")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "204", description = "Excluído com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Cor não encontrada", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Cor vinculada a um animal", content = @Content)
+    public ResponseEntity<Void> deleteColor(@PathVariable int colorId) {
+        rfcSvc.deleteColor(colorId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 }

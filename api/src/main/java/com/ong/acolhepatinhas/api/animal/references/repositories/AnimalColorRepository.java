@@ -7,5 +7,5 @@ import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
 
 @Repository
 public interface AnimalColorRepository extends JpaRepository<AnimalColor, Integer> {
-    
+    boolean existsByName(String name);
 }
