@@ -21,6 +21,9 @@ public interface AnimalRepository extends JpaRepository<Animal, Integer> {
     @EntityGraph(attributePaths = {"color", "breed.specie"})
     List<Animal> findAll();
 
+    @EntityGraph(attributePaths = {"color", "breed.specie"})
+    List<Animal> findAllByToAdoption(Boolean toAdoption);
+
     @EntityGraph(attributePaths = {"user", "breed.specie", "color", "gender", "dischargeReason"})
     Optional<Animal> findById(int id);
 }

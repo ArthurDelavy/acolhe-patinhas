@@ -4,6 +4,7 @@ public enum Permission {
     ANIMAL_READ("animal:read"),
     ANIMAL_CREATE("animal:create"),
     ANIMAL_EDIT("animal:edit"),
+    ANIMAL_REMOVE("animal:remove"),
 
     ANIMAL_REFERENCE_MANAGE("animalReference:manage");
 

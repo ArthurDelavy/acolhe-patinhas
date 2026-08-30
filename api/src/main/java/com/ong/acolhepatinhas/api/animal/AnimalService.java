@@ -30,7 +30,8 @@ public class AnimalService {
     private final ReferencesService rfcSvc;
 
 
-    public List<Animal> listAll() {
+    public List<Animal> listAll(Boolean toAdoption) {
+        if (toAdoption != null) anmRep.findAllByToAdoption(toAdoption);
         return anmRep.findAll();
     }
 

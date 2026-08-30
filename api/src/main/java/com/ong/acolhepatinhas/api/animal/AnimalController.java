@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.animal.DTO.DetailedAnimalResponse;
@@ -40,8 +41,8 @@ public class AnimalController {
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
-    public ResponseEntity<List<ResumedAnimalResponse>> listAll() {
-        List<ResumedAnimalResponse> responseData = anmSvc.listAll()
+    public ResponseEntity<List<ResumedAnimalResponse>> listAll(@RequestParam(required = false) Boolean toAdoption) {
+        List<ResumedAnimalResponse> responseData = anmSvc.listAll(toAdoption)
             .stream()
             .map(ResumedAnimalResponse::new)
             .toList();
