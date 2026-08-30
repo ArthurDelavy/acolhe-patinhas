@@ -6,7 +6,7 @@ import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReason;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalSpecie;
 
-public record ReferencesResponseDTO(
+public record ReferencesResponse(
 
     List<AnimalColor> colors,
     List<AnimalDischargeReason> dischargeReasons,
