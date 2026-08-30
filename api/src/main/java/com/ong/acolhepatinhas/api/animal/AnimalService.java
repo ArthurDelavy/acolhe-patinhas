@@ -1,11 +1,13 @@
 package com.ong.acolhepatinhas.api.animal;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import com.ong.acolhepatinhas.api.animal.DTO.EditAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.references.ReferencesService;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
@@ -56,6 +58,37 @@ public class AnimalService {
             .intakeDate(data.intakeDate())
             .toAdoption(data.toAdoption())
             .build();
+
+        return anmRep.save(animal);
+    }
+
+
+    @Transactional
+    public Animal editAnimal(LoggedUserPayload user, int animalId, @Valid EditAnimalRequest data) {
+
+        Animal animal = this.getById(animalId);
+        User requester = (User) usrSvc.loadUserByUsername(user.email());
+        
+        if (
+            data.microchipNumber() != null &&
+            !Objects.equals(animal.getMicrochipNumber(), data.microchipNumber()) &&
+            anmRep.existsByMicrochipNumber(data.microchipNumber())
+        ) throw new DuplicatedValueException("Animal já cadastrado.");
+        
+        if (data.dischargeDate() != null && data.dischargeReasonId() == null) throw new IllegalArgumentException("Motivo de baixa não pode ser nulo quando existe uma data.");
+
+
+        animal.setUser(requester);
+        animal.setName(data.name());
+        animal.setMicrochipNumber(data.microchipNumber());
+        animal.setBreed(rfcSvc.getBreed(data.breedId()));
+        animal.setColor(rfcSvc.getColor(data.colorId()));
+        animal.setGender(data.gender());
+        animal.setBirthDate(data.birthDate());
+        animal.setIntakeDate(data.intakeDate());
+        animal.setDischargeDate(data.dischargeDate());
+        animal.setDischargeReason(data.dischargeDate() != null ? rfcSvc.getDischargeReason(data.dischargeReasonId()) : null);
+        animal.setToAdoption(data.toAdoption());
 
         return anmRep.save(animal);
     }

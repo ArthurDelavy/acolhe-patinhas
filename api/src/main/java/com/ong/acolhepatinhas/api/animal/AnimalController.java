@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.animal.DTO.DetailedAnimalResponse;
+import com.ong.acolhepatinhas.api.animal.DTO.EditAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.ResumedAnimalResponse;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
@@ -76,5 +78,22 @@ public class AnimalController {
     public ResponseEntity<Void> newAnimal(@AuthenticationPrincipal LoggedUserPayload user, @RequestBody @Valid NewAnimalRequest data) {
         anmSvc.newAnimal(user, data);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+
+    
+
+    @PatchMapping("/{animalId}") @PreAuthorize("hasAuthority('animal:edit')")
+    @Operation(summary = "Atualizar dados de um animal")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "201", description = "Atualizado com sucesso!")
+        @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Referência não encontrada", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Animal/Microchip já cadastrado", content = @Content)
+    public ResponseEntity<DetailedAnimalResponse> editAnimal(@AuthenticationPrincipal LoggedUserPayload user, @PathVariable int animalId, @RequestBody @Valid EditAnimalRequest data) {
+        DetailedAnimalResponse responseData = new DetailedAnimalResponse(anmSvc.editAnimal(user, animalId, data));
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 }

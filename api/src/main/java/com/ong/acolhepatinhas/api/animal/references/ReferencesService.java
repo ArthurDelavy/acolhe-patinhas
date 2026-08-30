@@ -80,6 +80,11 @@ public class ReferencesService {
         return brdRep.findById(id).orElseThrow(() -> new ValueNotFoundException("Raça não encontrada."));
     }
 
+    @Cacheable(value = "animalDischargeReason", key = "#id")
+    public AnimalDischargeReason getDischargeReason(int id) {
+        return drsRep.findById(id).orElseThrow(() -> new ValueNotFoundException("Motivo não encontrado."));
+    }
+
 
 
     // Setters
@@ -134,7 +139,11 @@ public class ReferencesService {
 
 
     @Transactional
-    @CacheEvict(value = "animalDischargeReasons", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(value = "animalDischargeReasons", allEntries = true),
+        @CacheEvict(value = "animalDischargeReason", allEntries = true)
+
+    })
     public AnimalDischargeReason newDischargeReason(@Valid NewDischargeReasonRequest data) {
 
         if (drsRep.existsByName(data.name())) throw new DuplicatedValueException("Motivo já cadastrado.");
@@ -194,7 +203,10 @@ public class ReferencesService {
 
 
     @Transactional
-    @CacheEvict(value = "animalDischargeReasons", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(value = "animalDischargeReasons", allEntries = true),
+        @CacheEvict(value = "animalDischargeReason", allEntries = true)
+    })
     public void deleteDischargeReason(int reasonId) {
 
         AnimalDischargeReason reason = drsRep.findById(reasonId).orElseThrow(() -> new ValueNotFoundException("Motivo não encontrado."));
