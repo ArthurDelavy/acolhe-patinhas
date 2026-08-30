@@ -11,8 +11,8 @@ public enum Role {
         Permission.ANIMAL_READ,
         Permission.ANIMAL_CREATE,
         Permission.ANIMAL_EDIT,
-        Permission.ANIMAL_REMOVE
-        Permission.ANIMAL_REFERENCE_MANAGE,
+        Permission.ANIMAL_REMOVE,
+        Permission.ANIMAL_REFERENCE_MANAGE
     )),
 
     USER(Set.of(
