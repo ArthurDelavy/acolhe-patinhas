@@ -45,11 +45,11 @@ public class ReferencesController {
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
     public ResponseEntity<ReferencesResponse> listAll() {
        
-        ReferencesResponse responseData = new ReferencesResponse(
-            rfcSvc.listAllColors(),
-            rfcSvc.listAllDischargeReasons(),
-            rfcSvc.listAllSpeciesWithBreeds()
-        );
+        List<ColorResponse> colors = rfcSvc.listAllColors().stream().map(ColorResponse::new).toList();
+        List<DischargeReasonResponse> reasons = rfcSvc.listAllDischargeReasons().stream().map(DischargeReasonResponse::new).toList();
+        List<SpecieResponse> species = rfcSvc.listAllSpeciesWithBreeds().stream().map(SpecieResponse::new).toList();
+
+        ReferencesResponse responseData = new ReferencesResponse(colors, reasons, species);
 
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
@@ -62,8 +62,12 @@ public class ReferencesController {
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
-    public ResponseEntity<BreedResponse> listAllBreeds() {
-        BreedResponse responseData = new BreedResponse(rfcSvc.listAllBreeds());
+    public ResponseEntity<List<BreedResponse>> listAllBreeds() {
+        List<BreedResponse> responseData = rfcSvc.listAllBreeds()
+            .stream()
+            .map(BreedResponse::new)
+            .toList();
+
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
@@ -104,8 +108,12 @@ public class ReferencesController {
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
-    public ResponseEntity<SpecieResponse> listAllSpecies() {
-        SpecieResponse responseData = new SpecieResponse(rfcSvc.listAllSpecies());
+    public ResponseEntity<List<SpecieResponse>> listAllSpecies() {
+        List<SpecieResponse> responseData = rfcSvc.listAllSpecies()
+            .stream()
+            .map(SpecieResponse::new)
+            .toList();
+
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
@@ -145,8 +153,12 @@ public class ReferencesController {
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
-    public ResponseEntity<ColorResponse> listAllColors() {
-        ColorResponse responseData = new ColorResponse(rfcSvc.listAllColors());
+    public ResponseEntity<List<ColorResponse>> listAllColors() {
+        List<ColorResponse> responseData = rfcSvc.listAllColors()
+            .stream()
+            .map(ColorResponse::new)
+            .toList();
+
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 

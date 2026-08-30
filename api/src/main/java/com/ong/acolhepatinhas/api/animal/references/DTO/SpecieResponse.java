@@ -1,10 +1,14 @@
 package com.ong.acolhepatinhas.api.animal.references.DTO;
 
-import java.util.List;
-
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalSpecie;
 
 public record SpecieResponse(
-    List<AnimalSpecie> species
+    
+    int id,
+    String name
 ) {
+
+    public SpecieResponse(AnimalSpecie data) {
+        this(data.getId(), data.getName());
+    }
 }
