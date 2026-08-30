@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.references.ReferencesService;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
@@ -29,6 +30,11 @@ public class AnimalService {
 
     public List<Animal> listAll() {
         return anmRep.findAll();
+    }
+
+
+    public Animal getById(int animalId) {
+        return anmRep.findById(animalId).orElseThrow(() -> new ValueNotFoundException("Animal não encontrado."));
     }
 
 

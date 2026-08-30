@@ -7,11 +7,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ong.acolhepatinhas.api.animal.DTO.DetailedAnimalResponse;
 import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.ResumedAnimalResponse;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
@@ -44,6 +46,21 @@ public class AnimalController {
 
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
+
+
+
+    @GetMapping("/{animalId}") @PreAuthorize("hasAuthority('animal:read')")
+    @Operation(summary = "Lista todos os dados de um animal específico")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Animal não encontrado", content = @Content)
+    public ResponseEntity<DetailedAnimalResponse> getById(@PathVariable int animalId) {
+        DetailedAnimalResponse responseData = new DetailedAnimalResponse(anmSvc.getById(animalId));
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
 
     
 

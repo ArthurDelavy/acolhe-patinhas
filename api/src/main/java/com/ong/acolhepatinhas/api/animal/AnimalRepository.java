@@ -1,6 +1,7 @@
 package com.ong.acolhepatinhas.api.animal;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,4 +20,7 @@ public interface AnimalRepository extends JpaRepository<Animal, Integer> {
 
     @EntityGraph(attributePaths = {"color", "breed.specie"})
     List<Animal> findAll();
+
+    @EntityGraph(attributePaths = {"user", "breed.specie", "color", "gender", "dischargeReason"})
+    Optional<Animal> findById(int id);
 }
