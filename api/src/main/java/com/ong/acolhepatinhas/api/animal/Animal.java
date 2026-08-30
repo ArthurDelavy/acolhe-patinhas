@@ -62,4 +62,6 @@ public class Animal {
     private AnimalDischargeReason dischargeReason;
 
     private boolean toAdoption;
+
+    private String imgUrl;
 }
