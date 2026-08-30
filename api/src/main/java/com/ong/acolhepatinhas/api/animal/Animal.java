@@ -1,7 +1,7 @@
 package com.ong.acolhepatinhas.api.animal;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -42,6 +42,8 @@ public class Animal {
     private User user;
 
     private String name;
+    
+    private String microchipNumber;
 
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "breeds_id")
     private AnimalBreed breed;
@@ -53,13 +55,11 @@ public class Animal {
     private Genders gender;
 
     private LocalDate birthDate;
-    private OffsetDateTime intakeDate;
-    private OffsetDateTime dischargeDate;
+    private Instant intakeDate;
+    private Instant dischargeDate;
 
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "discharge_reason.id")
     private AnimalDischargeReason dischargeReason;
 
     private boolean toAdoption;
-
-    private String microchipNumber;
 }

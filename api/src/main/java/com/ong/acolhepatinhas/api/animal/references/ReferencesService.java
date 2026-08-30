@@ -70,6 +70,17 @@ public class ReferencesService {
     }
 
 
+    @Cacheable(value = "animalColor", key = "#id")
+    public AnimalColor getColor(int id) {
+        return clrRep.findById(id).orElseThrow(() -> new ValueNotFoundException("Cor não encontrada."));
+    }
+
+    @Cacheable(value = "animalBreed", key = "#id")
+    public AnimalBreed getBreed(int id) {
+        return brdRep.findById(id).orElseThrow(() -> new ValueNotFoundException("Raça não encontrada."));
+    }
+
+
 
     // Setters
     @Transactional
@@ -109,7 +120,7 @@ public class ReferencesService {
 
 
     @Transactional
-    @CacheEvict(value = "animalColors", allEntries = true)
+    @CacheEvict(value = "animalColors", allEntries = true)    
     public AnimalColor newColor(@Valid NewColorRequest data) {
 
         if (clrRep.existsByName(data.name())) throw new DuplicatedValueException("Cor já cadastrada.");
@@ -169,7 +180,10 @@ public class ReferencesService {
 
 
     @Transactional
-    @CacheEvict(value = "animalColors", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(value = "animalColors", allEntries = true),
+        @CacheEvict(value = "animalColor", allEntries = true)
+    })
     public void deleteColor(int colorId) {
 
         AnimalColor color = clrRep.findById(colorId).orElseThrow(() -> new ValueNotFoundException("Cor não encontrada."));

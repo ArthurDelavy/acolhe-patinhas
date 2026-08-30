@@ -15,6 +15,7 @@ public interface AnimalRepository extends JpaRepository<Animal, Integer> {
     boolean existsBySpecie(AnimalSpecie specie);
     boolean existsByColor(AnimalColor color);
     boolean existsByDischargeReason(AnimalDischargeReason dischargeReason);
+    boolean existsByMicrochipNumber(String microchipNumber);
 
     @EntityGraph(attributePaths = {"color", "breed.specie"})
     List<Animal> findAll();
