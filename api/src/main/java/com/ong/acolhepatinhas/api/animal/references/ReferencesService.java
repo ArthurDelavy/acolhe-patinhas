@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.animal.AnimalRepository;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewBreedRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewColorRequest;
+import com.ong.acolhepatinhas.api.animal.references.DTO.NewDischargeReasonRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewSpecieRequest;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
@@ -43,7 +44,7 @@ public class ReferencesService {
 
 
     // Getters
-    @Cacheable(value = "AnimalColors")
+    @Cacheable(value = "animalColors")
     public List<AnimalColor> listAllColors() {
         return clrRep.findAll();
     }
@@ -121,6 +122,20 @@ public class ReferencesService {
     }
 
 
+    @Transactional
+    @CacheEvict(value = "animalDischargeReasons", allEntries = true)
+    public AnimalDischargeReason newDischargeReason(@Valid NewDischargeReasonRequest data) {
+
+        if (drsRep.existsByName(data.name())) throw new DuplicatedValueException("Motivo já cadastrado.");
+
+        AnimalDischargeReason reason = AnimalDischargeReason.builder()
+            .name(data.name())
+            .build();
+
+        return drsRep.save(reason);
+    }
+
+
 
 
 
@@ -161,5 +176,16 @@ public class ReferencesService {
         if (anmRep.existsByColor(color)) throw new ResourceInUseException("A cor não pôde ser deletada pois está vinculada a um animal.");
 
         clrRep.delete(color);
+    }
+
+
+    @Transactional
+    @CacheEvict(value = "animalDischargeReasons", allEntries = true)
+    public void deleteDischargeReason(int reasonId) {
+
+        AnimalDischargeReason reason = drsRep.findById(reasonId).orElseThrow(() -> new ValueNotFoundException("Motivo não encontrado."));
+        if (anmRep.existsByDischargeReason(reason)) throw new ResourceInUseException("O motivo não pôde ser deletado pois está vinculado a um animal.");
+
+        drsRep.delete(reason);
     }
 }

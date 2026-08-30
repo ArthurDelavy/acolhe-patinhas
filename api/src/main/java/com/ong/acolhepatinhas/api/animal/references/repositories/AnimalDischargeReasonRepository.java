@@ -7,4 +7,5 @@ import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReas
 
 @Repository
 public interface AnimalDischargeReasonRepository extends JpaRepository<AnimalDischargeReason, Integer> {
+    boolean existsByName(String name);
 }

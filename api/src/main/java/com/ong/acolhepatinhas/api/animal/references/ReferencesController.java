@@ -1,5 +1,7 @@
 package com.ong.acolhepatinhas.api.animal.references;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,8 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.animal.references.DTO.BreedResponse;
 import com.ong.acolhepatinhas.api.animal.references.DTO.ColorResponse;
+import com.ong.acolhepatinhas.api.animal.references.DTO.DischargeReasonResponse;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewBreedRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewColorRequest;
+import com.ong.acolhepatinhas.api.animal.references.DTO.NewDischargeReasonRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewSpecieRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.ReferencesResponse;
 import com.ong.acolhepatinhas.api.animal.references.DTO.SpecieResponse;
@@ -169,6 +173,51 @@ public class ReferencesController {
         @ApiResponse(responseCode = "409", description = "Cor vinculada a um animal", content = @Content)
     public ResponseEntity<Void> deleteColor(@PathVariable int colorId) {
         rfcSvc.deleteColor(colorId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+
+
+    // Motivo de Baixa
+    
+    @GetMapping("/dischargeReason") @PreAuthorize("hasAnyAuthority('animal:create', 'animal:edit', 'animalReference:manage')")
+    @Operation(summary = "Lista de motivos de baixa cadastrados")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
+    public ResponseEntity<List<DischargeReasonResponse>> listAllDischargeReasons() {
+        List<DischargeReasonResponse> responseData = rfcSvc.listAllDischargeReasons()
+            .stream()
+            .map(DischargeReasonResponse::new)
+            .toList();
+            
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
+    @PostMapping("/dischargeReason") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @Operation(summary = "Incluir novo motivo")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "201", description = "Criado com sucesso!")
+        @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Motivo já cadastrado", content = @Content)
+    public ResponseEntity<Void> newDischargeReason(@RequestBody @Valid NewDischargeReasonRequest data) {
+        rfcSvc.newDischargeReason(data);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @DeleteMapping("/dischargeReason/{reasonId}") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @Operation(summary = "Excluir motivo")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "204", description = "Excluído com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Motivo não encontrado", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Motivo vinculado a um animal", content = @Content)
+    public ResponseEntity<Void> deleteDischargeReason(@PathVariable int reasonId) {
+        rfcSvc.deleteDischargeReason(reasonId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }
