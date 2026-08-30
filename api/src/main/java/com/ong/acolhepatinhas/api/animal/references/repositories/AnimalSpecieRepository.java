@@ -13,4 +13,6 @@ public interface AnimalSpecieRepository extends JpaRepository<AnimalSpecie, Inte
 
     @Query("SELECT s FROM animal_species s LEFT JOIN FETCH s.breeds")
     List<AnimalSpecie> findAllWithBreeds();
+
+    boolean existsByName(String name);
 }

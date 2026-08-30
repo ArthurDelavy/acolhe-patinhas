@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.animal.references.DTO.BreedResponse;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewBreedRequest;
+import com.ong.acolhepatinhas.api.animal.references.DTO.NewSpecieRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.ReferencesResponse;
+import com.ong.acolhepatinhas.api.animal.references.DTO.SpecieResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -73,11 +75,10 @@ public class ReferencesController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @DeleteMapping("/breed/{id}") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @DeleteMapping("/breed/{breedId}") @PreAuthorize("hasAuthority('animalReference:manage')")
     @Operation(summary = "Excluir raça")
         @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "204", description = "Excluído com sucesso!")
-        @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Raça não encontrada", content = @Content)
@@ -88,5 +89,43 @@ public class ReferencesController {
     }
 
 
+    // Especie
+    
+    @GetMapping("/specie") @PreAuthorize("hasAnyAuthority('animal:create', 'animal:edit', 'animalReference:manage')")
+    @Operation(summary = "Lista de espécies cadastradas")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
+    public ResponseEntity<SpecieResponse> listAllSpecies() {
+        SpecieResponse responseData = new SpecieResponse(rfcSvc.listAllSpecies());
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
+    @PostMapping("/specie") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @Operation(summary = "Incluir nova espécie")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "201", description = "Criado com sucesso!")
+        @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Espécie já cadastrada", content = @Content)
+    public ResponseEntity<Void> newSpecie(@RequestBody @Valid NewSpecieRequest data) {
+        rfcSvc.newSpecie(data);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @DeleteMapping("/specie/{specieId}") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @Operation(summary = "Excluir espécie")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "204", description = "Excluído com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Espécie não encontrada", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Espécie vinculada a um animal", content = @Content)
+    public ResponseEntity<Void> deleteSpecie(@PathVariable int specieId) {
+        rfcSvc.deleteSpecie(specieId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 
 }

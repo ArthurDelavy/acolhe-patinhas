@@ -11,6 +11,7 @@ import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.animal.AnimalRepository;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewBreedRequest;
+import com.ong.acolhepatinhas.api.animal.references.DTO.NewSpecieRequest;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReason;
@@ -61,6 +62,11 @@ public class ReferencesService {
         return brdRep.findAll();
     }
 
+    @Cacheable(value = "animalSpecies")
+    public List<AnimalSpecie> listAllSpecies() {
+        return spcRep.findAll();
+    }
+
 
 
     // Setters
@@ -82,6 +88,28 @@ public class ReferencesService {
         return brdRep.save(breed);
     }
 
+
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "animalSpecies", allEntries = true),
+        @CacheEvict(value = "animalSpeciesWithBreeds", allEntries = true)
+    })
+    public AnimalSpecie newSpecie(@Valid NewSpecieRequest data) {
+
+        if (spcRep.existsByName(data.name())) throw new DuplicatedValueException("Espécie já cadastrada.");
+
+        AnimalSpecie specie = AnimalSpecie.builder()
+            .name(data.name())
+            .build();
+
+        return spcRep.save(specie);
+    }
+
+
+
+
+
+    // Deletes
     @Transactional
     @Caching(evict = {
         @CacheEvict(value = "animalBreeds", allEntries = true),
@@ -93,5 +121,19 @@ public class ReferencesService {
         if (anmRep.existsByBreed(breed)) throw new ResourceInUseException("A raça não pôde ser deletada pois está vinculada a um animal.");
 
         brdRep.delete(breed);
+    }
+
+
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "animalSpecies", allEntries = true),
+        @CacheEvict(value = "animalSpeciesWithBreeds", allEntries = true)
+    })
+    public void deleteSpecie(int specieId) {
+
+        AnimalSpecie specie = spcRep.findById(specieId).orElseThrow(() -> new ValueNotFoundException("Espécie não encontrada."));
+        if (anmRep.existsBySpecie(specie)) throw new ResourceInUseException("A espécie não pôde ser deletada pois está vinculada a um animal.");
+
+        spcRep.delete(specie);
     }
 }
