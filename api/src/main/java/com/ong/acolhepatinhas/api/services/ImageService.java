@@ -8,8 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ong.acolhepatinhas.api.exceptions.custom.ImageProcessingException;
 import com.ong.acolhepatinhas.api.services.DTO.ImageRequest;
 
 import jakarta.validation.Valid;
@@ -40,7 +42,7 @@ public class ImageService {
 
 
 
-    public String uploadImage(@Valid ImageRequest file) throws IOException {
+    public String uploadImage(@Valid ImageRequest file) {
         
         MultipartFile image = file.image();
         if (image == null || image.isEmpty()) throw new IllegalArgumentException("Imagem inválida.");
@@ -49,30 +51,36 @@ public class ImageService {
         byte[] imageBytes = optimizeImage(image);
         String uploadUrl = String.format("%s/storage/v1/object/%s/%s", datasourceUrl, datasourceBucket, filename);
 
-        restClient.post()
-            .uri(uploadUrl)
-            .header("Authorization", "Bearer " + datasourceKey)
-            .header("Content-Type", "image/jpeg")
-            .body(imageBytes)
-            .retrieve()
-            .toBodilessEntity();
+        try {
+            restClient.post()
+                .uri(uploadUrl)
+                .header("Authorization", "Bearer " + datasourceKey)
+                .header("Content-Type", "image/jpeg")
+                .body(imageBytes)
+                .retrieve()
+                .toBodilessEntity();
+        } catch (RestClientException e) { throw new ImageProcessingException("Falha ao salvar imagem."); }
 
         return String.format("%s/storage/v1/object/public/%s/%s", datasourceUrl, datasourceBucket, filename);
     }
 
 
-    private byte[] optimizeImage(MultipartFile image) throws IOException {
+    private byte[] optimizeImage(MultipartFile image) {
         
-        if (image.getSize() < minCompressionKb * 1024) return image.getBytes();
+        if (image.getSize() < minCompressionKb * 1024) {
+            try { return image.getBytes(); }
+            catch (IOException e) { throw new ImageProcessingException("Erro ao ler imagem."); }
+        }
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+       try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
-        Thumbnails.of(image.getInputStream())
-            .size(80, 80)
-            .outputFormat("jpg")
-            .outputQuality(qualityCompression)
-            .toOutputStream(outputStream);
+            Thumbnails.of(image.getInputStream())
+                .size(80, 80)
+                .outputFormat("jpg")
+                .outputQuality(qualityCompression)
+                .toOutputStream(outputStream);
 
-        return outputStream.toByteArray();
+            return outputStream.toByteArray();
+        } catch (IOException e) { throw new ImageProcessingException("Falha ao otimizar imagem."); }
     }
 }

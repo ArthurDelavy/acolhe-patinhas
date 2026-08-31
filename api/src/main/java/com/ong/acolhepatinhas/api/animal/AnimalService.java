@@ -20,7 +20,6 @@ import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import net.coobird.thumbnailator.tasks.io.ImageSink;
 
 @Service
 @Validated

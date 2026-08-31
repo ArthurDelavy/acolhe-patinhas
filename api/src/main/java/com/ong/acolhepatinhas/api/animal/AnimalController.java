@@ -109,6 +109,8 @@ public class AnimalController {
         @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Referência não encontrada", content = @Content)
+        @ApiResponse(responseCode = "500", description = "Erro ao salvar imagem", content = @Content)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DetailedAnimalResponse> updateImage(@AuthenticationPrincipal LoggedUserPayload user, @PathVariable int animalId, @ModelAttribute ImageRequest image) {
         DetailedAnimalResponse responseData = new DetailedAnimalResponse(anmSvc.setImage(user, animalId, image));
