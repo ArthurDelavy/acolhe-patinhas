@@ -12,12 +12,15 @@ import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.references.ReferencesService;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.ImageService;
+import com.ong.acolhepatinhas.api.services.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import net.coobird.thumbnailator.tasks.io.ImageSink;
 
 @Service
 @Validated
@@ -28,6 +31,8 @@ public class AnimalService {
     private final AnimalRepository anmRep;
     private final UserService usrSvc;
     private final ReferencesService rfcSvc;
+
+    private final ImageService imgSvc;
 
 
     public List<Animal> listAll(Boolean toAdoption) {
@@ -91,6 +96,19 @@ public class AnimalService {
         animal.setDischargeReason(data.dischargeDate() != null ? rfcSvc.getDischargeReason(data.dischargeReasonId()) : null);
         animal.setToAdoption(data.toAdoption());
 
+        return anmRep.save(animal);
+    }
+
+
+    @Transactional
+    public Animal setImage(LoggedUserPayload user, int animalId, @Valid ImageRequest image) {
+
+        User requester = (User) usrSvc.loadUserByUsername(user.email());
+        Animal animal = this.getById(animalId);
+        String url = imgSvc.uploadImage(image);
+
+        animal.setImgUrl(url);
+        animal.setUser(requester);
         return anmRep.save(animal);
     }
 }

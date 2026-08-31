@@ -3,10 +3,12 @@ package com.ong.acolhepatinhas.api.animal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +21,7 @@ import com.ong.acolhepatinhas.api.animal.DTO.DetailedAnimalResponse;
 import com.ong.acolhepatinhas.api.animal.DTO.EditAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.ResumedAnimalResponse;
+import com.ong.acolhepatinhas.api.services.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -97,4 +100,19 @@ public class AnimalController {
         DetailedAnimalResponse responseData = new DetailedAnimalResponse(anmSvc.editAnimal(user, animalId, data));
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
+
+
+    @PatchMapping("/{animalId}/image") @PreAuthorize("hasAuthority('animal:edit')")
+    @Operation(summary = "Atualizar dados de um animal")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "201", description = "Atualizado com sucesso!")
+        @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DetailedAnimalResponse> updateImage(@AuthenticationPrincipal LoggedUserPayload user, @PathVariable int animalId, @ModelAttribute ImageRequest image) {
+        DetailedAnimalResponse responseData = new DetailedAnimalResponse(anmSvc.setImage(user, animalId, image));
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
 }

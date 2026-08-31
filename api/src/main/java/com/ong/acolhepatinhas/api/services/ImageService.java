@@ -6,14 +6,17 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.ong.acolhepatinhas.api.services.DTO.ImageDTO;
+import com.ong.acolhepatinhas.api.services.DTO.ImageRequest;
 
+import jakarta.validation.Valid;
 import net.coobird.thumbnailator.Thumbnails;
 
 @Service
+@Validated
 public class ImageService {
     
     @Value("${app.images.datasource.url}")
@@ -37,7 +40,7 @@ public class ImageService {
 
 
 
-    public String uploadImage(ImageDTO file) throws IOException {
+    public String uploadImage(@Valid ImageRequest file) throws IOException {
         
         MultipartFile image = file.image();
         if (image == null || image.isEmpty()) throw new IllegalArgumentException("Imagem inválida.");
