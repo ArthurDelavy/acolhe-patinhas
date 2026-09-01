@@ -3,7 +3,7 @@ package com.ong.acolhepatinhas.api.animal.DTO;
 import java.time.Instant;
 import java.time.LocalDate;
 
-import com.ong.acolhepatinhas.api.animal.enums.Genders;
+import com.ong.acolhepatinhas.api.animal.enums.Gender;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
@@ -25,7 +25,7 @@ public record NewAnimalRequest(
     int colorId,
 
     @NotBlank
-    Genders gender,
+    Gender gender,
 
     @PastOrPresent
     LocalDate birthDate,

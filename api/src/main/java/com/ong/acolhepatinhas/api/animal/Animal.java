@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
-import com.ong.acolhepatinhas.api.animal.enums.Genders;
+import com.ong.acolhepatinhas.api.animal.enums.Gender;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReason;
@@ -52,7 +52,7 @@ public class Animal {
     private AnimalColor color;
 
     @Enumerated(EnumType.STRING)
-    private Genders gender;
+    private Gender gender;
 
     private LocalDate birthDate;
     private Instant intakeDate;
