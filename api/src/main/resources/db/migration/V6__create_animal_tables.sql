@@ -1,0 +1,39 @@
+CREATE TYPE gender AS ENUM ('M','F');
+
+CREATE TABLE animal_species (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(20) NOT NULL UNIQUE
+);
+
+CREATE TABLE animal_breeds (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    specie_id INT NOT NULL REFERENCES animal_species(id) ON DELETE RESTRICT,
+    name VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE animal_colors (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(20) NOT NULL UNIQUE
+);
+
+CREATE TABLE animal_discharge_reasons (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(20) NOT NULL UNIQUE
+);
+
+
+CREATE TABLE animals (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    name VARCHAR(45) NOT NULL,
+    microchip_number VARCHAR(15) UNIQUE,
+    breed_id INTEGER NOT NULL REFERENCES animal_breeds(id) ON DELETE RESTRICT,
+    color_id INTEGER REFERENCES animal_colors(id) ON DELETE RESTRICT,
+    gender gender NOT NULL,
+    birth_date DATE,
+    intake_date TIMESTAMPTZ,
+    discharge_date TIMESTAMPTZ,
+    discharge_reason_id INTEGER REFERENCES animal_discharge_reasons(id) ON DELETE RESTRICT,
+    to_adoption BOOLEAN NOT NULL DEFAULT false,
+    image_url VARCHAR(255)
+);
