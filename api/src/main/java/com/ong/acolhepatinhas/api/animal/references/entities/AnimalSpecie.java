@@ -1,5 +1,7 @@
 package com.ong.acolhepatinhas.api.animal.references.entities;
 
+import java.util.List;
+
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
@@ -7,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,4 +29,6 @@ public class AnimalSpecie {
 
     private String name;
 
+    @OneToMany(mappedBy = "specie")
+    private List<AnimalBreed> breeds;
 }

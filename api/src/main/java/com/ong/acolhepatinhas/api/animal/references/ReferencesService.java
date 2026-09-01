@@ -56,7 +56,7 @@ public class ReferencesService {
 
     @Cacheable(value = "animalSpeciesWithBreeds")
     public List<AnimalSpecie> listAllSpeciesWithBreeds() {
-        return spcRep.findAllWithBreeds();
+        return spcRep.findAll();
     }
 
     @Cacheable(value = "animalBreeds")
