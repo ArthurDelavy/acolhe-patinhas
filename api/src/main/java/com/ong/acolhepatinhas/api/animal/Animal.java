@@ -45,10 +45,10 @@ public class Animal {
     
     private String microchipNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "breeds_id")
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "breed_id")
     private AnimalBreed breed;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "colors_id")
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "color_id")
     private AnimalColor color;
 
     @Enumerated(EnumType.STRING)
@@ -58,10 +58,10 @@ public class Animal {
     private Instant intakeDate;
     private Instant dischargeDate;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "discharge_reason.id")
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "discharge_reason_id")
     private AnimalDischargeReason dischargeReason;
 
     private boolean toAdoption;
 
-    private String imgUrl;
+    private String imageUrl;
 }

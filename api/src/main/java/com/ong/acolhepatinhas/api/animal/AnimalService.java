@@ -106,7 +106,7 @@ public class AnimalService {
         Animal animal = this.getById(animalId);
         String url = imgSvc.uploadImage(image);
 
-        animal.setImgUrl(url);
+        animal.setImageUrl(url);
         animal.setUser(requester);
         return anmRep.save(animal);
     }

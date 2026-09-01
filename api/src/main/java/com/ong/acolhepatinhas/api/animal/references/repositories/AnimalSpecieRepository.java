@@ -11,7 +11,7 @@ import com.ong.acolhepatinhas.api.animal.references.entities.AnimalSpecie;
 @Repository
 public interface AnimalSpecieRepository extends JpaRepository<AnimalSpecie, Integer> {
 
-    @Query("SELECT s FROM animal_species s LEFT JOIN FETCH s.breeds")
+    @Query("SELECT s FROM AnimalSpecie s LEFT JOIN FETCH s.breeds")
     List<AnimalSpecie> findAllWithBreeds();
 
     boolean existsByName(String name);

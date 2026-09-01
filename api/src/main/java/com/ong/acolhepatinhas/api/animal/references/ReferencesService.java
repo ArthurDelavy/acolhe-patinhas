@@ -182,7 +182,7 @@ public class ReferencesService {
     public void deleteSpecie(int specieId) {
 
         AnimalSpecie specie = spcRep.findById(specieId).orElseThrow(() -> new ValueNotFoundException("Espécie não encontrada."));
-        if (anmRep.existsBySpecie(specie)) throw new ResourceInUseException("A espécie não pôde ser deletada pois está vinculada a um animal.");
+        if (anmRep.existsByBreed_Specie(specie)) throw new ResourceInUseException("A espécie não pôde ser deletada pois está vinculada a um animal.");
 
         spcRep.delete(specie);
     }

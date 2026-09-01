@@ -13,7 +13,7 @@ import com.ong.acolhepatinhas.api.animal.references.entities.AnimalSpecie;
 
 public interface AnimalRepository extends JpaRepository<Animal, Integer> {
     boolean existsByBreed(AnimalBreed breed);
-    boolean existsBySpecie(AnimalSpecie specie);
+    boolean existsByBreed_Specie(AnimalSpecie specie);
     boolean existsByColor(AnimalColor color);
     boolean existsByDischargeReason(AnimalDischargeReason dischargeReason);
     boolean existsByMicrochipNumber(String microchipNumber);
