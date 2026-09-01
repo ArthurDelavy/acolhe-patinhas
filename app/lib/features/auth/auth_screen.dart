@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'auth_modal.dart';
 import '../../utils/validators.dart';
 import '../../services/auth_service.dart';
-import '../home/feed.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -33,7 +32,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
 
-    _authService = AuthService(baseUrl: 'http://192.168.2.104:8080');
+    _authService = AuthService(baseUrl: 'http://localhost:8080');
   }
 
   @override

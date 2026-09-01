@@ -32,7 +32,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
   @override
   void initState() {
     super.initState();
-    _authService = AuthService(baseUrl: 'http://192.168.2.104:8080');
+    _authService = AuthService(baseUrl: 'http://localhost:8080');
   }
 
   @override
