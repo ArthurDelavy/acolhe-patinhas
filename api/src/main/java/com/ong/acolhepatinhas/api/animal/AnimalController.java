@@ -102,7 +102,7 @@ public class AnimalController {
     }
 
 
-    @PatchMapping("/{animalId}/image") @PreAuthorize("hasAuthority('animal:edit')")
+    @PatchMapping(value = "/{animalId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE) @PreAuthorize("hasAuthority('animal:edit')")
     @Operation(summary = "Atualizar dados de um animal")
         @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "201", description = "Atualizado com sucesso!")
@@ -111,10 +111,9 @@ public class AnimalController {
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Referência não encontrada", content = @Content)
         @ApiResponse(responseCode = "500", description = "Erro ao salvar imagem", content = @Content)
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DetailedAnimalResponse> updateImage(@AuthenticationPrincipal LoggedUserPayload user, @PathVariable int animalId, @ModelAttribute ImageRequest image) {
         DetailedAnimalResponse responseData = new DetailedAnimalResponse(anmSvc.setImage(user, animalId, image));
-        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
 }
