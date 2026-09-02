@@ -1,9 +1,10 @@
 package com.ong.acolhepatinhas.api.security;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -35,8 +36,11 @@ public class SecurityFilter extends OncePerRequestFilter {
                 String email = decodedJwt.getSubject();
 
                 LoggedUserPayload user = new LoggedUserPayload(email);
+
+                List<String> roles = decodedJwt.getClaim("roles").asList(String.class);
+                List<SimpleGrantedAuthority> authorities = roles.stream().map(SimpleGrantedAuthority::new).toList();
                 
-                var authentication = new UsernamePasswordAuthenticationToken(user, null, Collections.emptyList()); 
+                var authentication = new UsernamePasswordAuthenticationToken(user, null, authorities); 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
