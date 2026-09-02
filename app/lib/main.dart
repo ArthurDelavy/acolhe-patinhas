@@ -1,5 +1,6 @@
 import 'package:acolhe_patinhas/features/auth/auth_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:acolhe_patinhas/features/home/feed.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const AuthScreen(),
+      routes: {'/feed': (context) => const FeedScreen()},
     );
   }
 }
