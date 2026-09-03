@@ -55,11 +55,15 @@ public class ImageService {
             restClient.post()
                 .uri(uploadUrl)
                 .header("Authorization", "Bearer " + datasourceKey)
+                .header("apikey", datasourceKey)
                 .header("Content-Type", "image/jpeg")
                 .body(imageBytes)
                 .retrieve()
                 .toBodilessEntity();
-        } catch (RestClientException e) { throw new ImageProcessingException("Falha ao salvar imagem."); }
+        } catch (RestClientException e) {
+            System.err.print(e);
+            throw new ImageProcessingException("Falha ao salvar imagem.");
+        }
 
         return String.format("%s/storage/v1/object/public/%s/%s", datasourceUrl, datasourceBucket, filename);
     }
