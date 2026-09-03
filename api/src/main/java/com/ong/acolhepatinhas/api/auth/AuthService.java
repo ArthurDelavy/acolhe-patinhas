@@ -33,6 +33,13 @@ public class AuthService {
     @Autowired
     private RefreshTokenService rftSvc;
 
+    public TokenResponse issueTokens(User user) {
+        String authToken = tknSvc.generateToken(user);
+        UUID refreshToken = rftSvc.newToken(user);
+
+        return new TokenResponse(authToken, refreshToken);
+    }
+
     public TokenResponse authUser(@Valid LoginRequest data) {
         
         UsernamePasswordAuthenticationToken usrPswTkn = new UsernamePasswordAuthenticationToken(data.email(), data.password());

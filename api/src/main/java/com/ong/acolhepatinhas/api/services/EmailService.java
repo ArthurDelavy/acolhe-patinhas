@@ -18,10 +18,21 @@ public class EmailService {
     public void resetPasswordEmail(String to, String token) {
         SimpleMailMessage message = new SimpleMailMessage();
 
-        message.setFrom(token);
+        message.setFrom(sender);
         message.setTo(to);
         message.setSubject("ACOLHE PATINHAS | Redefinição de Senha");
         message.setText("Seu código de confirmação para troca da senha da conta é: " + token);
+
+        mailSender.send(message);
+    }
+
+    public void verificationEmail(String to, String code) {
+        SimpleMailMessage message = new SimpleMailMessage();
+
+        message.setFrom(sender);
+        message.setTo(to);
+        message.setSubject("ACOLHE PATINHAS | Verificação de E-mail");
+        message.setText("Seu código de verificação de e-mail é: " + code + "\n\nEste código expira em 24 horas. Se você não se cadastrou na Acolhe Patinhas, ignore esta mensagem.");
 
         mailSender.send(message);
     }

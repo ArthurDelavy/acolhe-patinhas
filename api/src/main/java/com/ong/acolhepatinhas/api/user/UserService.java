@@ -16,6 +16,10 @@ import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.ForgotPasswordRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.PasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.RegisterRequest;
+import com.ong.acolhepatinhas.api.auth.DTO.ResendVerificationRequest;
+import com.ong.acolhepatinhas.api.auth.DTO.VerifyEmailRequest;
+import com.ong.acolhepatinhas.api.emailverification.EmailVerificationCode;
+import com.ong.acolhepatinhas.api.emailverification.EmailVerificationCodeService;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCode;
@@ -44,6 +48,9 @@ public class UserService implements UserDetailsService {
     @Autowired
     private EmailService emlSvc;
 
+    @Autowired
+    private EmailVerificationCodeService evcSvc;
+
     
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -60,9 +67,13 @@ public class UserService implements UserDetailsService {
             .email(data.email())
             .password(pswEcd.encode(data.password()))
             .createdAt(OffsetDateTime.now())
+            .emailVerified(false)
             .build();
 
         user = usrRep.save(user);
+
+        String code = evcSvc.newCode(user);
+        emlSvc.verificationEmail(user.getEmail(), code);
 
         return UserResponse.from(user);
     }
@@ -97,5 +108,32 @@ public class UserService implements UserDetailsService {
 
         user.setPassword(pswEcd.encode(data.newPassword()));
         pswSvc.deleteCode(code);
+    }
+
+
+    public void resendVerificationEmail(@Valid ResendVerificationRequest data) {
+
+        usrRep.findByEmail(data.email()).ifPresent(user -> {
+            if (!user.isEmailVerified()) {
+                String code = evcSvc.newCode(user);
+                emlSvc.verificationEmail(user.getEmail(), code);
+            }
+        });
+    }
+
+    @Transactional
+    public User verifyEmail(@Valid VerifyEmailRequest data) {
+        User user = usrRep.findByEmail(data.email()).orElseThrow(() -> new ValueNotFoundException("Usuário não cadastrado."));
+
+        if (user.isEmailVerified()) throw new DuplicatedValueException("E-mail já verificado.");
+
+        EmailVerificationCode code = evcSvc.getByUser(user);
+
+        if (!pswEcd.matches(data.code(), code.getCode())) throw new BadCredentialsException("Código inválido.");
+
+        user.setEmailVerified(true);
+        evcSvc.deleteCode(code);
+
+        return user;
     }
 }

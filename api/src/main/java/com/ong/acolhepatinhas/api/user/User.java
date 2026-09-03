@@ -47,6 +47,8 @@ public class User implements UserDetails {
 
     private OffsetDateTime deletedAt;
 
+    private boolean emailVerified;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -76,7 +78,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return emailVerified;
     }
     
 }
