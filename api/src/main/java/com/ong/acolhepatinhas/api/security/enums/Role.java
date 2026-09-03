@@ -8,7 +8,15 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public enum Role {
     ADMIN(Set.of(
-        
+        Permission.ANIMAL_READ,
+        Permission.ANIMAL_CREATE,
+        Permission.ANIMAL_EDIT,
+        Permission.ANIMAL_REMOVE,
+        Permission.ANIMAL_REFERENCE_MANAGE
+    )),
+
+    USER(Set.of(
+        Permission.ANIMAL_READ
     ));
 
 

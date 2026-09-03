@@ -1,5 +1,6 @@
 package com.ong.acolhepatinhas.api.exceptions;
 
+import java.nio.file.AccessDeniedException;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ExpiredDataException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ImageProcessingException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 
 @RestControllerAdvice
@@ -97,5 +100,52 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handlerAccessDenied(AccessDeniedException e) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.FORBIDDEN.value(), 
+            e.getMessage(), 
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    
+    @ExceptionHandler(ResourceInUseException.class)
+    public ResponseEntity<ErrorResponse> handleResourceInUse(ResourceInUseException e) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.CONFLICT.value(),
+            e.getMessage(),
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.BAD_REQUEST.value(),
+            e.getMessage(),
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(ImageProcessingException.class)
+    public ResponseEntity<ErrorResponse> handleImageProcessing(ImageProcessingException e) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(), 
+            e.getMessage(), 
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

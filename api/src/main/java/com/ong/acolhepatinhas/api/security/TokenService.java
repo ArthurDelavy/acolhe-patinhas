@@ -15,7 +15,7 @@ import com.ong.acolhepatinhas.api.user.User;
 @Service
 public class TokenService {
 
-    @Value("${app.tokenIssuer")
+    @Value("${app.tokenIssuer}")
     private String ISSUER;
     
     @Value("${app.jwtTokenExpirationMs}")
@@ -31,6 +31,7 @@ public class TokenService {
             return JWT.create()
                 .withIssuer(ISSUER)
                 .withSubject(user.getEmail())
+                .withClaim("roles", user.getAuthorities().stream().map(auth -> auth.getAuthority()).toList())
                 .withExpiresAt(Instant.now().plusMillis(EXPIRATION_TIME))
                 .sign(signature);
         } catch (JWTCreationException e) {

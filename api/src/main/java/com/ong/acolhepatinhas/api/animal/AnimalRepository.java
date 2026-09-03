@@ -1,0 +1,29 @@
+package com.ong.acolhepatinhas.api.animal;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReason;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalSpecie;
+
+public interface AnimalRepository extends JpaRepository<Animal, Integer> {
+    boolean existsByBreed(AnimalBreed breed);
+    boolean existsByBreed_Specie(AnimalSpecie specie);
+    boolean existsByColor(AnimalColor color);
+    boolean existsByDischargeReason(AnimalDischargeReason dischargeReason);
+    boolean existsByMicrochipNumber(String microchipNumber);
+
+    @EntityGraph(attributePaths = {"color", "breed.specie"})
+    List<Animal> findAll();
+
+    @EntityGraph(attributePaths = {"color", "breed.specie"})
+    List<Animal> findAllByToAdoption(Boolean toAdoption);
+
+    @EntityGraph(attributePaths = {"user", "breed.specie", "color", "gender", "dischargeReason"})
+    Optional<Animal> findById(int id);
+}
