@@ -19,7 +19,8 @@ public record DetailedAnimalResponse(
     Instant intakeDate,
     Instant dischargeDate,
     String dischargeReason,
-    boolean toAdoption
+    boolean toAdoption,
+    String imageUrl
 
 ) {
 
@@ -37,7 +38,8 @@ public record DetailedAnimalResponse(
             data.getIntakeDate(),
             data.getDischargeDate(),
             data.getDischargeReason() != null ? data.getDischargeReason().getName() : null,
-            data.isToAdoption()
+            data.isToAdoption(),
+            data.getImageUrl()
         );
     }
 }

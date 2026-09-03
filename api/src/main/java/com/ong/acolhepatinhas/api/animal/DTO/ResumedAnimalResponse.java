@@ -14,7 +14,8 @@ public record ResumedAnimalResponse(
     String color,
     char gender,
     Integer age,
-    boolean toAdoption
+    boolean toAdoption,
+    String imageUrl
 
 ) {
     
@@ -27,7 +28,8 @@ public record ResumedAnimalResponse(
             data.getColor().getName(), 
             data.getGender().toString().charAt(0), 
             data.getBirthDate() != null ? Period.between(data.getBirthDate(), LocalDate.now()).getYears() : null,
-            data.isToAdoption()
+            data.isToAdoption(),
+            data.getImageUrl()
         );
     }
 }
