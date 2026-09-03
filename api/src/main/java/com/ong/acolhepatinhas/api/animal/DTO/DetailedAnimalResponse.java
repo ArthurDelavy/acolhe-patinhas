@@ -36,7 +36,7 @@ public record DetailedAnimalResponse(
             data.getBirthDate(),
             data.getIntakeDate(),
             data.getDischargeDate(),
-            data.getDischargeReason().getName(),
+            data.getDischargeReason() != null ? data.getDischargeReason().getName() : null,
             data.isToAdoption()
         );
     }
