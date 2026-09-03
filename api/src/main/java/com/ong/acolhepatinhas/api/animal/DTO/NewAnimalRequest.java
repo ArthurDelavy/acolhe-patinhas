@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import com.ong.acolhepatinhas.api.animal.enums.Gender;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -24,7 +25,7 @@ public record NewAnimalRequest(
     @Positive
     int colorId,
 
-    @NotBlank
+    @NotNull
     Gender gender,
 
     @PastOrPresent
