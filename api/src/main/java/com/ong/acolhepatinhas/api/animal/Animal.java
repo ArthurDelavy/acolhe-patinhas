@@ -5,6 +5,8 @@ import java.time.LocalDate;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import com.ong.acolhepatinhas.api.animal.enums.Gender;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
@@ -51,7 +53,7 @@ public class Animal {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "color_id")
     private AnimalColor color;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private Gender gender;
 
     private LocalDate birthDate;
