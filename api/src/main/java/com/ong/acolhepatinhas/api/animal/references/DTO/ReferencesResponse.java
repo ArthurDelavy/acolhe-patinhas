@@ -6,7 +6,8 @@ public record ReferencesResponse(
 
     List<ColorResponse> colors,
     List<DischargeReasonResponse> dischargeReasons,
-    List<SpecieResponse> species
+    List<SpecieResponse> species,
+    List<BreedResponse> breeds
     
 ) {
 }

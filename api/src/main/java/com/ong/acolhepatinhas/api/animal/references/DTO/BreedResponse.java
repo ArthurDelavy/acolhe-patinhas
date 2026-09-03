@@ -5,12 +5,12 @@ import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
 public record BreedResponse(
 
     int id,
-    SpecieResponse specie,
+    int specieId,
     String name
     
 ) {
 
     public BreedResponse(AnimalBreed data) {
-        this(data.getId(), new SpecieResponse(data.getSpecie()), data.getName());
+        this(data.getId(), data.getSpecie().getId(), data.getName());
     }
 }

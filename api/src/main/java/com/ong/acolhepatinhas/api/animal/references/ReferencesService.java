@@ -54,11 +54,6 @@ public class ReferencesService {
         return drsRep.findAll();
     }
 
-    @Cacheable(value = "animalSpeciesWithBreeds")
-    public List<AnimalSpecie> listAllSpeciesWithBreeds() {
-        return spcRep.findAll();
-    }
-
     @Cacheable(value = "animalBreeds")
     public List<AnimalBreed> listAllBreeds() {
         return brdRep.findAll();
@@ -89,10 +84,7 @@ public class ReferencesService {
 
     // Setters
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "animalBreeds", allEntries = true),
-        @CacheEvict(value = "animalSpeciesWithBreeds", allEntries = true)
-    })
+    @CacheEvict(value = "animalBreeds", allEntries = true)
     public AnimalBreed newBreed(@Valid NewBreedRequest data) {
 
         AnimalSpecie specie = spcRep.findById(data.specieId()).orElseThrow(() -> new ValueNotFoundException("A espécie não existe."));
@@ -108,10 +100,7 @@ public class ReferencesService {
 
 
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "animalSpecies", allEntries = true),
-        @CacheEvict(value = "animalSpeciesWithBreeds", allEntries = true)
-    })
+    @CacheEvict(value = "animalSpecies", allEntries = true)
     public AnimalSpecie newSpecie(@Valid NewSpecieRequest data) {
 
         if (spcRep.existsByName(data.name())) throw new DuplicatedValueException("Espécie já cadastrada.");
@@ -161,10 +150,7 @@ public class ReferencesService {
 
     // Deletes
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "animalBreeds", allEntries = true),
-        @CacheEvict(value = "animalSpeciesWithBreeds", allEntries = true)
-    })
+    @CacheEvict(value = "animalBreeds", allEntries = true)
     public void deleteBreed(int breedId) {
 
         AnimalBreed breed = brdRep.findById(breedId).orElseThrow(() -> new ValueNotFoundException("Raça não encontrada."));
@@ -175,10 +161,7 @@ public class ReferencesService {
 
 
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "animalSpecies", allEntries = true),
-        @CacheEvict(value = "animalSpeciesWithBreeds", allEntries = true)
-    })
+    @CacheEvict(value = "animalSpecies", allEntries = true)
     public void deleteSpecie(int specieId) {
 
         AnimalSpecie specie = spcRep.findById(specieId).orElseThrow(() -> new ValueNotFoundException("Espécie não encontrada."));

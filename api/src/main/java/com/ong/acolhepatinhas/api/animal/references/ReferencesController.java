@@ -47,9 +47,10 @@ public class ReferencesController {
        
         List<ColorResponse> colors = rfcSvc.listAllColors().stream().map(ColorResponse::new).toList();
         List<DischargeReasonResponse> reasons = rfcSvc.listAllDischargeReasons().stream().map(DischargeReasonResponse::new).toList();
-        List<SpecieResponse> species = rfcSvc.listAllSpeciesWithBreeds().stream().map(SpecieResponse::new).toList();
+        List<SpecieResponse> species = rfcSvc.listAllSpecies().stream().map(SpecieResponse::new).toList();
+        List<BreedResponse> breeds = rfcSvc.listAllBreeds().stream().map(BreedResponse::new).toList();
 
-        ReferencesResponse responseData = new ReferencesResponse(colors, reasons, species);
+        ReferencesResponse responseData = new ReferencesResponse(colors, reasons, species, breeds);
 
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
@@ -207,7 +208,7 @@ public class ReferencesController {
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
-    @PostMapping("/dischargeReason") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @PostMapping("/discharge-reason") @PreAuthorize("hasAuthority('animalReference:manage')")
     @Operation(summary = "Incluir novo motivo")
         @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "201", description = "Criado com sucesso!")
@@ -220,7 +221,7 @@ public class ReferencesController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @DeleteMapping("/dischargeReason/{reasonId}") @PreAuthorize("hasAuthority('animalReference:manage')")
+    @DeleteMapping("/discharge-reason/{reasonId}") @PreAuthorize("hasAuthority('animalReference:manage')")
     @Operation(summary = "Excluir motivo")
         @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "204", description = "Excluído com sucesso!")
