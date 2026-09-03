@@ -5,21 +5,51 @@ import java.time.LocalDate;
 
 import com.ong.acolhepatinhas.api.animal.Animal;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 public record DetailedAnimalResponse(
 
+    
+    @Schema(example = "1")
     int id,
+    
+    @Schema(example = "Fulano")
     String user,
+    
+    @Schema(example = "Max")
     String name,
+    
+    @Schema(example = "274957392710462")
     String microchipNumber,
+
+    @Schema(example = "Cachorro")
     String specie,
+    
+    @Schema(example = "1")
     String breed,
+    
+    @Schema(example = "1")
     String color,
+    
+    @Schema(example = "M")
     char gender,
+    
+    @Schema(example = "Cachorro")
     LocalDate birthDate,
+    
+    @Schema(example = "Cachorro")
     Instant intakeDate,
+    
+    @Schema(example = "2025-02-07T00:34:29.186Z")
     Instant dischargeDate,
+    
+    @Schema(example = "Óbito")
     String dischargeReason,
+    
+    @Schema(example = "false")
     boolean toAdoption,
+    
+    @Schema(example = "https://")
     String imageUrl
 
 ) {
