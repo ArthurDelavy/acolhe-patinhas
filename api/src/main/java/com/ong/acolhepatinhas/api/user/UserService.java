@@ -20,7 +20,8 @@ import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCode;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCodeService;
-import com.ong.acolhepatinhas.api.services.EmailService;
+import com.ong.acolhepatinhas.api.security.enums.Role;
+import com.ong.acolhepatinhas.api.services.emailService.EmailService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 
@@ -60,9 +61,12 @@ public class UserService implements UserDetailsService {
             .email(data.email())
             .password(pswEcd.encode(data.password()))
             .createdAt(OffsetDateTime.now())
+            .role(Role.USER)
             .build();
 
         user = usrRep.save(user);
+
+        emlSvc.newUserEmail(data.name(), data.email());
 
         return UserResponse.from(user);
     }
@@ -83,7 +87,7 @@ public class UserService implements UserDetailsService {
 
         usrRep.findByEmail(data.email()).ifPresent(user -> {
             String code = pswSvc.newCode(user);
-            emlSvc.resetPasswordEmail(user.getEmail(), code);
+            emlSvc.resetPasswordEmail(user.getName(), user.getEmail(), code);
         });
     }
 
