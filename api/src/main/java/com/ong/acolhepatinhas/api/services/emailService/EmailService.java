@@ -1,7 +1,12 @@
 package com.ong.acolhepatinhas.api.services.emailService;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.ong.acolhepatinhas.api.exceptions.custom.EmailSendingException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -12,11 +17,19 @@ public class EmailService {
     @Autowired
     private final EmailGateway emailGateway;
 
-    public void resetPasswordEmail(String to, String token) {
+    public void resetPasswordEmail(String name, String to, String token) {
         
         String subject = "ACOLHE PATINHAS | Redefinição de Senha";
-        String body = "Seu código de confirmação para troca da senha da conta é: " + token;
+        String template = "emails/reset-password";
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", name);
+        variables.put("token", token);
         
-        emailGateway.sendEmail(to, subject, body);
+        try {
+            emailGateway.sendEmail(to, subject, template, variables);
+        } catch (EmailSendingException e) {
+            
+        }
     }
 }

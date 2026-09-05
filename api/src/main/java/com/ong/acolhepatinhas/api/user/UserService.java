@@ -83,7 +83,7 @@ public class UserService implements UserDetailsService {
 
         usrRep.findByEmail(data.email()).ifPresent(user -> {
             String code = pswSvc.newCode(user);
-            emlSvc.resetPasswordEmail(user.getEmail(), code);
+            emlSvc.resetPasswordEmail(user.getName(), user.getEmail(), code);
         });
     }
 
