@@ -104,8 +104,11 @@ public class AnimalService {
 
         User requester = (User) usrSvc.loadUserByUsername(user.email());
         Animal animal = this.getById(animalId);
-        String url = imgSvc.uploadImage(image);
+        
+        if (animal.getImageUrl() != null) imgSvc.deleteImage(animal.getImageUrl());
 
+        String url = imgSvc.uploadImage(image);
+        
         animal.setImageUrl(url);
         animal.setUser(requester);
         return anmRep.save(animal);

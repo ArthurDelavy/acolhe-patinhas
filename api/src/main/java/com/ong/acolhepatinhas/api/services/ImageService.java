@@ -47,9 +47,9 @@ public class ImageService {
         MultipartFile image = file.image();
         if (image == null || image.isEmpty()) throw new IllegalArgumentException("Imagem inválida.");
         
-        String filename = UUID.randomUUID() + ".jpg";
+        String fileName = UUID.randomUUID() + ".jpg";
         byte[] imageBytes = optimizeImage(image);
-        String uploadUrl = String.format("%s/storage/v1/object/%s/%s", datasourceUrl, datasourceBucket, filename);
+        String uploadUrl = String.format("%s/storage/v1/object/%s/%s", datasourceUrl, datasourceBucket, fileName);
 
         try {
             restClient.post()
@@ -65,7 +65,26 @@ public class ImageService {
             throw new ImageProcessingException("Falha ao salvar imagem.");
         }
 
-        return String.format("%s/storage/v1/object/public/%s/%s", datasourceUrl, datasourceBucket, filename);
+        return String.format("%s/storage/v1/object/public/%s/%s", datasourceUrl, datasourceBucket, fileName);
+    }
+
+
+    public void deleteImage(String url) {
+        if (url.isBlank()) return;
+
+        String fileName = url.substring(url.lastIndexOf('/') + 1);
+        String uploadUrl = String.format("%s/storage/v1/object/%s/%s", datasourceUrl, datasourceBucket, fileName);
+
+        try {
+            restClient.delete()
+                .uri(uploadUrl)
+                .header("Authorization", "Bearer " + datasourceKey)
+                .header("apikey", datasourceKey)
+                .retrieve()
+                .toBodilessEntity();
+        } catch (RestClientException e) {
+            System.err.print("Falha ao excluir imagem: " + e);
+        }
     }
 
 
