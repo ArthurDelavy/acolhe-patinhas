@@ -20,7 +20,7 @@ import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCode;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCodeService;
-import com.ong.acolhepatinhas.api.services.EmailService;
+import com.ong.acolhepatinhas.api.services.emailService.EmailService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 
