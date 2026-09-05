@@ -32,4 +32,20 @@ public class EmailService {
             
         }
     }
+
+
+    public void newUserEmail(String name, String to) {
+
+        String subject = "ACOLHE PATINHAS | Boas-Vindas";
+        String template = "emails/welcome";
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", name);
+        
+        try {
+            emailGateway.sendEmail(to, subject, template, variables);
+        } catch (EmailSendingException e) {
+            
+        }
+    } 
 }
