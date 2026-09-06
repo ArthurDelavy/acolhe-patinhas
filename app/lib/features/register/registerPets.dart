@@ -7,9 +7,7 @@ import '../../utils/validators.dart';
 import '../../features/register/register_modal.dart';
 
 class RegisterPetsScreen extends StatefulWidget {
-  final String userToken;
-
-  const RegisterPetsScreen({super.key, this.userToken = ''});
+  const RegisterPetsScreen({super.key});
 
   @override
   State<RegisterPetsScreen> createState() => _RegisterPetsScreenState();
@@ -35,6 +33,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
   List<Map<String, dynamic>> _allBreedsList = [];
   List<Map<String, dynamic>> _filteredBreedsList = [];
   List<Map<String, dynamic>> _colorsList = [];
+
   bool _isLoading = true;
   bool _isSubmitting = false;
 
@@ -46,9 +45,9 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
 
   Future<void> _fetchLookupData() async {
     try {
-      final species = await PetService.fetchSpecies(widget.userToken);
-      final breeds = await PetService.fetchBreeds(widget.userToken);
-      final colors = await PetService.fetchColors(widget.userToken);
+      final species = await PetService.fetchSpecies();
+      final breeds = await PetService.fetchBreeds();
+      final colors = await PetService.fetchColors();
 
       if (!mounted) return;
 
@@ -58,12 +57,14 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
         _colorsList = colors;
         _isLoading = false;
       });
+
       if (_selectedSpeciesId != null) {
         _onSpeciesChanged(_selectedSpeciesId);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao carregar dados: $e'),
@@ -84,11 +85,14 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
 
   int _calculateAge(DateTime birthDate) {
     final hoje = DateTime.now();
+
     int idade = hoje.year - birthDate.year;
+
     if (hoje.month < birthDate.month ||
         (hoje.month == birthDate.month && hoje.day < birthDate.day)) {
       idade--;
     }
+
     return idade < 0 ? 0 : idade;
   }
 
@@ -103,9 +107,12 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
     if (picked != null) {
       setState(() {
         _selectedBirthDate = picked;
+
         final formattedDate =
             "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+
         final age = _calculateAge(picked);
+
         _birthDateController.text =
             "$formattedDate ($age ${age == 1 ? 'ano' : 'anos'})";
       });
@@ -123,24 +130,49 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
       }
 
       _filteredBreedsList = _allBreedsList.where((breed) {
-        // 1. Tenta buscar ID dentro de objeto aninhado: breed['specie']['id'] ou breed['species']['id']
+        return breed['specieId'] == speciesId;
+      }).toList();
+    });
+  }
+
+  Future<void> _openRegisterSpeciesDialog() async {
+    final newSpecies = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => const RegisterSpecies(),
+    );
+
+    if (newSpecies == null || !mounted) return;
+
+    final int? newSpeciesId = newSpecies['id'];
+
+    setState(() {
+      _speciesList.add(newSpecies);
+      _selectedSpeciesId = newSpeciesId;
+      _selectedBreedId = null;
+
+      if (newSpeciesId == null) {
+        _filteredBreedsList = [];
+        return;
+      }
+
+      _filteredBreedsList = _allBreedsList.where((breed) {
         final specieObj = breed['specie'] ?? breed['species'];
-        int? idFromObj;
+
+        int? speciesIdFromObject;
+
         if (specieObj is Map) {
-          idFromObj = specieObj['id'];
+          speciesIdFromObject = specieObj['id'];
         }
 
-        // 2. Tenta buscar ID direto no mapa: breed['speciesId'], breed['specie_id'] ou breed['species_id']
-        final int? directId =
+        final int? speciesIdDirect =
             breed['speciesId'] ??
             breed['specie_id'] ??
             breed['species_id'] ??
             breed['idSpecie'];
 
-        final int? finalSpeciesId = idFromObj ?? directId;
+        final int? breedSpeciesId = speciesIdFromObject ?? speciesIdDirect;
 
-        // Se a raça no banco não tiver vinculo com espécie (null), exibe por garantia
-        return finalSpeciesId == null || finalSpeciesId == speciesId;
+        return breedSpeciesId == newSpeciesId;
       }).toList();
     });
   }
@@ -153,16 +185,14 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
           backgroundColor: Colors.orange,
         ),
       );
+
       return;
     }
 
     final newBreed = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (_) => RegisterBreedColor(
-        isBreed: true,
-        speciesId: _selectedSpeciesId!,
-        userToken: widget.userToken,
-      ),
+      builder: (_) =>
+          RegisterBreedColor(isBreed: true, speciesId: _selectedSpeciesId!),
     );
 
     if (newBreed == null || !mounted) return;
@@ -180,7 +210,6 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
       builder: (_) => RegisterBreedColor(
         isBreed: false,
         speciesId: _selectedSpeciesId ?? 0,
-        userToken: widget.userToken,
       ),
     );
 
@@ -216,6 +245,25 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
     }
   }
 
+  void _clearForm() {
+    _formKey.currentState?.reset();
+
+    _nameController.clear();
+    _microchipController.clear();
+    _birthDateController.clear();
+
+    setState(() {
+      _selectedSpeciesId = null;
+      _selectedBreedId = null;
+      _selectedColorId = null;
+      _selectedGender = null;
+      _selectedBirthDate = null;
+      _toAdoption = false;
+      _selectedImage = null;
+      _filteredBreedsList = [];
+    });
+  }
+
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
@@ -225,6 +273,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
           : null;
 
       final String rawMicrochip = _microchipController.text.trim();
+
       final Map<String, dynamic> petPayload = {
         "name": _nameController.text.trim(),
         "gender": _selectedGender,
@@ -233,6 +282,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
         "color": _selectedColorId != null ? {"id": _selectedColorId} : null,
         "breedId": _selectedBreedId,
         "colorId": _selectedColorId,
+        "intakeDate": DateTime.now().toUtc().toIso8601String(),
         if (rawMicrochip.isNotEmpty) "microchipNumber": rawMicrochip,
       };
 
@@ -240,8 +290,10 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
         petPayload["birthDate"] = formattedBirthDate;
       }
 
-      // 2. Trata o microchip: adiciona na requisição APENAS se tiver caracteres preenchidos
+      // Trata o microchip: adiciona na requisição
+      // apenas se tiver caracteres preenchidos.
       final String microchipVal = _microchipController.text.trim();
+
       if (microchipVal.isNotEmpty) {
         petPayload["microchipNumber"] = microchipVal;
       }
@@ -250,17 +302,17 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
         final success = await PetService.registerAnimalWithImage(
           payload: petPayload,
           imageFile: _selectedImage,
-          token: widget.userToken,
         );
 
         if (success && mounted) {
+          _clearForm();
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Pet cadastrado com sucesso!'),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pop(context);
         }
       } catch (e) {
         if (mounted) {
@@ -276,7 +328,9 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
           );
         }
       } finally {
-        if (mounted) setState(() => _isSubmitting = false);
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+        }
       }
     }
   }
@@ -344,6 +398,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 24),
 
                     TextFormField(
@@ -359,9 +414,11 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                             !Validators.isValidPetName(value)) {
                           return 'Informe um nome válido';
                         }
+
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 8),
 
                     TextFormField(
@@ -376,31 +433,52 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         if (!Validators.isValidMicrochip(value)) {
                           return 'Microchip deve ter até 15 caracteres';
                         }
+
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 8),
 
-                    DropdownButtonFormField<int>(
-                      value: _selectedSpeciesId,
-                      decoration: const InputDecoration(
-                        labelText: 'Espécie *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.category_outlined),
-                      ),
-                      items: _speciesList.map((species) {
-                        return DropdownMenuItem<int>(
-                          value: species['id'],
-                          child: Text(species['name']),
-                        );
-                      }).toList(),
-                      onChanged: _onSpeciesChanged,
-                      validator: (value) => Validators.isValidSpecies(value)
-                          ? null
-                          : 'Selecione a espécie',
+                    // ESPÉCIE
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedSpeciesId,
+                            decoration: const InputDecoration(
+                              labelText: 'Espécie *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.category_outlined),
+                            ),
+                            items: _speciesList.map((species) {
+                              return DropdownMenuItem<int>(
+                                value: species['id'],
+                                child: Text(species['name']),
+                              );
+                            }).toList(),
+                            onChanged: _onSpeciesChanged,
+                            validator: (value) =>
+                                Validators.isValidSpecies(value)
+                                ? null
+                                : 'Selecione a espécie',
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Cadastrar espécie',
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: Color(0xFFE27B1D),
+                          ),
+                          onPressed: _openRegisterSpeciesDialog,
+                        ),
+                      ],
                     ),
+
                     const SizedBox(height: 16),
 
+                    // RAÇA
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -442,8 +520,10 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 8),
 
+                    // COR
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -480,6 +560,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 16),
 
                     Row(
@@ -509,7 +590,9 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                                 : 'Selecione o gênero',
                           ),
                         ),
+
                         const SizedBox(width: 12),
+
                         Expanded(
                           child: TextFormField(
                             controller: _birthDateController,
@@ -535,6 +618,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 16),
 
                     SwitchListTile(
@@ -548,6 +632,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         setState(() => _toAdoption = value);
                       },
                     ),
+
                     const SizedBox(height: 24),
 
                     ElevatedButton(

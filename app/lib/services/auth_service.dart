@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../utils/token_storage.dart';
 
 class AuthService {
   final String baseUrl;
@@ -10,47 +11,30 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    print('========== LOGIN ==========');
-    print('AuthService: iniciou login');
-    print('Base URL: $baseUrl');
-    print('Email: $email');
-    print('Enviando requisição para: $baseUrl/auth/login');
-
     final response = await http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
 
-    print('AuthService: resposta recebida');
-    print('Status Code: ${response.statusCode}');
-    print('Resposta: ${response.body}');
-
     if (response.statusCode == 200) {
-      print('LOGIN REALIZADO COM SUCESSO!');
-      print('===========================');
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      await TokenStorage.saveTokens(
+        authToken: data['accessToken'] as String,
+        refreshToken: data['refreshToken'] as String,
+      );
+
+      return data;
     }
 
     if (response.statusCode == 401) {
-      print('LOGIN NEGADO: email ou senha incorretos');
-      print('===========================');
-
       throw Exception('E-mail ou senha incorretos');
     }
 
     if (response.statusCode == 400) {
-      print('LOGIN NEGADO: dados inválidos');
-      print('===========================');
-
       throw Exception('Dados inválidos');
     }
-
-    print('ERRO INESPERADO NO LOGIN');
-    print('Status: ${response.statusCode}');
-    print('===========================');
-
     throw Exception('Erro ao realizar login. Código: ${response.statusCode}');
   }
 
