@@ -19,6 +19,7 @@ import com.ong.acolhepatinhas.api.exceptions.custom.EmailSendingException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ExpiredDataException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ImageProcessingException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
+import com.ong.acolhepatinhas.api.exceptions.custom.StorageException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 
 @RestControllerAdvice
@@ -144,6 +145,21 @@ public class GlobalExceptionHandler {
         ErrorResponse error = new ErrorResponse(
             HttpStatus.INTERNAL_SERVER_ERROR.value(), 
             e.getMessage(), 
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<ErrorResponse> handleStorage(StorageException e) {
+
+        e.printStackTrace();
+
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(), 
+            "Erro ao salvar imagem", 
             OffsetDateTime.now()
         );
 

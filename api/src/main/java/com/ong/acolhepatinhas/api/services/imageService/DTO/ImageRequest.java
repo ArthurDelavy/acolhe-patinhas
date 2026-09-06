@@ -1,4 +1,4 @@
-package com.ong.acolhepatinhas.api.services.DTO;
+package com.ong.acolhepatinhas.api.services.imageService.DTO;
 
 import org.springframework.web.multipart.MultipartFile;
 
