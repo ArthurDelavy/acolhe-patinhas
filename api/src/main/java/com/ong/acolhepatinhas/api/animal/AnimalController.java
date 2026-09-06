@@ -21,7 +21,7 @@ import com.ong.acolhepatinhas.api.animal.DTO.DetailedAnimalResponse;
 import com.ong.acolhepatinhas.api.animal.DTO.EditAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.ResumedAnimalResponse;
-import com.ong.acolhepatinhas.api.services.DTO.ImageRequest;
+import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 
 import io.swagger.v3.oas.annotations.Operation;

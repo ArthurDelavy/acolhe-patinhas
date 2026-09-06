@@ -1,34 +1,28 @@
-package com.ong.acolhepatinhas.api.services;
+package com.ong.acolhepatinhas.api.services.imageService;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ImageProcessingException;
-import com.ong.acolhepatinhas.api.services.DTO.ImageRequest;
+import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
+import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import net.coobird.thumbnailator.Thumbnails;
 
 @Service
-@Validated
+@RequiredArgsConstructor
 public class ImageService {
     
-    @Value("${app.images.datasource.url}")
-    private String datasourceUrl;
-
-    @Value("${app.images.datasource.key}")
-    private String datasourceKey;
-
-    @Value("${app.images.datasource.bucket}")
-    private String datasourceBucket;
+    @Autowired
+    private final ImageGateway imageGateway;
 
 
     @Value("${app.images.minCompressionKb}")
@@ -37,36 +31,35 @@ public class ImageService {
     @Value("${app.images.qualityCompression}")
     private float qualityCompression;
 
-    private final RestClient restClient = RestClient.create();
 
-
-
-
-    public String uploadImage(@Valid ImageRequest file) {
+    public String saveImage(@Valid ImageRequest file, String namePrefix, StorageFileType fileType) {
         
         MultipartFile image = file.image();
         if (image == null || image.isEmpty()) throw new IllegalArgumentException("Imagem inválida.");
         
-        String filename = UUID.randomUUID() + ".jpg";
+        namePrefix = (namePrefix != null && !namePrefix.isBlank()) ? namePrefix.trim().toLowerCase().replaceAll("[^a-z0-9-]", "") : "img";
+
+        String fileName = namePrefix + "_" + UUID.randomUUID() + ".jpg";
         byte[] imageBytes = optimizeImage(image);
-        String uploadUrl = String.format("%s/storage/v1/object/%s/%s", datasourceUrl, datasourceBucket, filename);
+
+        return imageGateway.uploadImage(imageBytes, fileName, fileType, "image/jpeg");
+    }
+
+
+    public void deleteImage(String url, StorageFileType fileType) {
+
+        if (url == null || url.isBlank()) return;
 
         try {
-            restClient.post()
-                .uri(uploadUrl)
-                .header("Authorization", "Bearer " + datasourceKey)
-                .header("apikey", datasourceKey)
-                .header("Content-Type", "image/jpeg")
-                .body(imageBytes)
-                .retrieve()
-                .toBodilessEntity();
-        } catch (RestClientException e) {
-            System.err.print(e);
-            throw new ImageProcessingException("Falha ao salvar imagem.");
+            String fileName = url.substring(url.lastIndexOf('/') + 1);
+            imageGateway.deleteImage(fileName, fileType);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        return String.format("%s/storage/v1/object/public/%s/%s", datasourceUrl, datasourceBucket, filename);
     }
+
+
 
 
     private byte[] optimizeImage(MultipartFile image) {
