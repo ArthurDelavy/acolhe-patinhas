@@ -49,7 +49,7 @@ public class AnimalService {
     @Transactional
     public Animal newAnimal(LoggedUserPayload user, @Valid NewAnimalRequest data) {
         
-        if (anmRep.existsByMicrochipNumber(data.microchipNumber())) throw new DuplicatedValueException("Animal já cadastrado.");
+        if (data.microchipNumber() != null && anmRep.existsByMicrochipNumber(data.microchipNumber())) throw new DuplicatedValueException("Animal já cadastrado.");
 
         User requester = (User) usrSvc.loadUserByUsername(user.email());
 
