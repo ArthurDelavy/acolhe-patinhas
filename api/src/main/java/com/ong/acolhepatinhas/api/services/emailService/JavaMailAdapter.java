@@ -46,8 +46,7 @@ public class JavaMailAdapter implements EmailGateway {
 
         } catch (Exception e) {
 
-            System.err.print("Falha na comunicação com o provedor de e-mail: " + to + " | " + subject + " | " + e.getMessage());
-            throw new EmailSendingException("Erro ao enviar email para " + to);
+            throw new EmailSendingException("Erro ao enviar email '" + subject + "' para " + to, e);
         }
     }
 }

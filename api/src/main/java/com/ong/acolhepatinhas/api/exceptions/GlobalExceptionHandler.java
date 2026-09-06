@@ -169,9 +169,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailSendingException.class)
     public ResponseEntity<ErrorResponse> handleEmailSending(EmailSendingException e) {
+
+        e.printStackTrace();
+
         ErrorResponse error = new ErrorResponse(
             HttpStatus.INTERNAL_SERVER_ERROR.value(), 
-            e.getMessage(), 
+            "Erro ao enviar email.", 
             OffsetDateTime.now()
         );
 
