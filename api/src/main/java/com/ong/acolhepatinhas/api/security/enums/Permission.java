@@ -6,7 +6,11 @@ public enum Permission {
     ANIMAL_EDIT("animal:edit"),
     ANIMAL_REMOVE("animal:remove"),
 
-    ANIMAL_REFERENCE_MANAGE("animalReference:manage");
+    ANIMAL_REFERENCE_MANAGE("animalReference:manage"),
+    
+    VETERINARY_READ("veterinary:read"),
+    VETERINARY_ASSIGN("veterinary:assign"),
+    VETERINARY_MANAGE("veterinary:manage");
 
 
 

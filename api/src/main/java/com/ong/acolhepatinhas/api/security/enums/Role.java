@@ -12,7 +12,10 @@ public enum Role {
         Permission.ANIMAL_CREATE,
         Permission.ANIMAL_EDIT,
         Permission.ANIMAL_REMOVE,
-        Permission.ANIMAL_REFERENCE_MANAGE
+        Permission.ANIMAL_REFERENCE_MANAGE,
+        Permission.VETERINARY_READ,
+        Permission.VETERINARY_ASSIGN,
+        Permission.VETERINARY_MANAGE
     )),
 
     USER(Set.of(
