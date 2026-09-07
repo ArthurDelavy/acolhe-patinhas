@@ -7,10 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.veterinary.vaccine.catalog.DTO.NewVaccineRequest;
@@ -56,7 +56,7 @@ public class VaccineController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
         @ApiResponse(responseCode = "404", description = "Vacina não encontrada", content = @Content)
-    public ResponseEntity<VaccineResponse> getById(@RequestParam int vaccineId) {
+    public ResponseEntity<VaccineResponse> getById(@PathVariable int vaccineId) {
         VaccineResponse responseData = new VaccineResponse(vccSvc.getById(vaccineId));
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
@@ -84,7 +84,7 @@ public class VaccineController {
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Vacina não encontrada", content = @Content)
         @ApiResponse(responseCode = "409", description = "Vacina vinculada a um animal", content = @Content)
-    public ResponseEntity<Void> deleteVaccine(@RequestParam int vaccineId) {
+    public ResponseEntity<Void> deleteVaccine(@PathVariable int vaccineId) {
         vccSvc.deleteVaccine(vaccineId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
