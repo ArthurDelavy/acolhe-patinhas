@@ -1,7 +1,8 @@
 import 'package:acolhe_patinhas/features/auth/auth_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:acolhe_patinhas/features/home/feed.dart';
-import 'package:acolhe_patinhas/features/register/registerPets.dart';
+import 'package:acolhe_patinhas/features/register/register_pets.dart';
+import 'package:acolhe_patinhas/features/listPets/list_pets.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/feed': (context) => const FeedScreen(),
         '/registerPets': (context) => const RegisterPetsScreen(),
+        '/list_pets': (context) => const ListPetsScreen(),
       },
     );
   }

@@ -21,7 +21,7 @@ class NavbarComponent extends StatelessWidget {
     '/feed',
     '/parcerias',
     '/feedback',
-    '/registerPets',
+    '/list_pets',
     '/info',
     '/configuracoes',
   ];

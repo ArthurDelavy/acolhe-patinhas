@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../components/navbar.dart';
@@ -305,14 +304,13 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
         );
 
         if (success && mounted) {
-          _clearForm();
-
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Pet cadastrado com sucesso!'),
               backgroundColor: Colors.green,
             ),
           );
+          Navigator.pop(context, true);
         }
       } catch (e) {
         if (mounted) {
