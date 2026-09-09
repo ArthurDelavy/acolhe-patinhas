@@ -47,5 +47,20 @@ public class EmailService {
         } catch (EmailSendingException e) {
             e.printStackTrace();
         }
-    } 
+    }
+
+    public void verificationEmail(String to, String code) {
+
+        String subject = "ACOLHE PATINHAS | Verificação de E-mail";
+        String template = "emails/email-confirmation";
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("code", code);
+
+        try {
+            emailGateway.sendEmail(to, subject, template, variables);
+        } catch (EmailSendingException e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -16,11 +16,14 @@ import com.ong.acolhepatinhas.api.auth.DTO.LoginRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.PasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.RefreshSessionRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.RegisterRequest;
+import com.ong.acolhepatinhas.api.auth.DTO.ResendVerificationRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.TokenResponse;
-import com.ong.acolhepatinhas.api.user.UserService;
+import com.ong.acolhepatinhas.api.auth.DTO.VerifyEmailRequest;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 import com.ong.acolhepatinhas.api.user.DTO.NewUserResponse;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
+import com.ong.acolhepatinhas.api.user.User;
+import com.ong.acolhepatinhas.api.user.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -65,15 +68,34 @@ public class AuthController {
     
     @PostMapping("/register")
     @Operation(summary = "Cadastro de usuário")
-        @ApiResponse(responseCode = "200", description = "Usuário criado com sucesso!")
+        @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso! Um código de verificação foi enviado por e-mail; a conta só poderá logar após a verificação.")
         @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
         @ApiResponse(responseCode = "409", description = "E-mail já cadastrado", content = @Content)
     public ResponseEntity<NewUserResponse> registerUser(@RequestBody @Valid RegisterRequest data) {
         UserResponse userData = usrSvc.newUser(data);
-        TokenResponse tokens = authSvc.authUser(new LoginRequest(data.email(), data.password()));
-        NewUserResponse response = new NewUserResponse(tokens, userData);
+        NewUserResponse response = new NewUserResponse(null, null, userData);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/verify-email")
+    @Operation(summary = "Verificação de e-mail via código")
+        @ApiResponse(responseCode = "200", description = "E-mail verificado com sucesso! Retorna os tokens de sessão.")
+        @ApiResponse(responseCode = "401", description = "Código expirado ou inválido", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content)
+        @ApiResponse(responseCode = "409", description = "E-mail já verificado", content = @Content)
+    public ResponseEntity<TokenResponse> verifyEmail(@RequestBody @Valid VerifyEmailRequest data) {
+        User user = usrSvc.verifyEmail(data);
+        TokenResponse tokens = authSvc.issueTokens(user);
+        return ResponseEntity.status(HttpStatus.OK).body(tokens);
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(summary = "Reenvio do código de verificação de e-mail")
+        @ApiResponse(responseCode = "200", description = "Sempre retorna 200, mesmo que o usuário não exista ou já esteja verificado")
+    public ResponseEntity<Void> resendVerification(@RequestBody @Valid ResendVerificationRequest data) {
+        usrSvc.resendVerificationEmail(data);
+        return ResponseEntity.ok().build();
     }
 
     
