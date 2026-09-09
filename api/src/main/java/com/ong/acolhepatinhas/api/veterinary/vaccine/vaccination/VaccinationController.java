@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/vaccination")
+@RequestMapping("/veterinary/vaccination")
 @Tag(name = "Vacinação", description = "Cadastro de vacinações dos animais")
 public class VaccinationController {
 
