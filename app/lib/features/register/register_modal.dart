@@ -188,3 +188,84 @@ class _RegisterSpeciesState extends State<RegisterSpecies> {
     );
   }
 }
+
+class RegisterDischargeReason extends StatefulWidget {
+  const RegisterDischargeReason({super.key});
+
+  @override
+  State<RegisterDischargeReason> createState() =>
+      _RegisterDischargeReasonState();
+}
+
+class _RegisterDischargeReasonState extends State<RegisterDischargeReason> {
+  final _nameController = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informe o nome do motivo.')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final result = await PetService.registerDischargeReason(name: name);
+
+      if (!mounted) return;
+      Navigator.pop(context, result);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível adicionar o motivo: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Adicionar motivo de baixa'),
+      content: TextField(
+        controller: _nameController,
+        autofocus: true,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) {
+          if (!_isSaving) _save();
+        },
+        decoration: const InputDecoration(
+          labelText: 'Nome do motivo',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _isSaving ? null : _save,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Adicionar'),
+        ),
+      ],
+    );
+  }
+}

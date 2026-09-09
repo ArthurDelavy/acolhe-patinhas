@@ -23,15 +23,13 @@ class _EditPetScreenState extends State<EditPetScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _microchipController = TextEditingController();
   final TextEditingController _birthDateController = TextEditingController();
-
   final TextEditingController _dischargeDateController =
-      TextEditingController();
-  final TextEditingController _dischargeReasonController =
       TextEditingController();
 
   int? _selectedSpeciesId;
   int? _selectedBreedId;
   int? _selectedColorId;
+  int? _selectedDischargeReasonId;
   String? _selectedGender;
   DateTime? _selectedBirthDate;
   DateTime? _selectedDischargeDate;
@@ -46,6 +44,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
   List<Map<String, dynamic>> _allBreedsList = [];
   List<Map<String, dynamic>> _filteredBreedsList = [];
   List<Map<String, dynamic>> _colorsList = [];
+  List<Map<String, dynamic>> _dischargeReasonsList = [];
 
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -63,14 +62,11 @@ class _EditPetScreenState extends State<EditPetScreen> {
     _microchipController.dispose();
     _birthDateController.dispose();
     _dischargeDateController.dispose();
-    _dischargeReasonController.dispose();
     super.dispose();
   }
 
-  /// Busca os detalhes completos do pet (GET /animal/{id}) e as listas
-  /// de referência, depois preenche o formulário. Isso é necessário
-  /// porque o card da listagem só traz nomes (ex: "Labrador"), não os
-  /// IDs de raça/cor/espécie que o formulário precisa para os dropdowns.
+  /// Busca os detalhes completos do pet e as listas de referência
+  /// (espécie/raça/cor/motivos de baixa), depois preenche o formulário.
   Future<void> _loadEverything() async {
     try {
       final id = widget.petData['id'];
@@ -80,12 +76,14 @@ class _EditPetScreenState extends State<EditPetScreen> {
         PetService.fetchSpecies(),
         PetService.fetchBreeds(),
         PetService.fetchColors(),
+        PetService.fetchDischargeReasons(),
       ]);
 
       final detail = results[0] as Map<String, dynamic>;
       final species = results[1] as List<Map<String, dynamic>>;
       final breeds = results[2] as List<Map<String, dynamic>>;
       final colors = results[3] as List<Map<String, dynamic>>;
+      final reasons = results[4] as List<Map<String, dynamic>>;
 
       if (!mounted) return;
 
@@ -96,8 +94,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
       _existingImageUrl = detail['imageUrl']?.toString();
       _originalIntakeDate = detail['intakeDate']?.toString();
 
-      // Casa os NOMES retornados pelo backend com os IDs das listas
-      // de referência (o GET /animal/{id} só devolve nomes, não IDs).
       final String? specieName = detail['specie']?.toString();
       final String? breedName = detail['breed']?.toString();
       final String? colorName = detail['color']?.toString();
@@ -129,6 +125,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
         _speciesList = species;
         _allBreedsList = breeds;
         _colorsList = colors;
+        _dischargeReasonsList = reasons;
         _isLoading = false;
       });
     } catch (e) {
@@ -279,6 +276,20 @@ class _EditPetScreenState extends State<EditPetScreen> {
     });
   }
 
+  Future<void> _openRegisterDischargeReasonDialog() async {
+    final newReason = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => const RegisterDischargeReason(),
+    );
+
+    if (newReason == null || !mounted) return;
+
+    setState(() {
+      _dischargeReasonsList.add(newReason);
+      _selectedDischargeReasonId = newReason['id'];
+    });
+  }
+
   Future<void> _pickPetImage() async {
     if (!widget.isAdmin) return;
     try {
@@ -302,7 +313,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
   }
 
   String? _validateMicrochip(String? value) {
-    if (value == null || value.trim().isEmpty) return null; // opcional
+    if (value == null || value.trim().isEmpty) return null;
     if (value.trim().length != 15) {
       return 'Microchip deve ter exatamente 15 caracteres';
     }
@@ -326,9 +337,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
       "toAdoption": _toAdoption,
       "breedId": _selectedBreedId,
       "colorId": _selectedColorId,
-      // Preserva a data de entrada original: o backend sobrescreve
-      // esse campo com o que vier aqui, então precisamos reenviar o
-      // valor de antes para não perdê-lo.
       if (_originalIntakeDate != null) "intakeDate": _originalIntakeDate,
       if (rawMicrochip.isNotEmpty) "microchipNumber": rawMicrochip,
       if (formattedBirthDate != null) "birthDate": formattedBirthDate,
@@ -365,8 +373,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
   }
 
   Future<void> _submitDischarge() async {
-    if (_dischargeReasonController.text.trim().isEmpty ||
-        _selectedDischargeDate == null) {
+    if (_selectedDischargeReasonId == null || _selectedDischargeDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Preencha a Data da Baixa e o Motivo da Baixa.'),
@@ -375,6 +382,11 @@ class _EditPetScreenState extends State<EditPetScreen> {
       );
       return;
     }
+
+    final reasonName = _dischargeReasonsList.firstWhere(
+      (r) => r['id'] == _selectedDischargeReasonId,
+      orElse: () => {'name': '—'},
+    )['name'];
 
     final bool? confirm = await showDialog<bool>(
       context: context,
@@ -410,7 +422,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Motivo: ${_dischargeReasonController.text.trim()}',
+              'Motivo: $reasonName',
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
             Text(
@@ -834,7 +846,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Zona de exclusão: dar baixa remove o pet permanentemente do banco de dados.',
+                                'Zona de exclusão: dar baixa remove o pet permanentemente.',
                                 style: TextStyle(
                                   color: Colors.red.shade900,
                                   fontSize: 12,
@@ -872,14 +884,40 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
                       const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _dischargeReasonController,
-                        maxLength: 100,
-                        decoration: const InputDecoration(
-                          labelText: 'Motivo da Baixa',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.report_problem_outlined),
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              value: _selectedDischargeReasonId,
+                              decoration: const InputDecoration(
+                                labelText: 'Motivo da Baixa',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.report_problem_outlined),
+                              ),
+                              items: _dischargeReasonsList.map((reason) {
+                                return DropdownMenuItem<int>(
+                                  value: reason['id'],
+                                  child: Text(
+                                    reason['name'],
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) => setState(
+                                () => _selectedDischargeReasonId = value,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Cadastrar motivo',
+                            icon: const Icon(
+                              Icons.add_circle_outline,
+                              color: primaryColor,
+                            ),
+                            onPressed: _openRegisterDischargeReasonDialog,
+                          ),
+                        ],
                       ),
 
                       const SizedBox(height: 12),
@@ -896,7 +934,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
                           ),
                         ),
                         label: const Text(
-                          'DAR BAIXA E EXCLUIR PET',
+                          'DAR BAIXA EM PET',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

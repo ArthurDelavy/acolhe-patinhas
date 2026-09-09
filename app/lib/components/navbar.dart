@@ -11,7 +11,7 @@ class NavbarComponent extends StatelessWidget {
     Icons.home_outlined, // Índice 0: Feed
     Icons.handshake_outlined, // Índice 1
     Icons.feedback_outlined, // Índice 2
-    Icons.pets_outlined, // Índice 3: Cadastro Pets
+    Icons.handshake_outlined, // Índice 3: Cadastro Pets
     Icons.info_outline, // Índice 4
     Icons.settings_outlined, // Índice 5
   ];
@@ -19,9 +19,9 @@ class NavbarComponent extends StatelessWidget {
   final List<String> _routes = const [
     //trocar caso necessário!
     '/feed',
-    '/parcerias',
-    '/feedback',
     '/list_pets',
+    '/feedback',
+    '/teste',
     '/info',
     '/configuracoes',
   ];

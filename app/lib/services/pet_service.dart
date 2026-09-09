@@ -46,23 +46,9 @@ class PetService {
     return List<Map<String, dynamic>>.from(data);
   }
 
-  /// BUSCAR MOTIVOS DE BAIXA (Tabela animal_discharge_reasons)
   static Future<List<Map<String, dynamic>>> fetchDischargeReasons() async {
-    try {
-      final data = await _get('/animal/reference/discharge-reason');
-      return List<Map<String, dynamic>>.from(data);
-    } catch (e) {
-      // Caso a rota individual falhe, tenta buscar nas referências gerais
-      try {
-        final refs = await fetchReferences();
-        if (refs.containsKey('dischargeReasons')) {
-          return List<Map<String, dynamic>>.from(refs['dischargeReasons']);
-        } else if (refs.containsKey('dischargeReason')) {
-          return List<Map<String, dynamic>>.from(refs['dischargeReason']);
-        }
-      } catch (_) {}
-      rethrow;
-    }
+    final data = await _get('/animal/reference/dischargeReason');
+    return List<Map<String, dynamic>>.from(data);
   }
 
   static Future<List<Map<String, dynamic>>> fetchAnimals() async {
@@ -70,6 +56,7 @@ class PetService {
     return List<Map<String, dynamic>>.from(data);
   }
 
+  /// Busca os detalhes completos de um único animal (GET /animal/{id}).
   static Future<Map<String, dynamic>> fetchAnimalDetail(dynamic id) async {
     final data = await _get('/animal/$id');
     return data as Map<String, dynamic>;
@@ -124,7 +111,7 @@ class PetService {
       body: jsonEncode(payload),
     );
 
-    if (response.statusCode != 201 && response.statusCode != 200) {
+    if (response.statusCode != 201) {
       throw Exception(
         'Falha ao cadastrar animal (${response.statusCode})'
         '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
@@ -154,11 +141,7 @@ class PetService {
       );
     }
 
-    matches.sort((a, b) {
-      final idA = int.tryParse(a['id']?.toString() ?? '') ?? 0;
-      final idB = int.tryParse(b['id']?.toString() ?? '') ?? 0;
-      return idA.compareTo(idB);
-    });
+    matches.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
     final animalId = matches.last['id'].toString();
 
     return await uploadAnimalImage(animalId: animalId, imageFile: imageFile);
@@ -205,27 +188,6 @@ class PetService {
     return true;
   }
 
-  /// EXECUTA A BAIXA DO ANIMAL
-  static Future<bool> dischargeAnimal({
-    required dynamic id,
-    required Map<String, dynamic> payload,
-  }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/animal/$id/discharge'),
-      headers: await _getHeaders(),
-      body: jsonEncode(payload),
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception(
-        'Falha ao dar baixa no animal (${response.statusCode})'
-        '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
-      );
-    }
-
-    return true;
-  }
-
   static Future<Map<String, dynamic>> registerBreed({
     required String name,
     required int specieId,
@@ -236,7 +198,7 @@ class PetService {
       body: jsonEncode({'name': name, 'specieId': specieId}),
     );
 
-    if (response.statusCode != 201 && response.statusCode != 200) {
+    if (response.statusCode != 201) {
       throw Exception(
         'Falha ao cadastrar raça (${response.statusCode})'
         '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
@@ -262,7 +224,7 @@ class PetService {
       body: jsonEncode({'name': name}),
     );
 
-    if (response.statusCode != 201 && response.statusCode != 200) {
+    if (response.statusCode != 201) {
       throw Exception(
         'Falha ao cadastrar cor (${response.statusCode})'
         '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
@@ -287,7 +249,7 @@ class PetService {
       body: jsonEncode({'name': name}),
     );
 
-    if (response.statusCode != 201 && response.statusCode != 200) {
+    if (response.statusCode != 201) {
       throw Exception(
         'Falha ao cadastrar espécie (${response.statusCode})'
         '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
@@ -304,7 +266,6 @@ class PetService {
     );
   }
 
-  /// CADASTRAR UM NOVO MOTIVO DE BAIXA NO BANCO
   static Future<Map<String, dynamic>> registerDischargeReason({
     required String name,
   }) async {
@@ -314,7 +275,7 @@ class PetService {
       body: jsonEncode({'name': name}),
     );
 
-    if (response.statusCode != 201 && response.statusCode != 200) {
+    if (response.statusCode != 201) {
       throw Exception(
         'Falha ao cadastrar motivo de baixa (${response.statusCode})'
         '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
@@ -326,7 +287,8 @@ class PetService {
       (r) =>
           r['name'].toString().trim().toLowerCase() ==
           name.trim().toLowerCase(),
-      orElse: () => reasons.last,
+      orElse: () =>
+          throw Exception('Motivo criado, mas não encontrado na lista.'),
     );
   }
 }
