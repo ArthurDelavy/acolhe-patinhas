@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -118,4 +119,17 @@ public class AnimalController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
+
+    @DeleteMapping("/{animalId}") @PreAuthorize("hasAuthority('animal:remove')")
+    @Operation(summary = "Excluir um registro de animal")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "204", description = "Deletado com sucesso!")
+        @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Referência não encontrada", content = @Content)
+    public ResponseEntity<Void> deleteAnimal(@PathVariable int animalId) {
+        anmSvc.deleteAnimal(animalId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 }

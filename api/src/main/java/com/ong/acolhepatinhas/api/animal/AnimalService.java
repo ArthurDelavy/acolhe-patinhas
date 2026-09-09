@@ -114,4 +114,12 @@ public class AnimalService {
         animal.setUser(requester);
         return anmRep.save(animal);
     }
+
+
+    @Transactional
+    public void deleteAnimal(int animalId) {
+
+        Animal animal = this.getById(animalId);
+        anmRep.delete(animal);
+    }
 }
