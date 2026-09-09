@@ -65,8 +65,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
     super.dispose();
   }
 
-  /// Busca os detalhes completos do pet e as listas de referência
-  /// (espécie/raça/cor/motivos de baixa), depois preenche o formulário.
   Future<void> _loadEverything() async {
     try {
       final id = widget.petData['id'];
@@ -290,12 +288,15 @@ class _EditPetScreenState extends State<EditPetScreen> {
     });
   }
 
+  // 1. CORREÇÃO DA FOTO: Comprime a imagem para evitar Erro 413
   Future<void> _pickPetImage() async {
     if (!widget.isAdmin) return;
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 70,
       );
 
       if (image != null && mounted) {
@@ -324,6 +325,17 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
+    String safeIntakeDate;
+    if (_originalIntakeDate != null && _originalIntakeDate!.isNotEmpty) {
+      safeIntakeDate = _originalIntakeDate!;
+    } else {
+      final safeNow = DateTime.now().toUtc().subtract(
+        const Duration(minutes: 10),
+      );
+      safeIntakeDate =
+          "${safeNow.year}-${safeNow.month.toString().padLeft(2, '0')}-${safeNow.day.toString().padLeft(2, '0')}"
+          "T${safeNow.hour.toString().padLeft(2, '0')}:${safeNow.minute.toString().padLeft(2, '0')}:${safeNow.second.toString().padLeft(2, '0')}.000Z";
+    }
 
     final String? formattedBirthDate = _selectedBirthDate != null
         ? "${_selectedBirthDate!.year}-${_selectedBirthDate!.month.toString().padLeft(2, '0')}-${_selectedBirthDate!.day.toString().padLeft(2, '0')}"
@@ -335,9 +347,14 @@ class _EditPetScreenState extends State<EditPetScreen> {
       "name": _nameController.text.trim(),
       "gender": _selectedGender,
       "toAdoption": _toAdoption,
-      "breedId": _selectedBreedId,
-      "colorId": _selectedColorId,
-      if (_originalIntakeDate != null) "intakeDate": _originalIntakeDate,
+      "active": true,
+      "intakeDate": safeIntakeDate,
+      if (_selectedSpeciesId != null) "specieId": _selectedSpeciesId,
+      if (_selectedSpeciesId != null) "specie": {"id": _selectedSpeciesId},
+      if (_selectedBreedId != null) "breedId": _selectedBreedId,
+      if (_selectedBreedId != null) "breed": {"id": _selectedBreedId},
+      if (_selectedColorId != null) "colorId": _selectedColorId,
+      if (_selectedColorId != null) "color": {"id": _selectedColorId},
       if (rawMicrochip.isNotEmpty) "microchipNumber": rawMicrochip,
       if (formattedBirthDate != null) "birthDate": formattedBirthDate,
     };
@@ -391,7 +408,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Confirmar exclusão'),
+        title: const Text('Confirmar baixa'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,18 +416,21 @@ class _EditPetScreenState extends State<EditPetScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                border: Border.all(color: Colors.red.shade200),
+                color: Colors.amber.shade50,
+                border: Border.all(color: Colors.amber.shade300),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.red.shade700),
+                  Icon(Icons.info_outline, color: Colors.amber.shade900),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Esta ação é irreversível. O registro será excluído permanentemente do banco de dados.',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      'Esta ação inativa o cadastro e arquiva o pet no histórico.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber.shade900,
+                      ),
                     ),
                   ),
                 ],
@@ -437,9 +457,14 @@ class _EditPetScreenState extends State<EditPetScreen> {
             child: const Text('CANCELAR'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange[800],
+            ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('EXCLUIR', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'CONFIRMAR BAIXA',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -450,12 +475,23 @@ class _EditPetScreenState extends State<EditPetScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      await PetService.deleteAnimal(widget.petData['id']);
+      final DateTime baseDate = _selectedDischargeDate!;
+      final String formattedDate =
+          "${baseDate.year}-${baseDate.month.toString().padLeft(2, '0')}-${baseDate.day.toString().padLeft(2, '0')}T12:00:00.000Z";
+
+      await PetService.dischargeAnimal(
+        id: widget.petData['id'],
+        dischargeReasonId: _selectedDischargeReasonId!,
+        dischargeDate: formattedDate,
+        breedId: _selectedBreedId!,
+        colorId: _selectedColorId!,
+        existingPetData: widget.petData,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Pet excluído com sucesso.'),
+            content: Text('Baixa do pet registrada com sucesso.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -465,7 +501,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao excluir pet: $e'),
+            content: Text('Erro ao registrar baixa: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -802,7 +838,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -832,23 +868,23 @@ class _EditPetScreenState extends State<EditPetScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          border: Border.all(color: Colors.red.shade200),
+                          color: Colors.amber.shade50,
+                          border: Border.all(color: Colors.amber.shade300),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.red.shade700,
+                              Icons.info_outline,
+                              color: Colors.amber.shade900,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Zona de exclusão: dar baixa remove o pet permanentemente.',
+                                'Registro de Baixa: esta ação inativa o cadastro e arquiva o pet no histórico.',
                                 style: TextStyle(
-                                  color: Colors.red.shade900,
+                                  color: Colors.amber.shade900,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -924,17 +960,17 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
                       ElevatedButton.icon(
                         onPressed: _isSubmitting ? null : _submitDischarge,
-                        icon: const Icon(Icons.delete_forever),
+                        icon: const Icon(Icons.archive_outlined),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[700],
+                          backgroundColor: Colors.orange[800],
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         label: const Text(
-                          'DAR BAIXA EM PET',
+                          'REGISTRAR BAIXA',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

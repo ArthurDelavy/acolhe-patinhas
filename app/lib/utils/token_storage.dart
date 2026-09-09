@@ -43,7 +43,6 @@ class TokenStorage {
     final payload = _decodeJwtPayload(token);
     if (payload == null) return false;
 
-    // Checa expiração do token (exp está em segundos)
     if (payload.containsKey('exp')) {
       final exp = payload['exp'] as int;
       final currentTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -59,7 +58,6 @@ class TokenStorage {
     return false;
   }
 
-  /// Decodifica o payload (2ª parte) do JWT usando Base64
   static Map<String, dynamic>? _decodeJwtPayload(String token) {
     try {
       final parts = token.split('.');

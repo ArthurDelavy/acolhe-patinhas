@@ -4,14 +4,17 @@ import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
 
 class PetService {
-  static const String baseUrl = 'http://localhost:8080';
+  static const String baseUrl = 'http://192.168.0.40:8080';
 
   static Future<Map<String, String>> _getHeaders() async {
     final token = await TokenStorage.getAuthToken();
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+    final headers = <String, String>{'Content-Type': 'application/json'};
+
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    return headers;
   }
 
   static Future<dynamic> _get(String path) async {
@@ -56,7 +59,6 @@ class PetService {
     return List<Map<String, dynamic>>.from(data);
   }
 
-  /// Busca os detalhes completos de um único animal (GET /animal/{id}).
   static Future<Map<String, dynamic>> fetchAnimalDetail(dynamic id) async {
     final data = await _get('/animal/$id');
     return data as Map<String, dynamic>;
@@ -81,7 +83,9 @@ class PetService {
     );
 
     final token = await TokenStorage.getAuthToken();
-    request.headers['Authorization'] = 'Bearer $token';
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
 
     final bytes = await imageFile.readAsBytes();
     request.files.add(
@@ -170,6 +174,41 @@ class PetService {
     }
 
     return true;
+  }
+
+  static Future<void> dischargeAnimal({
+    required int id,
+    required int dischargeReasonId,
+    required String dischargeDate,
+    required int breedId,
+    required int colorId,
+    required Map<String, dynamic> existingPetData,
+  }) async {
+    final Map<String, dynamic> body = {
+      "name": existingPetData['name'],
+      "microchipNumber": existingPetData['microchipNumber'],
+      "breedId": breedId,
+      "colorId": colorId,
+      "gender": existingPetData['gender'],
+      "birthDate": existingPetData['birthDate'],
+      "intakeDate": existingPetData['intakeDate'],
+      "dischargeDate": dischargeDate,
+      "dischargeReasonId": dischargeReasonId,
+      "toAdoption": false,
+    };
+
+    final response = await http.patch(
+      Uri.parse('$baseUrl/animal/$id'),
+      headers: await _getHeaders(),
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception(
+        "Falha ao dar baixa no animal "
+        "(${response.statusCode}): ${response.body}",
+      );
+    }
   }
 
   static Future<bool> deleteAnimal(dynamic id) async {

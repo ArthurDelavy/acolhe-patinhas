@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart'; // Importado para suporte a kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../components/navbar.dart';
@@ -224,7 +226,10 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        maxWidth: 1024, // Limita a largura máxima a 1024px
+        maxHeight: 1024, // Limita a altura máxima a 1024px
+        imageQuality:
+            70, // Reduz a qualidade para comprimir o peso do arquivo (fica abaixo de 300KB)
       );
 
       if (image != null && mounted) {
@@ -244,58 +249,34 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
     }
   }
 
-  void _clearForm() {
-    _formKey.currentState?.reset();
-
-    _nameController.clear();
-    _microchipController.clear();
-    _birthDateController.clear();
-
-    setState(() {
-      _selectedSpeciesId = null;
-      _selectedBreedId = null;
-      _selectedColorId = null;
-      _selectedGender = null;
-      _selectedBirthDate = null;
-      _toAdoption = false;
-      _selectedImage = null;
-      _filteredBreedsList = [];
-    });
-  }
-
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
+
+      final String rawMicrochip = _microchipController.text.trim();
+
+      // Garante 5 minutos de margem no passado e formata com o 'Z' no final
+      final now = DateTime.now().subtract(const Duration(minutes: 5));
+      final String intakeFormatted =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}"
+          "T${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}.000Z";
 
       final String? formattedBirthDate = _selectedBirthDate != null
           ? "${_selectedBirthDate!.year}-${_selectedBirthDate!.month.toString().padLeft(2, '0')}-${_selectedBirthDate!.day.toString().padLeft(2, '0')}"
           : null;
 
-      final String rawMicrochip = _microchipController.text.trim();
-
       final Map<String, dynamic> petPayload = {
         "name": _nameController.text.trim(),
         "gender": _selectedGender,
         "toAdoption": _toAdoption,
-        "breed": _selectedBreedId != null ? {"id": _selectedBreedId} : null,
-        "color": _selectedColorId != null ? {"id": _selectedColorId} : null,
-        "breedId": _selectedBreedId,
-        "colorId": _selectedColorId,
-        "intakeDate": DateTime.now().toUtc().toIso8601String(),
+        "intakeDate": intakeFormatted,
+        if (_selectedBreedId != null) "breed": {"id": _selectedBreedId},
+        if (_selectedBreedId != null) "breedId": _selectedBreedId,
+        if (_selectedColorId != null) "color": {"id": _selectedColorId},
+        if (_selectedColorId != null) "colorId": _selectedColorId,
         if (rawMicrochip.isNotEmpty) "microchipNumber": rawMicrochip,
+        if (formattedBirthDate != null) "birthDate": formattedBirthDate,
       };
-
-      if (formattedBirthDate != null) {
-        petPayload["birthDate"] = formattedBirthDate;
-      }
-
-      // Trata o microchip: adiciona na requisição
-      // apenas se tiver caracteres preenchidos.
-      final String microchipVal = _microchipController.text.trim();
-
-      if (microchipVal.isNotEmpty) {
-        petPayload["microchipNumber"] = microchipVal;
-      }
 
       try {
         final success = await PetService.registerAnimalWithImage(
@@ -352,6 +333,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // PREVIEW DA FOTO (CORRIGIDO PARA SUPORTAR MOBILE E WEB)
                     Center(
                       child: GestureDetector(
                         onTap: _pickPetImage,
@@ -387,12 +369,19 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                                     ),
                                   ],
                                 )
-                              : Image.network(
-                                  _selectedImage!.path,
-                                  fit: BoxFit.cover,
-                                  width: 130,
-                                  height: 130,
-                                ),
+                              : (kIsWeb
+                                    ? Image.network(
+                                        _selectedImage!.path,
+                                        fit: BoxFit.cover,
+                                        width: 130,
+                                        height: 130,
+                                      )
+                                    : Image.file(
+                                        File(_selectedImage!.path),
+                                        fit: BoxFit.cover,
+                                        width: 130,
+                                        height: 130,
+                                      )),
                         ),
                       ),
                     ),
@@ -412,7 +401,6 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                             !Validators.isValidPetName(value)) {
                           return 'Informe um nome válido';
                         }
-
                         return null;
                       },
                     ),
@@ -431,7 +419,6 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         if (!Validators.isValidMicrochip(value)) {
                           return 'Microchip deve ter até 15 caracteres';
                         }
-
                         return null;
                       },
                     ),
@@ -633,32 +620,37 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
 
                     const SizedBox(height: 24),
 
-                    ElevatedButton(
-                      onPressed: _isSubmitting ? null : _submitForm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE27B1D),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    // BOTÃO REAJUSTADO (ALTURA FIXA E SLEEK)
+                    SizedBox(
+                      height: 46,
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitForm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE27B1D),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'CADASTRAR PET',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              'CADASTRAR PET',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                     ),
                   ],
                 ),

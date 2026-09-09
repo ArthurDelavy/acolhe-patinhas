@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../components/navbar.dart';
 import '../../services/pet_service.dart';
-import '../../utils/token_storage.dart';
 import '../register/register_pets.dart';
 import '../listPets/edit_pet.dart';
 
 class ListPetsScreen extends StatefulWidget {
-  const ListPetsScreen({super.key});
+  final bool isAdminMode;
+  final int navIndex;
+
+  const ListPetsScreen({
+    super.key,
+    this.isAdminMode = false,
+    this.navIndex = 1, // Padrão: Ícone 2 da Navbar (Usuário)
+  });
 
   @override
   State<ListPetsScreen> createState() => _ListPetsScreenState();
@@ -15,28 +21,13 @@ class ListPetsScreen extends StatefulWidget {
 class _ListPetsScreenState extends State<ListPetsScreen> {
   static const Color primaryColor = Color(0xFFE27B1D);
 
-  bool _isAdmin = false;
-  bool _isLoadingPermission = true;
-
   List<Map<String, dynamic>> _pets = [];
   bool _isLoadingPets = true;
 
   @override
   void initState() {
     super.initState();
-    _checkPermission();
     _loadPets();
-  }
-
-  Future<void> _checkPermission() async {
-    final isAdmin = await TokenStorage.hasPermission('animal:create');
-
-    if (!mounted) return;
-
-    setState(() {
-      _isAdmin = isAdmin;
-      _isLoadingPermission = false;
-    });
   }
 
   Future<void> _loadPets() async {
@@ -47,7 +38,18 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
       if (!mounted) return;
 
       setState(() {
-        _pets = petsList;
+        if (!widget.isAdminMode) {
+          _pets = petsList.where((pet) {
+            final isToAdoption = pet['toAdoption'] == true;
+            final hasDischarge =
+                pet['dischargeDate'] != null ||
+                pet['dischargeReasonId'] != null;
+            return isToAdoption && !hasDischarge;
+          }).toList();
+        } else {
+          _pets = petsList;
+        }
+
         _isLoadingPets = false;
       });
     } catch (e) {
@@ -98,11 +100,199 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
     return '$ageRaw anos';
   }
 
+  // --- MODAL DE DETALHES DO PET (MODO USUÁRIO) ---
+  void _showPetDetailsModal(Map<String, dynamic> pet, String heroTag) {
+    final String name = pet['name']?.toString() ?? 'Sem Nome';
+    final String imageUrl = _resolveImageUrl(pet) ?? '';
+    final String genderChar = pet['gender']?.toString().toUpperCase() ?? 'M';
+    final bool isMale = genderChar == 'M';
+    final bool toAdoption = pet['toAdoption'] ?? false;
+
+    final String breed = pet['breed'] is Map
+        ? (pet['breed']['name'] ?? 'Não informada')
+        : (pet['breed']?.toString() ?? 'Não informada');
+
+    final String color = pet['color'] is Map
+        ? (pet['color']['name'] ?? 'Não informada')
+        : (pet['color']?.toString() ?? 'Não informada');
+
+    final String ageText = _formatAge(pet['age']);
+    final String description =
+        pet['description']?.toString() ??
+        pet['about']?.toString() ??
+        'Este pet está à procura de um lar amoroso! Entre em contato para saber mais detalhes sobre o processo de adoção.';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Imagem expandida com botão de fechar
+                Stack(
+                  children: [
+                    Hero(
+                      tag: heroTag,
+                      child: SizedBox(
+                        height: 260,
+                        width: double.infinity,
+                        child: imageUrl.isNotEmpty
+                            ? Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildPlaceholder(),
+                              )
+                            : _buildPlaceholder(),
+                      ),
+                    ),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.black54,
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Informações do Pet
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            isMale ? Icons.male : Icons.female,
+                            color: isMale ? Colors.blue : Colors.pink,
+                            size: 28,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildChip(Icons.pets, breed),
+                          _buildChip(Icons.palette_outlined, color),
+                          _buildChip(Icons.cake_outlined, ageText),
+                        ],
+                      ),
+                      const Divider(height: 32),
+                      const Text(
+                        'Sobre o pet:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[800],
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      if (toAdoption)
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Interesse registrado para $name!',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.favorite),
+                            label: const Text(
+                              'Quero Adotar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: primaryColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pets Cadastrados'),
+        title: Text(
+          widget.isAdminMode ? 'Gestão de Pets (Admin)' : 'Pets para Adoção',
+        ),
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -117,7 +307,9 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
                   Icon(Icons.pets, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'Nenhum pet cadastrado ainda.',
+                    widget.isAdminMode
+                        ? 'Nenhum pet cadastrado no sistema.'
+                        : 'Nenhum pet disponível para adoção no momento.',
                     style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                 ],
@@ -130,74 +322,74 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
                 padding: const EdgeInsets.all(10),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 1.1,
+                  childAspectRatio:
+                      0.82, // Proporção ajustada para enriquecer a imagem
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                 ),
                 itemCount: _pets.length,
                 itemBuilder: (context, index) {
                   final pet = _pets[index];
-                  return _buildGridPetCard(pet);
+                  return _buildGridPetCard(pet, index);
                 },
               ),
             ),
-      floatingActionButton: !_isLoadingPermission
+      floatingActionButton: widget.isAdminMode
           ? FloatingActionButton.extended(
-              onPressed: _isAdmin
-                  ? _openRegisterPets
-                  : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Apenas administradores podem cadastrar pets.',
-                          ),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-              backgroundColor: _isAdmin ? primaryColor : Colors.grey.shade400,
+              onPressed: _openRegisterPets,
+              backgroundColor: primaryColor,
               foregroundColor: Colors.white,
-              elevation: _isAdmin ? 3 : 1,
-              icon: Icon(_isAdmin ? Icons.add : Icons.lock_outline, size: 18),
-              label: Text(
+              elevation: 3,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text(
                 'Cadastrar Pet',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  color: Colors.white.withOpacity(_isAdmin ? 1.0 : 0.8),
+                  color: Colors.white,
                 ),
               ),
             )
           : null,
-      bottomNavigationBar: const NavbarComponent(currentIndex: 3),
+      bottomNavigationBar: NavbarComponent(currentIndex: widget.navIndex),
     );
   }
 
-  // <--- 2. CARD ENVOLVIDO COM INKWELL E NAVEGAÇÃO
-  Widget _buildGridPetCard(Map<String, dynamic> pet) {
+  Widget _buildGridPetCard(Map<String, dynamic> pet, int index) {
     final String name = pet['name']?.toString() ?? 'Sem Nome';
     final String imageUrl = _resolveImageUrl(pet) ?? '';
     final String genderChar = pet['gender']?.toString().toUpperCase() ?? 'M';
     final bool isMale = genderChar == 'M';
     final bool toAdoption = pet['toAdoption'] ?? false;
-    final String breed = pet['breed']?.toString() ?? 'Não informada';
-    final String color = pet['color']?.toString() ?? 'Não informada';
+    final String heroTag = 'pet-img-${pet['id'] ?? index}';
+
+    final String breed = pet['breed'] is Map
+        ? (pet['breed']['name'] ?? 'Não informada')
+        : (pet['breed']?.toString() ?? 'Não informada');
+
+    final String color = pet['color'] is Map
+        ? (pet['color']['name'] ?? 'Não informada')
+        : (pet['color']?.toString() ?? 'Não informada');
+
     final String ageText = _formatAge(pet['age']);
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () async {
-        // Redireciona para a tela de edição
-        final bool? updatedOrDischarged = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => EditPetScreen(petData: pet, isAdmin: _isAdmin),
-          ),
-        );
+        if (widget.isAdminMode) {
+          final bool? updatedOrDischarged = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => EditPetScreen(petData: pet, isAdmin: true),
+            ),
+          );
 
-        // Se alterou ou deu baixa, recarrega a lista
-        if (updatedOrDischarged == true) {
-          _loadPets();
+          if (updatedOrDischarged == true) {
+            _loadPets();
+          }
+        } else {
+          // Modal de Detalhes com Animação Hero
+          _showPetDetailsModal(pet, heroTag);
         }
       },
       child: Card(
@@ -206,61 +398,61 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Banner da Foto
-            Stack(
-              children: [
-                SizedBox(
-                  height: 130,
-                  width: double.infinity,
-                  child: imageUrl.isNotEmpty
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildPlaceholder(),
-                        )
-                      : _buildPlaceholder(),
-                ),
-                Positioned(
-                  top: 5,
-                  left: 5,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+            // Imagem com Hero Tag
+            Expanded(
+              child: Stack(
+                children: [
+                  Hero(
+                    tag: heroTag,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: imageUrl.isNotEmpty
+                          ? Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildPlaceholder(),
+                            )
+                          : _buildPlaceholder(),
                     ),
-                    decoration: BoxDecoration(
-                      color: toAdoption
-                          ? Colors.green.shade700
-                          : Colors.grey.shade800.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      toAdoption ? 'Para Adoção' : 'Indisponível',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  Positioned(
+                    top: 5,
+                    left: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: toAdoption
+                            ? Colors.green.shade700
+                            : Colors.grey.shade800.withOpacity(0.85),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        toAdoption ? 'Para Adoção' : 'Indisponível',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
-            // Informações do Pet
+            // Informações Compactas no Card
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8.0,
-                vertical: 6.0,
-              ),
+              padding: const EdgeInsets.all(8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Nome + Gênero
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -282,18 +474,14 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 3),
-                  // Raça e Cor
+                  const SizedBox(height: 2),
                   Text(
                     '$breed • Cor: $color',
                     style: TextStyle(fontSize: 10, color: Colors.grey[700]),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-
-                  const SizedBox(height: 5),
-                  // Idade
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       const Icon(

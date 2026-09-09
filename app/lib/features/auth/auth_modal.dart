@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../utils/validators.dart';
 import '../../services/auth_service.dart';
 
@@ -21,10 +22,10 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
   final _passwordController = TextEditingController();
 
   final List<TextEditingController> _codeControllers = List.generate(
-    4,
+    6,
     (_) => TextEditingController(),
   );
-  final List<FocusNode> _codeFocusNodes = List.generate(4, (_) => FocusNode());
+  final List<FocusNode> _codeFocusNodes = List.generate(6, (_) => FocusNode());
 
   late final AuthService _authService;
   bool _isRegistering = false;
@@ -32,7 +33,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
   @override
   void initState() {
     super.initState();
-    _authService = AuthService(baseUrl: 'http://localhost:8080');
+    _authService = AuthService(baseUrl: 'http://192.168.0.40:8080');
   }
 
   @override
@@ -54,14 +55,18 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.viewInsets.bottom; // teclado aberto
+    final bottomSafeArea = mediaQuery.padding.bottom; // barra de navegação
 
     return Padding(
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
         top: 20,
-        bottom: bottomInset + 20,
+        // Se o teclado estiver aberto, usa o inset dele.
+        // Se não, garante espaço para a barra de navegação do sistema.
+        bottom: (bottomInset > 0 ? bottomInset : bottomSafeArea) + 20,
       ),
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -227,7 +232,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(4, (index) => _buildCodeBox(index)),
+          children: List.generate(6, (index) => _buildCodeBox(index)),
         ),
 
         const SizedBox(height: 24),
@@ -320,16 +325,21 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
       child: TextField(
         controller: _codeControllers[index],
         focusNode: _codeFocusNodes[index],
-        keyboardType: TextInputType.number,
+        keyboardType: TextInputType.text,
+        textCapitalization: TextCapitalization.characters,
         textAlign: TextAlign.center,
         maxLength: 1,
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+          _UpperCaseTextFormatter(),
+        ],
         style: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
           color: Color(0xFF2D3142),
         ),
         onChanged: (value) {
-          if (value.isNotEmpty && index < 3) {
+          if (value.isNotEmpty && index < 5) {
             _codeFocusNodes[index + 1].requestFocus();
           }
           // Volta para o quadradinho anterior se apagar
@@ -439,6 +449,22 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Formatter que força os caracteres digitados a maiúsculas,
+// necessário porque textCapitalization sozinho só "sugere"
+// ao teclado virtual e não bloqueia entrada minúscula real.
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

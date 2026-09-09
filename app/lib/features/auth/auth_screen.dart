@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'auth_modal.dart';
 import '../../utils/validators.dart';
 import '../../services/auth_service.dart';
+import '../../utils/token_storage.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -32,7 +33,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
 
-    _authService = AuthService(baseUrl: 'http://localhost:8080');
+    _authService = AuthService(baseUrl: 'http://192.168.0.40:8080');
   }
 
   @override
@@ -306,9 +307,15 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: ElevatedButton(
                         onPressed: _isLoggingIn
                             ? null
-                            : () {
+                            : () async {
+                                // Transforme a função em async
                                 if (anonymousEntry) {
                                   if (_formKey.currentState!.validate()) {
+                                    // 1. Limpa qualquer token residual de Admin ou User
+                                    await TokenStorage.clear();
+
+                                    // 2. Navega para o feed limpo
+                                    if (!mounted) return;
                                     Navigator.pushReplacementNamed(
                                       context,
                                       '/feed',
@@ -480,9 +487,16 @@ class _AuthScreenState extends State<AuthScreen> {
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: const Color(0xFFFAFAFA),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 16,
+        contentPadding: const EdgeInsets.only(
+          top: 22,
+          bottom: 10,
+          left: 16,
+          right: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+          gapPadding: 6,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
