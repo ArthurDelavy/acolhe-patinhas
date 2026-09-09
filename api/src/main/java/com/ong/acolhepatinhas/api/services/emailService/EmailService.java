@@ -29,7 +29,7 @@ public class EmailService {
         try {
             emailGateway.sendEmail(to, subject, template, variables);
         } catch (EmailSendingException e) {
-            
+            e.printStackTrace();
         }
     }
 
@@ -45,7 +45,7 @@ public class EmailService {
         try {
             emailGateway.sendEmail(to, subject, template, variables);
         } catch (EmailSendingException e) {
-            
+            e.printStackTrace();
         }
     } 
 }

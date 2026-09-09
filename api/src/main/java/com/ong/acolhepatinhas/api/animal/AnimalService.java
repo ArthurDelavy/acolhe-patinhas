@@ -12,8 +12,9 @@ import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.references.ReferencesService;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
-import com.ong.acolhepatinhas.api.services.ImageService;
-import com.ong.acolhepatinhas.api.services.DTO.ImageRequest;
+import com.ong.acolhepatinhas.api.services.imageService.ImageService;
+import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
+import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
@@ -48,7 +49,7 @@ public class AnimalService {
     @Transactional
     public Animal newAnimal(LoggedUserPayload user, @Valid NewAnimalRequest data) {
         
-        if (anmRep.existsByMicrochipNumber(data.microchipNumber())) throw new DuplicatedValueException("Animal já cadastrado.");
+        if (data.microchipNumber() != null && anmRep.existsByMicrochipNumber(data.microchipNumber())) throw new DuplicatedValueException("Animal já cadastrado.");
 
         User requester = (User) usrSvc.loadUserByUsername(user.email());
 
@@ -104,10 +105,21 @@ public class AnimalService {
 
         User requester = (User) usrSvc.loadUserByUsername(user.email());
         Animal animal = this.getById(animalId);
-        String url = imgSvc.uploadImage(image);
+        
+        if (animal.getImageUrl() != null) imgSvc.deleteImage(animal.getImageUrl(), StorageFileType.ANIMAL_REGISTER_PHOTO);
 
+        String url = imgSvc.saveImage(image, String.valueOf(animalId), StorageFileType.ANIMAL_REGISTER_PHOTO);
+        
         animal.setImageUrl(url);
         animal.setUser(requester);
         return anmRep.save(animal);
+    }
+
+
+    @Transactional
+    public void deleteAnimal(int animalId) {
+
+        Animal animal = this.getById(animalId);
+        anmRep.delete(animal);
     }
 }
