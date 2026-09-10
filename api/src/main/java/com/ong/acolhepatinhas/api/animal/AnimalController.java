@@ -106,7 +106,7 @@ public class AnimalController {
 
 
     @PatchMapping(value = "/{animalId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE) @PreAuthorize("hasAuthority('animal:edit')")
-    @Operation(summary = "Atualizar dados de um animal")
+    @Operation(summary = "Atualizar imagem de um animal")
         @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "201", description = "Atualizado com sucesso!")
         @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)

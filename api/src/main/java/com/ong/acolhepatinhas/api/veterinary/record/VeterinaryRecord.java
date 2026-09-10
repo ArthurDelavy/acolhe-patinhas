@@ -3,6 +3,7 @@ package com.ong.acolhepatinhas.api.veterinary.record;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.ong.acolhepatinhas.api.animal.Animal;
 
 import jakarta.persistence.Column;
@@ -30,6 +31,7 @@ public class VeterinaryRecord {
     private int id;
 
     @OneToOne(fetch = FetchType.LAZY) @MapsId @JoinColumn(name = "animal_id")
+    @JsonBackReference
     private Animal animal;
 
     @Column(name = "size_cm")

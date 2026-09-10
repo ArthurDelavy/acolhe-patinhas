@@ -25,11 +25,13 @@ public class VeterinaryRecordService {
         return vetRep.findById(recordId).orElseThrow(() -> new ValueNotFoundException("Registro veterinário não encontrado."));
     }
 
+    public VeterinaryRecord getByAnimal(Animal animal) {
+        return vetRep.findByAnimal(animal).orElseThrow(() -> new ValueNotFoundException("Registro veterinário não encontrado."));
+    }
 
 
-    public VeterinaryRecord newRecord(int animalId, @Valid NewVetRecordRequest data) {
 
-        Animal animal = anmSvc.getById(animalId);
+    public VeterinaryRecord newRecord(Animal animal, @Valid NewVetRecordRequest data) {
         
         VeterinaryRecord record = VeterinaryRecord.builder()
             .animal(animal)
@@ -37,6 +39,18 @@ public class VeterinaryRecordService {
             .weight(data.weight())
             .neutered(data.neutered())
             .build();
+
+        return vetRep.save(record);
+    }
+
+
+    public VeterinaryRecord editRecord(Animal animal, @Valid NewVetRecordRequest data) {
+        
+        VeterinaryRecord record = this.getByAnimal(animal);
+
+        record.setSize(data.size());
+        record.setWeight(data.weight());
+        record.setNeutered(data.neutered());
 
         return vetRep.save(record);
     }

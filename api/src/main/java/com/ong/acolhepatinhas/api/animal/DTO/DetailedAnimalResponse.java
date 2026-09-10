@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import com.ong.acolhepatinhas.api.animal.Animal;
+import com.ong.acolhepatinhas.api.veterinary.record.DTO.BasicVeterinaryRecordResponse;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -50,7 +51,9 @@ public record DetailedAnimalResponse(
     boolean toAdoption,
     
     @Schema(example = "https://")
-    String imageUrl
+    String imageUrl,
+
+    BasicVeterinaryRecordResponse veterinaryRecord
 
 ) {
 
@@ -69,7 +72,8 @@ public record DetailedAnimalResponse(
             data.getDischargeDate(),
             data.getDischargeReason() != null ? data.getDischargeReason().getName() : null,
             data.isToAdoption(),
-            data.getImageUrl()
+            data.getImageUrl(),
+            new BasicVeterinaryRecordResponse(data.getVetRecord())
         );
     }
 }

@@ -12,7 +12,6 @@ public record BasicVeterinaryRecordResponse(
     @Schema(example = "90", description = "Valor em cm")
     Integer size,
 
-    
     @Schema(example = "1.5", description = "Valor em kg")
     Double weight,
 
