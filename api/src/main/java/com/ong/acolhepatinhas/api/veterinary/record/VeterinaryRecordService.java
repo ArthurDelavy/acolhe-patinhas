@@ -5,7 +5,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.animal.Animal;
-import com.ong.acolhepatinhas.api.animal.AnimalService;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.veterinary.record.DTO.NewVetRecordRequest;
 
@@ -19,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 public class VeterinaryRecordService {
     
     private final VeterinaryRecordRepository vetRep;
-    private final AnimalService anmSvc;
 
     public VeterinaryRecord getById(int recordId) {
         return vetRep.findById(recordId).orElseThrow(() -> new ValueNotFoundException("Registro veterinário não encontrado."));
@@ -31,6 +29,7 @@ public class VeterinaryRecordService {
 
 
 
+    @Transactional
     public VeterinaryRecord newRecord(Animal animal, @Valid NewVetRecordRequest data) {
         
         VeterinaryRecord record = VeterinaryRecord.builder()
@@ -44,6 +43,7 @@ public class VeterinaryRecordService {
     }
 
 
+    @Transactional
     public VeterinaryRecord editRecord(Animal animal, @Valid NewVetRecordRequest data) {
         
         VeterinaryRecord record = this.getByAnimal(animal);
