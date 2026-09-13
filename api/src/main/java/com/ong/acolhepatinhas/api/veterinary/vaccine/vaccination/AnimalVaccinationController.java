@@ -57,6 +57,6 @@ public class AnimalVaccinationController {
         @ApiResponse(responseCode = "404", description = "Registro ou vacina não encontrado", content = @Content)
     public ResponseEntity<Void> newVaccination(@RequestParam int animalId, @RequestBody @Valid NewVaccinationRequest data) {
         vctSvc.newVaccination(animalId, data);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }
