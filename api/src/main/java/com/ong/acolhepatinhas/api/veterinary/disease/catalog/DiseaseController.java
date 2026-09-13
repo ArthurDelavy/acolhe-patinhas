@@ -72,7 +72,7 @@ public class DiseaseController {
         @ApiResponse(responseCode = "409", description = "Doença já cadastrada", content = @Content)
     public ResponseEntity<Void> newDisease(@RequestBody @Valid NewDiseaseRequest data) {
         dseSvc.newDisease(data);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
 
