@@ -55,6 +55,7 @@ public class DiseaseController {
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Doença não encontrada", content = @Content)
     public ResponseEntity<DiseaseResponse> getById(@PathVariable int diseaseId) {
         DiseaseResponse responseData = new DiseaseResponse(dseSvc.getById(diseaseId));
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
