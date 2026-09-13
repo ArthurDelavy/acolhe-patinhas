@@ -33,7 +33,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
 
-    _authService = AuthService(baseUrl: 'http://192.168.0.40:8080');
+    _authService = AuthService(baseUrl: 'http://localhost:8080');
   }
 
   @override

@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
 
 class PetService {
-  static const String baseUrl = 'http://192.168.0.40:8080';
+  static const String baseUrl = 'http://localhost:8080';
 
   static Future<Map<String, String>> _getHeaders() async {
     final token = await TokenStorage.getAuthToken();
