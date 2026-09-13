@@ -35,6 +35,7 @@ public class DiseaseService {
     }
 
 
+    @Transactional 
     public Disease newDisease(@Valid NewDiseaseRequest data) {
 
         if (dseRep.existsByName(data.name())) throw new DuplicatedValueException("Doença já cadastrada.");
@@ -47,6 +48,7 @@ public class DiseaseService {
     }
 
 
+    @Transactional
     public void deleteDisease(int diseaseId) {
         Disease disease = this.getById(diseaseId);
         if (dgnSvc.existsByDisease(disease)) throw new ResourceInUseException("A doença não pôde ser deletada pois está vinculada a um diagnóstico.");
