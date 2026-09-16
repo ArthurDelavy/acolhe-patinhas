@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.veterinary.treatment.record.DTO.EditTreatmentRequest;
 import com.ong.acolhepatinhas.api.veterinary.treatment.record.DTO.ResumedTreatmentResponse;
+import com.ong.acolhepatinhas.api.veterinary.treatment.record.DTO.TreatmentResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -55,8 +56,8 @@ public class TreatmentController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
         @ApiResponse(responseCode = "404", description = "Tratamento não encontrado", content = @Content)
-    public ResponseEntity<ResumedTreatmentResponse> getById(@PathVariable int treatmentId) {
-        ResumedTreatmentResponse responseData = new ResumedTreatmentResponse(ttmSvc.getById(treatmentId));
+    public ResponseEntity<TreatmentResponse> getById(@PathVariable int treatmentId) {
+        TreatmentResponse responseData = new TreatmentResponse(ttmSvc.getById(treatmentId));
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
