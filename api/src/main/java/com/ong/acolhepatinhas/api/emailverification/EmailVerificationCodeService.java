@@ -22,7 +22,7 @@ public class EmailVerificationCodeService {
     @Autowired
     private PasswordEncoder pswEcd;
 
-    @Transactional
+    @Transactional (readOnly = false)
     public String newCode(User user) {
 
         String code = PasswordCode.generateCode();
