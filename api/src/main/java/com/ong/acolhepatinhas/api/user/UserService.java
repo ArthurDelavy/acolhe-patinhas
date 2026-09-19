@@ -91,7 +91,7 @@ public class UserService implements UserDetailsService {
         user.setPassword(pswEcd.encode(data.newPassword()));
     }
 
-
+    @Transactional
     public void passwordTokenProcess(@Valid ForgotPasswordRequest data) {
 
         usrRep.findByEmail(data.email()).ifPresent(user -> {
@@ -112,7 +112,7 @@ public class UserService implements UserDetailsService {
         pswSvc.deleteCode(code);
     }
 
-
+    @Transactional
     public void resendVerificationEmail(@Valid ResendVerificationRequest data) {
 
         usrRep.findByEmail(data.email()).ifPresent(user -> {
