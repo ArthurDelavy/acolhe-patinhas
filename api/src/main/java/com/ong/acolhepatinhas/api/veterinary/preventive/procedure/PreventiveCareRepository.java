@@ -5,9 +5,11 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import com.ong.acolhepatinhas.api.veterinary.preventive.catalog.PreventiveProcedure;
 
+@Repository
 public interface PreventiveCareRepository extends JpaRepository<PreventiveCare, Integer> {
     boolean existsByPreventiveProcedure(PreventiveProcedure procedure);
 
