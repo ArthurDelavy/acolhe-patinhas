@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record ResumedVaccinationResponse(
 
     @Schema(example = "1")
-    int vaccinationId,
+    int id,
 
     @Schema(example = "1")
     int animalId,
