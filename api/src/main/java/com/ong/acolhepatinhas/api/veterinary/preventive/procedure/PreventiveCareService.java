@@ -2,6 +2,8 @@ package com.ong.acolhepatinhas.api.veterinary.preventive.procedure;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -28,7 +30,9 @@ public class PreventiveCareService {
 
     private final VeterinaryRecordService vtrSvc;
     private final PreventiveProcedureService pvpSvc;
-    private final MedicineService mdcSvc;
+
+    @Autowired @Lazy
+    private MedicineService mdcSvc;
 
     public boolean existsByPreventiveProcedure(PreventiveProcedure procedure) {
         return pvcRep.existsByProcedure(procedure);
