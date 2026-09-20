@@ -34,6 +34,10 @@ public class PreventiveCareService {
         return pvcRep.existsByPreventiveProcedure(procedure);
     }
 
+    public boolean existsByMedicine(Medicine medicine) {
+        return pvcRep.existsByMedicine(medicine);
+    }
+
     
     public PreventiveCare getById(int preventiveId) {
         return pvcRep.findById(preventiveId).orElseThrow(() -> new ValueNotFoundException("Preventiva não encontrada."));

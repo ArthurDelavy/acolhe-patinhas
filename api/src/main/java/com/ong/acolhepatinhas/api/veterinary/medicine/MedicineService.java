@@ -13,6 +13,7 @@ import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.veterinary.medicine.DTO.NewMedicineRequest;
+import com.ong.acolhepatinhas.api.veterinary.preventive.procedure.PreventiveCareService;
 import com.ong.acolhepatinhas.api.veterinary.treatment.posology.TreatmentMedicineService;
 
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ public class MedicineService {
     private final MedicineRepository mdcRep;
 
     private final TreatmentMedicineService tmcSvc;
+    private final PreventiveCareService pvcSvc;
 
 
     @Cacheable(value = "medicines")
@@ -62,7 +64,9 @@ public class MedicineService {
     public void deleteMedicine(int medicineId) {
 
         Medicine medicine = this.getById(medicineId);
+
         if (tmcSvc.existsByMedicine(medicine)) throw new ResourceInUseException("O medicamento não pôde ser deletado pois está vinculado a um tratamento.");
+        if (pvcSvc.existsByMedicine(medicine)) throw new ResourceInUseException("O medicamento não pôde ser deletado pois está vinculado a um cuidado preventivo.");
 
         mdcRep.delete(medicine);
     }

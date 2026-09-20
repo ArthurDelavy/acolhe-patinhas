@@ -83,7 +83,7 @@ public class MedicineController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Medicamento não encontrado", content = @Content)
-        @ApiResponse(responseCode = "409", description = "Medicamento vinculado a um tratamento", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Medicamento vinculado a um tratamento ou cuidado preventivo", content = @Content)
     public ResponseEntity<Void> deleteMedicine(@PathVariable int medicineId) {
         mdcSvc.deleteMedicine(medicineId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
