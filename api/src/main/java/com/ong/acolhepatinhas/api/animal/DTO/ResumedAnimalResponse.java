@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.Period;
 
 import com.ong.acolhepatinhas.api.animal.Animal;
+import com.ong.acolhepatinhas.api.veterinary.record.DTO.BasicVeterinaryRecordResponse;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -34,7 +35,9 @@ public record ResumedAnimalResponse(
     boolean toAdoption,
 
     @Schema(example = "https://...")
-    String imageUrl
+    String imageUrl,
+
+    BasicVeterinaryRecordResponse veterinaryRecord
 
 ) {
     
@@ -48,7 +51,8 @@ public record ResumedAnimalResponse(
             data.getGender().toString().charAt(0), 
             data.getBirthDate() != null ? Period.between(data.getBirthDate(), LocalDate.now()).getYears() : null,
             data.isToAdoption(),
-            data.getImageUrl()
+            data.getImageUrl(),
+            new BasicVeterinaryRecordResponse(data.getVetRecord())
         );
     }
 }
