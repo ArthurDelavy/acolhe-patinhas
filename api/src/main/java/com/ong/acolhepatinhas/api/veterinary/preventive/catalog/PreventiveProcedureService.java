@@ -2,9 +2,11 @@ package com.ong.acolhepatinhas.api.veterinary.preventive.catalog;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -26,7 +28,8 @@ public class PreventiveProcedureService {
     
     private final PreventiveProcedureRepository pvpRep;
 
-    private final PreventiveCareService pvcSvc;;
+    @Autowired @Lazy
+    private PreventiveCareService pvcSvc;;
 
 
     public boolean existsByName(String name) {
