@@ -8,11 +8,13 @@ import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.ong.acolhepatinhas.api.animal.enums.Gender;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
 import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReason;
 import com.ong.acolhepatinhas.api.user.User;
+import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecord;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,6 +25,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -66,4 +69,8 @@ public class Animal {
     private boolean toAdoption;
 
     private String imageUrl;
+
+    @OneToOne(mappedBy = "animal")
+    @JsonManagedReference
+    private VeterinaryRecord vetRecord;
 }

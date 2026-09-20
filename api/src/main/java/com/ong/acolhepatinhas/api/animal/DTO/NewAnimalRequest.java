@@ -1,5 +1,6 @@
 package com.ong.acolhepatinhas.api.animal.DTO;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -35,7 +36,7 @@ public record NewAnimalRequest(
     Gender gender,
 
     @PastOrPresent
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate birthDate,
     
     @PastOrPresent
@@ -43,6 +44,15 @@ public record NewAnimalRequest(
     Instant intakeDate,
 
     @Schema(example = "false")
-    boolean toAdoption
+    boolean toAdoption,
+
+    @Positive
+    @Schema(example = "90", description = "Valor em cm")
+    Integer size,
+
+    @Schema(example = "1.5", description = "Valor em kg")
+    BigDecimal weight,
+
+    boolean neutered
 ) {
 }

@@ -1,5 +1,6 @@
 package com.ong.acolhepatinhas.api.animal.DTO;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -51,6 +52,15 @@ public record EditAnimalRequest(
     Integer dischargeReasonId,
 
     @Schema(example = "false")
-    boolean toAdoption
+    boolean toAdoption,
+
+    @Positive
+    @Schema(example = "90", description = "Valor em cm")
+    Integer size,
+
+    @Schema(example = "1.5", description = "Valor em kg")
+    BigDecimal weight,
+
+    boolean neutered
 ) {
 }

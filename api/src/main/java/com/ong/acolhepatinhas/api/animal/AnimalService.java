@@ -18,6 +18,9 @@ import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
+import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecord;
+import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecordService;
+import com.ong.acolhepatinhas.api.veterinary.record.DTO.NewVetRecordRequest;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,7 @@ public class AnimalService {
     private final AnimalRepository anmRep;
     private final UserService usrSvc;
     private final ReferencesService rfcSvc;
+    private final VeterinaryRecordService vrcSvc;
 
     private final ImageService imgSvc;
 
@@ -65,7 +69,19 @@ public class AnimalService {
             .toAdoption(data.toAdoption())
             .build();
 
-        return anmRep.save(animal);
+        Animal savedAnimal = anmRep.save(animal);
+
+        VeterinaryRecord vetRecord = vrcSvc.newRecord(
+            savedAnimal,
+            new NewVetRecordRequest(
+                data.size(), 
+                data.weight(),
+                data.neutered()
+            )
+        );
+
+        savedAnimal.setVetRecord(vetRecord);
+        return savedAnimal;
     }
 
 
@@ -95,6 +111,15 @@ public class AnimalService {
         animal.setDischargeDate(data.dischargeDate());
         animal.setDischargeReason(data.dischargeDate() != null ? rfcSvc.getDischargeReason(data.dischargeReasonId()) : null);
         animal.setToAdoption(data.toAdoption());
+
+        vrcSvc.editRecord(
+            animal,
+            new NewVetRecordRequest(
+                data.size(), 
+                data.weight(), 
+                data.neutered()
+            )
+        );
 
         return anmRep.save(animal);
     }
