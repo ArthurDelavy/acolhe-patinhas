@@ -35,7 +35,7 @@ public record NewAnimalRequest(
     Gender gender,
 
     @PastOrPresent
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate birthDate,
     
     @PastOrPresent

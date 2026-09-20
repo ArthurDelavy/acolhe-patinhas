@@ -35,10 +35,10 @@ public record DetailedAnimalResponse(
     @Schema(example = "M")
     char gender,
     
-    @Schema(example = "Cachorro")
+    @Schema(example = "2021-09-03")
     LocalDate birthDate,
     
-    @Schema(example = "Cachorro")
+    @Schema(example = "2026-02-07T00:34:29.186Z")
     Instant intakeDate,
     
     @Schema(example = "2025-02-07T00:34:29.186Z")
@@ -50,7 +50,7 @@ public record DetailedAnimalResponse(
     @Schema(example = "false")
     boolean toAdoption,
     
-    @Schema(example = "https://")
+    @Schema(example = "https://...")
     String imageUrl,
 
     BasicVeterinaryRecordResponse veterinaryRecord
