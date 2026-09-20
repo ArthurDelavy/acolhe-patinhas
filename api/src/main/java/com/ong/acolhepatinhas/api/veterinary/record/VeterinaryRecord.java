@@ -1,5 +1,7 @@
 package com.ong.acolhepatinhas.api.veterinary.record;
 
+import java.math.BigDecimal;
+
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
@@ -37,7 +39,7 @@ public class VeterinaryRecord {
     @Column(name = "size_cm")
     private Integer size; // Tamanho definido em cm
 
-    private Double weight; // Peso em kg
+    private BigDecimal weight; // Peso em kg
 
     private boolean neutered;
 }

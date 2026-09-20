@@ -1,5 +1,7 @@
 package com.ong.acolhepatinhas.api.veterinary.record.DTO;
 
+import java.math.BigDecimal;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Positive;
 
@@ -10,7 +12,7 @@ public record NewVetRecordRequest(
     Integer size,
 
     @Schema(example = "1.5", description = "Valor em kg")
-    Double weight,
+    BigDecimal weight,
 
     boolean neutered
 
