@@ -2,6 +2,7 @@ package com.ong.acolhepatinhas.api.veterinary.disease.diagnosis;
 
 import java.util.List;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -26,6 +27,8 @@ public class DiagnosisService {
     private final DiagnosisRepository dgnRep;
     
     private final VeterinaryRecordService vtrSvc;
+
+    @Lazy
     private final DiseaseService dseSvc;
 
 
