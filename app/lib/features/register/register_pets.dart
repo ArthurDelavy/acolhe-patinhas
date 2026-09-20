@@ -1,0 +1,662 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart'; // Importado para suporte a kIsWeb
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../components/navbar.dart';
+import '../../services/pet_service.dart';
+import '../../utils/validators.dart';
+import '../../features/register/register_modal.dart';
+
+class RegisterPetsScreen extends StatefulWidget {
+  const RegisterPetsScreen({super.key});
+
+  @override
+  State<RegisterPetsScreen> createState() => _RegisterPetsScreenState();
+}
+
+class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _microchipController = TextEditingController();
+  final TextEditingController _birthDateController = TextEditingController();
+
+  int? _selectedSpeciesId;
+  int? _selectedBreedId;
+  int? _selectedColorId;
+  String? _selectedGender;
+  DateTime? _selectedBirthDate;
+  bool _toAdoption = false;
+  XFile? _selectedImage;
+  final ImagePicker _imagePicker = ImagePicker();
+
+  List<Map<String, dynamic>> _speciesList = [];
+  List<Map<String, dynamic>> _allBreedsList = [];
+  List<Map<String, dynamic>> _filteredBreedsList = [];
+  List<Map<String, dynamic>> _colorsList = [];
+
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLookupData();
+  }
+
+  Future<void> _fetchLookupData() async {
+    try {
+      final species = await PetService.fetchSpecies();
+      final breeds = await PetService.fetchBreeds();
+      final colors = await PetService.fetchColors();
+
+      if (!mounted) return;
+
+      setState(() {
+        _speciesList = species;
+        _allBreedsList = breeds;
+        _colorsList = colors;
+        _isLoading = false;
+      });
+
+      if (_selectedSpeciesId != null) {
+        _onSpeciesChanged(_selectedSpeciesId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao carregar dados: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _microchipController.dispose();
+    _birthDateController.dispose();
+    super.dispose();
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final hoje = DateTime.now();
+
+    int idade = hoje.year - birthDate.year;
+
+    if (hoje.month < birthDate.month ||
+        (hoje.month == birthDate.month && hoje.day < birthDate.day)) {
+      idade--;
+    }
+
+    return idade < 0 ? 0 : idade;
+  }
+
+  Future<void> _selectBirthDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedBirthDate = picked;
+
+        final formattedDate =
+            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+
+        final age = _calculateAge(picked);
+
+        _birthDateController.text =
+            "$formattedDate ($age ${age == 1 ? 'ano' : 'anos'})";
+      });
+    }
+  }
+
+  void _onSpeciesChanged(int? speciesId) {
+    setState(() {
+      _selectedSpeciesId = speciesId;
+      _selectedBreedId = null;
+
+      if (speciesId == null) {
+        _filteredBreedsList = [];
+        return;
+      }
+
+      _filteredBreedsList = _allBreedsList.where((breed) {
+        return breed['specieId'] == speciesId;
+      }).toList();
+    });
+  }
+
+  Future<void> _openRegisterSpeciesDialog() async {
+    final newSpecies = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => const RegisterSpecies(),
+    );
+
+    if (newSpecies == null || !mounted) return;
+
+    final int? newSpeciesId = newSpecies['id'];
+
+    setState(() {
+      _speciesList.add(newSpecies);
+      _selectedSpeciesId = newSpeciesId;
+      _selectedBreedId = null;
+
+      if (newSpeciesId == null) {
+        _filteredBreedsList = [];
+        return;
+      }
+
+      _filteredBreedsList = _allBreedsList.where((breed) {
+        final specieObj = breed['specie'] ?? breed['species'];
+
+        int? speciesIdFromObject;
+
+        if (specieObj is Map) {
+          speciesIdFromObject = specieObj['id'];
+        }
+
+        final int? speciesIdDirect =
+            breed['speciesId'] ??
+            breed['specie_id'] ??
+            breed['species_id'] ??
+            breed['idSpecie'];
+
+        final int? breedSpeciesId = speciesIdFromObject ?? speciesIdDirect;
+
+        return breedSpeciesId == newSpeciesId;
+      }).toList();
+    });
+  }
+
+  Future<void> _openRegisterBreedDialog() async {
+    if (_selectedSpeciesId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, selecione uma espécie primeiro.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+
+      return;
+    }
+
+    final newBreed = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) =>
+          RegisterBreedColor(isBreed: true, speciesId: _selectedSpeciesId!),
+    );
+
+    if (newBreed == null || !mounted) return;
+
+    setState(() {
+      _allBreedsList.add(newBreed);
+      _filteredBreedsList.add(newBreed);
+      _selectedBreedId = newBreed['id'];
+    });
+  }
+
+  Future<void> _openRegisterColorDialog() async {
+    final newColor = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => RegisterBreedColor(
+        isBreed: false,
+        speciesId: _selectedSpeciesId ?? 0,
+      ),
+    );
+
+    if (newColor == null || !mounted) return;
+
+    setState(() {
+      _colorsList.add(newColor);
+      _selectedColorId = newColor['id'];
+    });
+  }
+
+  Future<void> _pickPetImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024, // Limita a largura máxima a 1024px
+        maxHeight: 1024, // Limita a altura máxima a 1024px
+        imageQuality:
+            70, // Reduz a qualidade para comprimir o peso do arquivo (fica abaixo de 300KB)
+      );
+
+      if (image != null && mounted) {
+        setState(() {
+          _selectedImage = image;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao selecionar a foto: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
+
+      final String rawMicrochip = _microchipController.text.trim();
+
+      // Garante 5 minutos de margem no passado e formata com o 'Z' no final
+      final now = DateTime.now().subtract(const Duration(minutes: 5));
+      final String intakeFormatted =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}"
+          "T${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}.000Z";
+
+      final String? formattedBirthDate = _selectedBirthDate != null
+          ? "${_selectedBirthDate!.year}-${_selectedBirthDate!.month.toString().padLeft(2, '0')}-${_selectedBirthDate!.day.toString().padLeft(2, '0')}"
+          : null;
+
+      final Map<String, dynamic> petPayload = {
+        "name": _nameController.text.trim(),
+        "gender": _selectedGender,
+        "toAdoption": _toAdoption,
+        "intakeDate": intakeFormatted,
+        if (_selectedBreedId != null) "breed": {"id": _selectedBreedId},
+        if (_selectedBreedId != null) "breedId": _selectedBreedId,
+        if (_selectedColorId != null) "color": {"id": _selectedColorId},
+        if (_selectedColorId != null) "colorId": _selectedColorId,
+        if (rawMicrochip.isNotEmpty) "microchipNumber": rawMicrochip,
+        if (formattedBirthDate != null) "birthDate": formattedBirthDate,
+      };
+
+      try {
+        final success = await PetService.registerAnimalWithImage(
+          payload: petPayload,
+          imageFile: _selectedImage,
+        );
+
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pet cadastrado com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
+      } catch (e) {
+        if (mounted) {
+          String errorMessage = 'Erro ao salvar pet: $e';
+
+          if (e.toString().contains('409')) {
+            errorMessage =
+                'Conflito (409): Um registro idêntico ou microchip informado já existe no sistema.';
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Cadastrar Pet'),
+        backgroundColor: const Color(0xFFE27B1D),
+        foregroundColor: Colors.white,
+      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFE27B1D)),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // PREVIEW DA FOTO (CORRIGIDO PARA SUPORTAR MOBILE E WEB)
+                    Center(
+                      child: GestureDetector(
+                        onTap: _pickPetImage,
+                        child: Container(
+                          width: 130,
+                          height: 130,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFFE27B1D),
+                              width: 2,
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: _selectedImage == null
+                              ? const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_a_photo_outlined,
+                                      size: 40,
+                                      color: Color(0xFFE27B1D),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Foto do Pet',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : (kIsWeb
+                                    ? Image.network(
+                                        _selectedImage!.path,
+                                        fit: BoxFit.cover,
+                                        width: 130,
+                                        height: 130,
+                                      )
+                                    : Image.file(
+                                        File(_selectedImage!.path),
+                                        fit: BoxFit.cover,
+                                        width: 130,
+                                        height: 130,
+                                      )),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    TextFormField(
+                      controller: _nameController,
+                      maxLength: 45,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome do Pet *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.pets),
+                      ),
+                      validator: (value) {
+                        if (value == null ||
+                            !Validators.isValidPetName(value)) {
+                          return 'Informe um nome válido';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    TextFormField(
+                      controller: _microchipController,
+                      maxLength: 15,
+                      decoration: const InputDecoration(
+                        labelText: 'Número do Microchip (Opcional)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.qr_code),
+                      ),
+                      validator: (value) {
+                        if (!Validators.isValidMicrochip(value)) {
+                          return 'Microchip deve ter até 15 caracteres';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // ESPÉCIE
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedSpeciesId,
+                            decoration: const InputDecoration(
+                              labelText: 'Espécie *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.category_outlined),
+                            ),
+                            items: _speciesList.map((species) {
+                              return DropdownMenuItem<int>(
+                                value: species['id'],
+                                child: Text(species['name']),
+                              );
+                            }).toList(),
+                            onChanged: _onSpeciesChanged,
+                            validator: (value) =>
+                                Validators.isValidSpecies(value)
+                                ? null
+                                : 'Selecione a espécie',
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Cadastrar espécie',
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: Color(0xFFE27B1D),
+                          ),
+                          onPressed: _openRegisterSpeciesDialog,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // RAÇA
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedBreedId,
+                            decoration: InputDecoration(
+                              labelText: 'Raça *',
+                              border: const OutlineInputBorder(),
+                              helperText: _selectedSpeciesId == null
+                                  ? 'Selecione a espécie primeiro'
+                                  : null,
+                            ),
+                            items: _filteredBreedsList.map((breed) {
+                              return DropdownMenuItem<int>(
+                                value: breed['id'],
+                                child: Text(
+                                  breed['name'],
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: _selectedSpeciesId == null
+                                ? null
+                                : (value) =>
+                                      setState(() => _selectedBreedId = value),
+                            validator: (value) => Validators.isValidBreed(value)
+                                ? null
+                                : 'Selecione a raça',
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Cadastrar raça',
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: Color(0xFFE27B1D),
+                          ),
+                          onPressed: _openRegisterBreedDialog,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // COR
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedColorId,
+                            decoration: const InputDecoration(
+                              labelText: 'Cor *',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _colorsList.map((color) {
+                              return DropdownMenuItem<int>(
+                                value: color['id'],
+                                child: Text(
+                                  color['name'],
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) =>
+                                setState(() => _selectedColorId = value),
+                            validator: (value) => Validators.isValidColor(value)
+                                ? null
+                                : 'Selecione a cor',
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Cadastrar cor',
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: Color(0xFFE27B1D),
+                          ),
+                          onPressed: _openRegisterColorDialog,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedGender,
+                            decoration: const InputDecoration(
+                              labelText: 'Gênero *',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'M',
+                                child: Text('Macho'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'F',
+                                child: Text('Fêmea'),
+                              ),
+                            ],
+                            onChanged: (value) =>
+                                setState(() => _selectedGender = value),
+                            validator: (value) =>
+                                Validators.isValidGender(value)
+                                ? null
+                                : 'Selecione o gênero',
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        Expanded(
+                          child: TextFormField(
+                            controller: _birthDateController,
+                            readOnly: true,
+                            onTap: () => _selectBirthDate(context),
+                            decoration: InputDecoration(
+                              labelText: 'Data Nasc. (Opcional)',
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.calendar_today),
+                              suffixIcon: _selectedBirthDate != null
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        setState(() {
+                                          _selectedBirthDate = null;
+                                          _birthDateController.clear();
+                                        });
+                                      },
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    SwitchListTile(
+                      title: const Text('Disponível para adoção? *'),
+                      subtitle: const Text(
+                        'Marque se o pet estiver buscando um lar',
+                      ),
+                      value: _toAdoption,
+                      activeColor: const Color(0xFFE27B1D),
+                      onChanged: (bool value) {
+                        setState(() => _toAdoption = value);
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // BOTÃO REAJUSTADO (ALTURA FIXA E SLEEK)
+                    SizedBox(
+                      height: 46,
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitForm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE27B1D),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'CADASTRAR PET',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+      bottomNavigationBar: const NavbarComponent(currentIndex: 3),
+    );
+  }
+}
