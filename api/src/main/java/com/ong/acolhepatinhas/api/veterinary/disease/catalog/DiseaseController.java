@@ -71,9 +71,9 @@ public class DiseaseController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "409", description = "Doença já cadastrada", content = @Content)
-    public ResponseEntity<Void> newDisease(@RequestBody @Valid NewDiseaseRequest data) {
-        dseSvc.newDisease(data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<DiseaseResponse> newDisease(@RequestBody @Valid NewDiseaseRequest data) {
+        DiseaseResponse responseData = new DiseaseResponse(dseSvc.newDisease(data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
 

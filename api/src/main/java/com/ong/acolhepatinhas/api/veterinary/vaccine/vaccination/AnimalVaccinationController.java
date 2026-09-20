@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.veterinary.vaccine.vaccination.DTO.NewVaccinationRequest;
 import com.ong.acolhepatinhas.api.veterinary.vaccine.vaccination.DTO.ResumedVaccinationResponse;
+import com.ong.acolhepatinhas.api.veterinary.vaccine.vaccination.DTO.VaccinationResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -55,8 +56,8 @@ public class AnimalVaccinationController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro ou vacina não encontrado", content = @Content)
-    public ResponseEntity<Void> newVaccination(@RequestParam int animalId, @RequestBody @Valid NewVaccinationRequest data) {
-        vctSvc.newVaccination(animalId, data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<VaccinationResponse> newVaccination(@RequestParam int animalId, @RequestBody @Valid NewVaccinationRequest data) {
+        VaccinationResponse responseData = new VaccinationResponse(vctSvc.newVaccination(animalId, data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 }

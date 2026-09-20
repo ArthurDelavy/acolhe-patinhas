@@ -55,8 +55,8 @@ public class AnimalSurgeryController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro veterinário ou procedimento não encontrado", content = @Content)
-    public ResponseEntity<Void> newSurgery(@RequestParam int animalId, @RequestBody @Valid NewSurgeryRequest data) {
-        srgSvc.newSurgery(animalId, data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<SurgeryResponse> newSurgery(@RequestParam int animalId, @RequestBody @Valid NewSurgeryRequest data) {
+        SurgeryResponse responseData = new SurgeryResponse(srgSvc.newSurgery(animalId, data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 }

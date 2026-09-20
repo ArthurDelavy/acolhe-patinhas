@@ -70,9 +70,9 @@ public class TreatmentController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Tratamento ou diagnóstico não encontrado", content = @Content)
-    public ResponseEntity<Void> editTreatment(@PathVariable int treatmentId, @Valid EditTreatmentRequest data) {
-        ttmSvc.editTreatment(treatmentId, data);
-        return ResponseEntity.status(HttpStatus.OK).build();
+    public ResponseEntity<TreatmentResponse> editTreatment(@PathVariable int treatmentId, @Valid EditTreatmentRequest data) {
+        TreatmentResponse responseData = new TreatmentResponse(ttmSvc.editTreatment(treatmentId, data));
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
 

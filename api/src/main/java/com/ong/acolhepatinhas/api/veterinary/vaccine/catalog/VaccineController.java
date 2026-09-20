@@ -70,9 +70,9 @@ public class VaccineController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "409", description = "Vacina já cadastrada", content = @Content)
-    public ResponseEntity<Void> newVaccine(@RequestBody @Valid NewVaccineRequest data) {
-        vccSvc.newVaccine(data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<VaccineResponse> newVaccine(@RequestBody @Valid NewVaccineRequest data) {
+        VaccineResponse responseData = new VaccineResponse(vccSvc.newVaccine(data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
 

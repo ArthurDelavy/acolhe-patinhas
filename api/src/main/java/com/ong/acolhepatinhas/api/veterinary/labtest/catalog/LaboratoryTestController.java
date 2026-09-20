@@ -70,9 +70,9 @@ public class LaboratoryTestController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "409", description = "Tipo de teste laboratorial já cadastrado", content = @Content)
-    public ResponseEntity<Void> newTest(@RequestBody @Valid NewLaboratoryTestRequest data) {
-        lbtSvc.newTest(data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<LaboratoryTestResponse> newTest(@RequestBody @Valid NewLaboratoryTestRequest data) {
+        LaboratoryTestResponse responseData = new LaboratoryTestResponse(lbtSvc.newTest(data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
 

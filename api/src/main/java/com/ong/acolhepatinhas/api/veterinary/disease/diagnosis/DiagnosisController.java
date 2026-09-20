@@ -70,9 +70,9 @@ public class DiagnosisController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Diagnóstico não encontrado", content = @Content)
-    public ResponseEntity<Void> updateDiagnosisStatus(@PathVariable int diagnosisId, @Valid UpdateDiagnosisStatusRequest data) {
-        dgnSvc.changeStatus(diagnosisId, data);
-        return ResponseEntity.status(HttpStatus.OK).build();
+    public ResponseEntity<DiagnosisResponse> updateDiagnosisStatus(@PathVariable int diagnosisId, @Valid UpdateDiagnosisStatusRequest data) {
+        DiagnosisResponse responseData = new DiagnosisResponse(dgnSvc.changeStatus(diagnosisId, data));
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
 

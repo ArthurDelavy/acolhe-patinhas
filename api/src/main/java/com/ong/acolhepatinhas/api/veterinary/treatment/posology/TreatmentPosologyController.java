@@ -56,8 +56,8 @@ public class TreatmentPosologyController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Tratamento ou medicamento não encontrado", content = @Content)
-    public ResponseEntity<Void> newPosology(@RequestParam int treatmentId, @RequestBody @Valid NewPosologyRequest data) {
-        tmdSvc.newPosology(treatmentId, data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<TreatmentMedicineResponse> newPosology(@RequestParam int treatmentId, @RequestBody @Valid NewPosologyRequest data) {
+        TreatmentMedicineResponse responseData = new TreatmentMedicineResponse(tmdSvc.newPosology(treatmentId, data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 }

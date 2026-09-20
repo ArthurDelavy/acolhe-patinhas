@@ -56,8 +56,8 @@ public class AnimalPreventiveCareController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro veterinário, procedimento ou medicamento não encontrado", content = @Content)
-    public ResponseEntity<Void> newPreventive(@RequestParam int animalId, @RequestBody @Valid NewPreventiveCareRequest data) {
-        pvcSvc.newPreventive(animalId, data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<PreventiveCareResponse> newPreventive(@RequestParam int animalId, @RequestBody @Valid NewPreventiveCareRequest data) {
+        PreventiveCareResponse responseData = new PreventiveCareResponse(pvcSvc.newPreventive(animalId, data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 }

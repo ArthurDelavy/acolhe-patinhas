@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ong.acolhepatinhas.api.veterinary.labtest.result.DTO.LaboratoryTestResultResponse;
 import com.ong.acolhepatinhas.api.veterinary.labtest.result.DTO.NewLaboratoryTestResultRequest;
 import com.ong.acolhepatinhas.api.veterinary.labtest.result.DTO.ResumedLaboratoryTestResultResponse;
 
@@ -56,8 +57,8 @@ public class AnimalLaboratoryTestResultController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro veterinário ou tipo de teste laboratorial não encontrado", content = @Content)
-    public ResponseEntity<Void> newLabTest(@RequestParam int animalId, @RequestBody @Valid NewLaboratoryTestResultRequest data) {
-        ltrSvc.newLabTest(animalId, data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<LaboratoryTestResultResponse> newLabTest(@RequestParam int animalId, @RequestBody @Valid NewLaboratoryTestResultRequest data) {
+        LaboratoryTestResultResponse responseData = new LaboratoryTestResultResponse(ltrSvc.newLabTest(animalId, data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 }

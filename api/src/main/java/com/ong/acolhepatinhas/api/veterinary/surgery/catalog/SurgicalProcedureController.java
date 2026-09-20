@@ -70,9 +70,9 @@ public class SurgicalProcedureController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "409", description = "Tipo de procedimento já cadastrado", content = @Content)
-    public ResponseEntity<Void> newProcedure(@RequestBody @Valid NewSurgicalProcedureRequest data) {
-        sgpSvc.newProcedure(data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<SurgicalProcedureResponse> newProcedure(@RequestBody @Valid NewSurgicalProcedureRequest data) {
+        SurgicalProcedureResponse responseData = new SurgicalProcedureResponse(sgpSvc.newProcedure(data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
 

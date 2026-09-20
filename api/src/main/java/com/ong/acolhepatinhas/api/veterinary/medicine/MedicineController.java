@@ -70,9 +70,9 @@ public class MedicineController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "409", description = "Medicamento já cadastrado", content = @Content)
-    public ResponseEntity<Void> newMedicine(@RequestBody @Valid NewMedicineRequest data) {
-        mdcSvc.newMedicine(data);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<MedicineResponse> newMedicine(@RequestBody @Valid NewMedicineRequest data) {
+        MedicineResponse responseData = new MedicineResponse(mdcSvc.newMedicine(data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
 
