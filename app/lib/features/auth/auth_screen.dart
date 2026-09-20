@@ -3,6 +3,7 @@ import 'auth_modal.dart';
 import '../../utils/validators.dart';
 import '../../services/auth_service.dart';
 import '../../utils/token_storage.dart';
+import '../auth/forgot_password_modal.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -45,13 +46,9 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoggingIn = true;
-    });
+    setState(() => _isLoggingIn = true);
 
     try {
       await _authService.login(
@@ -60,27 +57,56 @@ class _AuthScreenState extends State<AuthScreen> {
       );
 
       if (!mounted) return;
-
       Navigator.pushReplacementNamed(context, '/feed');
     } catch (e) {
       if (!mounted) return;
 
-      String message = 'Erro ao realizar login';
+      if (e.toString().contains('CONTA_NAO_VERIFICADA')) {
+        // 1. Avisa o usuário
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Conta não verificada. Enviando novo código...'),
+            backgroundColor: primaryColor,
+            duration: Duration(seconds: 3),
+          ),
+        );
 
-      if (e.toString().contains('E-mail ou senha incorretos')) {
-        message = 'E-mail ou senha incorretos';
-      } else if (e.toString().contains('Dados inválidos')) {
-        message = 'Verifique os dados informados';
+        try {
+          await _authService.resendCode(email: _emailController.text.trim());
+
+          if (!mounted) return;
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            backgroundColor: Colors.white,
+            builder: (context) => AuthRegisterModal(
+              startInVerificationMode: true,
+              initialEmail: _emailController.text.trim(),
+            ),
+          );
+        } catch (resendError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao reenviar o código.')),
+          );
+        }
+      } else {
+        String message = 'Erro ao realizar login';
+        if (e.toString().contains('E-mail ou senha incorretos')) {
+          message = 'E-mail ou senha incorretos';
+        } else if (e.toString().contains('Dados inválidos')) {
+          message = 'Verifique os dados informados';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
       }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoggingIn = false;
-        });
+        setState(() => _isLoggingIn = false);
       }
     }
   }
@@ -256,7 +282,32 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
 
                               TextButton(
-                                onPressed: () {},
+                                onPressed: () async {
+                                  final email = _emailController.text.trim();
+
+                                  final resetDone =
+                                      await showModalBottomSheet<bool>(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(24),
+                                          ),
+                                        ),
+                                        backgroundColor: Colors.white,
+                                        builder: (context) =>
+                                            ForgotPasswordModal(
+                                              initialEmail:
+                                                  Validators.isValidEmail(email)
+                                                  ? email
+                                                  : null,
+                                            ),
+                                      );
+
+                                  // Limpa a senha digitada (agora está desatualizada)
+                                  if (resetDone == true)
+                                    _passwordController.clear();
+                                },
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
                                   minimumSize: const Size(50, 30),
