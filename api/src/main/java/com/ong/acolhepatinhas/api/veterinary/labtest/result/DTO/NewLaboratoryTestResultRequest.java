@@ -1,6 +1,6 @@
 package com.ong.acolhepatinhas.api.veterinary.labtest.result.DTO;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -16,7 +16,7 @@ public record NewLaboratoryTestResultRequest(
 
     @NotNull @PastOrPresent
     @Schema(example = "2026-09-03T00:34:29.186Z")
-    LocalDate testDate,
+    Instant testDate,
 
     @Size(max = 10000)
     @Schema(example = "...")

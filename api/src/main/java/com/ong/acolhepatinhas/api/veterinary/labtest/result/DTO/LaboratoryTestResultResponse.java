@@ -1,6 +1,6 @@
 package com.ong.acolhepatinhas.api.veterinary.labtest.result.DTO;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 import com.ong.acolhepatinhas.api.veterinary.labtest.result.LaboratoryTestResult;
 
@@ -24,7 +24,7 @@ public record LaboratoryTestResultResponse(
     String labTestName,
 
     @Schema(example = "2026-09-03T00:34:29.186Z")
-    LocalDate testDate,
+    Instant testDate,
 
     @Schema(example = "...")
     String results,

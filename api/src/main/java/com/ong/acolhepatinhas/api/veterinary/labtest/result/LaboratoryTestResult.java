@@ -1,6 +1,6 @@
 package com.ong.acolhepatinhas.api.veterinary.labtest.result;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -38,7 +38,7 @@ public class LaboratoryTestResult {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "lab_test_id")
     private LaboratoryTest labTest;
 
-    private LocalDate testDate;
+    private Instant testDate;
 
     private String results;
     private String observations;
