@@ -13,7 +13,7 @@ public record PreventiveProcedureResponse(
     String name,
 
     @Schema(example = "180")
-    Integer defaultFrequencyDays
+    short defaultFrequencyDays
 ) {
 
     public PreventiveProcedureResponse(PreventiveProcedure data) {

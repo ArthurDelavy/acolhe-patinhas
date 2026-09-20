@@ -13,6 +13,6 @@ public record NewPreventiveProcedureRequest(
 
     @Positive
     @Schema(example = "180")
-    Integer defaultFrequencyDays
+    short defaultFrequencyDays
 ) {
 }

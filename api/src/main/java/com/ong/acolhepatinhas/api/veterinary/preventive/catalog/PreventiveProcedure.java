@@ -26,5 +26,5 @@ public class PreventiveProcedure {
 
     private String name;
 
-    private Integer defaultFrequencyDays;
+    private short defaultFrequencyDays;
 }
