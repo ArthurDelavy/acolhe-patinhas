@@ -30,7 +30,7 @@ public class PreventiveCareService {
     private final PreventiveProcedureService pvpSvc;
     private final MedicineService mdcSvc;
 
-    public boolean existsBySurgicalProcedure(PreventiveProcedure procedure) {
+    public boolean existsByPreventiveProcedure(PreventiveProcedure procedure) {
         return pvcRep.existsByPreventiveProcedure(procedure);
     }
 

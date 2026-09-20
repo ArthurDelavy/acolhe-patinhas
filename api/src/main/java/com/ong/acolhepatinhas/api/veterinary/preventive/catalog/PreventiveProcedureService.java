@@ -10,8 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
+import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.veterinary.preventive.catalog.DTO.NewPreventiveProcedureRequest;
+import com.ong.acolhepatinhas.api.veterinary.preventive.procedure.PreventiveCareService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +26,7 @@ public class PreventiveProcedureService {
     
     private final PreventiveProcedureRepository pvpRep;
 
-    // private final SurgeryService srgSvc;
+    private final PreventiveCareService pvcSvc;;
 
 
     public boolean existsByName(String name) {
@@ -66,7 +68,7 @@ public class PreventiveProcedureService {
 
         PreventiveProcedure procedure = this.getById(procedureId);
 
-        // if (srgSvc.existsBySurgicalProcedure(procedure)) throw new ResourceInUseException("O procedimento não pôde ser deletado pois está vinculado a um cuidado preventivo.");
+        if (pvcSvc.existsByPreventiveProcedure(procedure)) throw new ResourceInUseException("O procedimento não pôde ser deletado pois está vinculado a um cuidado preventivo.");
     
         pvpRep.delete(procedure);
     }
