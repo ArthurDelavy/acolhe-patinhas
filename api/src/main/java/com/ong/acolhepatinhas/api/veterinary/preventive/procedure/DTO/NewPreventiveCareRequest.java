@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -18,7 +19,7 @@ public record NewPreventiveCareRequest(
     @Schema(example = "1")
     Integer medicineId,
 
-    @PastOrPresent
+    @PastOrPresent @NotNull
     @Schema(example = "2026-09-03T00:34:29.186Z")
     LocalDate procedureDate,
 
