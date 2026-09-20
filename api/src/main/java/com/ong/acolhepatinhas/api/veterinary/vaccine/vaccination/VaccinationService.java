@@ -2,6 +2,8 @@ package com.ong.acolhepatinhas.api.veterinary.vaccine.vaccination;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -24,7 +26,8 @@ public class VaccinationService {
     private final VaccinationRepository vctRep;
 
     private final VeterinaryRecordService vrcSvc;
-    private final VaccineService vccSvc;
+    @Autowired @Lazy
+    private VaccineService vccSvc;
 
 
 
