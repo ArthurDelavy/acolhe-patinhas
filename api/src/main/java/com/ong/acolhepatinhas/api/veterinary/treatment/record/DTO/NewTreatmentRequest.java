@@ -15,10 +15,10 @@ public record NewTreatmentRequest(
     Integer diagnosisId,
 
     @PastOrPresent
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate startDate,
 
-    @Schema(example = "2026-11-09T00:34:29.186Z")
+    @Schema(example = "2026-11-09")
     LocalDate endDate,
 
     @NotNull

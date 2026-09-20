@@ -23,10 +23,10 @@ public record TreatmentResponse(
     @Schema(example = "Dermatite")
     String diseaseName,
 
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate startDate,
 
-    @Schema(example = "2026-11-09T00:34:29.186Z")
+    @Schema(example = "2026-11-09")
     LocalDate endDate,
 
     @Schema(example = "FINISHED")

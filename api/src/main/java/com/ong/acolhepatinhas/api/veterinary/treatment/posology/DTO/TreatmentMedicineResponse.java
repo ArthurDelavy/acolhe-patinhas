@@ -29,7 +29,7 @@ public record TreatmentMedicineResponse(
     @Schema(example = "7")
     int durationDays,
 
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate startDate
 ) {
 

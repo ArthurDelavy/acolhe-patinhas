@@ -23,10 +23,10 @@ public record PreventiveCareResponse(
     @Schema(example = "Maxicam")
     String medicineName,
 
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03Z")
     LocalDate procedureDate,
 
-    @Schema(example = "2028-09-03T00:34:29.186Z")
+    @Schema(example = "2028-09-03")
     LocalDate nextProcedureDate,
 
     @Schema(example = "...")

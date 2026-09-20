@@ -23,7 +23,7 @@ public record SurgeryResponse(
     @Schema(example = "orquiectomia")
     String surgicalProcedureName,
 
-    @Schema(example = "2028-09-03T00:34:29.186Z")
+    @Schema(example = "2028-09-03")
     LocalDate procedureDate,
 
     @Schema(example = "...")

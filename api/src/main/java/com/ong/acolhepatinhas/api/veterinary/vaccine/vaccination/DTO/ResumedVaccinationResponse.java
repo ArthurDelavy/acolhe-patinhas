@@ -23,10 +23,10 @@ public record ResumedVaccinationResponse(
     @Schema(example = "Única, reforço, anual, 1ª, 2ª, 3...")
     String dose,
 
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate vaccinationDate,
 
-    @Schema(example = "2028-09-03T00:34:29.186Z")
+    @Schema(example = "2028-09-03")
     LocalDate nextDoseDate
 ) {
 

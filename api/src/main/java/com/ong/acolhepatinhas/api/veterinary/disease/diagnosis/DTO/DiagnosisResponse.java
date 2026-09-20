@@ -20,7 +20,7 @@ public record DiagnosisResponse(
     @Schema(example = "Dermatite")
     String diseaseName,
 
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate diagnosedAt,
 
     @Schema(example = "HEALED")

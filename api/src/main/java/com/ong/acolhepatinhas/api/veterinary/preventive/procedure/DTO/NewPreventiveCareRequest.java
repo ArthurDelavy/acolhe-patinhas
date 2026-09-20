@@ -20,11 +20,11 @@ public record NewPreventiveCareRequest(
     Integer medicineId,
 
     @PastOrPresent @NotNull
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate procedureDate,
 
     @FutureOrPresent
-    @Schema(example = "2028-09-03T00:34:29.186Z")
+    @Schema(example = "2028-09-03")
     LocalDate nextProcedureDate,
 
     @Size(max = 5000)

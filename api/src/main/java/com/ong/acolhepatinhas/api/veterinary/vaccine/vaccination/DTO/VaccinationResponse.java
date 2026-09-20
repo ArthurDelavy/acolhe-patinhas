@@ -29,10 +29,10 @@ public record VaccinationResponse(
     @Schema(example = "3746GHE92K3H8XV23")
     String batchNumer,
 
-    @Schema(example = "2026-09-03T00:34:29.186Z")
+    @Schema(example = "2026-09-03")
     LocalDate vaccinationDate,
 
-    @Schema(example = "2028-09-03T00:34:29.186Z")
+    @Schema(example = "2028-09-03")
     LocalDate nextDoseDate
 ) {
 
