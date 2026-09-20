@@ -63,7 +63,7 @@ public class VaccineService {
     public void deleteVaccine(int vaccineId) {
 
         Vaccine vaccine = getById(vaccineId);
-        if (vctSvc.existsByVaccine(vaccine)) throw new ResourceInUseException("A vacina não pôde ser deletada pois está vinculada a um animal.");
+        if (vctSvc.existsByVaccine(vaccine)) throw new ResourceInUseException("A vacina não pôde ser deletada pois está vinculada a uma vacinação.");
 
         vccRep.delete(vaccine);
     }

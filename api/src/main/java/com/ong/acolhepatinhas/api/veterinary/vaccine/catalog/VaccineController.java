@@ -83,7 +83,7 @@ public class VaccineController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Vacina não encontrada", content = @Content)
-        @ApiResponse(responseCode = "409", description = "Vacina vinculada a um animal", content = @Content)
+        @ApiResponse(responseCode = "409", description = "Vacina vinculada a uma vacinação", content = @Content)
     public ResponseEntity<Void> deleteVaccine(@PathVariable int vaccineId) {
         vccSvc.deleteVaccine(vaccineId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
