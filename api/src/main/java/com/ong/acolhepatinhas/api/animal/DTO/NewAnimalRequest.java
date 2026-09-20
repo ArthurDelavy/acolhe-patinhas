@@ -1,5 +1,6 @@
 package com.ong.acolhepatinhas.api.animal.DTO;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -50,7 +51,7 @@ public record NewAnimalRequest(
     Integer size,
 
     @Schema(example = "1.5", description = "Valor em kg")
-    Double weight,
+    BigDecimal weight,
 
     boolean neutered
 ) {
