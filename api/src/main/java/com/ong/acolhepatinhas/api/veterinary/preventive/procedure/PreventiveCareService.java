@@ -31,7 +31,7 @@ public class PreventiveCareService {
     private final MedicineService mdcSvc;
 
     public boolean existsByPreventiveProcedure(PreventiveProcedure procedure) {
-        return pvcRep.existsByPreventiveProcedure(procedure);
+        return pvcRep.existsByProcedure(procedure);
     }
 
     public boolean existsByMedicine(Medicine medicine) {

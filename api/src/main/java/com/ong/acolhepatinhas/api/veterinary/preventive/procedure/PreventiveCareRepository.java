@@ -12,7 +12,7 @@ import com.ong.acolhepatinhas.api.veterinary.preventive.catalog.PreventiveProced
 
 @Repository
 public interface PreventiveCareRepository extends JpaRepository<PreventiveCare, Integer> {
-    boolean existsByPreventiveProcedure(PreventiveProcedure procedure);
+    boolean existsByProcedure(PreventiveProcedure procedure);
     boolean existsByMedicine(Medicine medicine);
 
     @EntityGraph(attributePaths = {"vetRecord.animal", "procedure", "medicine"})
