@@ -30,7 +30,7 @@ public class VeterinaryRecord {
     @Id
     private int id;
 
-    @OneToOne(fetch = FetchType.LAZY) @MapsId @JoinColumn(name = "animal_id")
+    @OneToOne(fetch = FetchType.LAZY) @MapsId @JoinColumn(name = "id")
     @JsonBackReference
     private Animal animal;
 
