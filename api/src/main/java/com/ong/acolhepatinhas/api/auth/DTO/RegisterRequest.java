@@ -16,7 +16,7 @@ public record RegisterRequest(
     @Schema(example = "email@dominio.com")
     String email,
 
-    @NotBlank @Size(max = 100) @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$", message = "A senha não atende aos requisitos mínimos de complexidade (a-z, A-Z, 0-9, [@$!%*?&], >=8).")
+    @NotBlank @Size(max = 100) @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#])[A-Za-z\\d@$!%*?&]{8,}$", message = "A senha não atende aos requisitos mínimos de complexidade (a-z, A-Z, 0-9, [@$!%*?&], >=8).")
     @Schema(example = "senh4Complex@")
     String password
 ) {
