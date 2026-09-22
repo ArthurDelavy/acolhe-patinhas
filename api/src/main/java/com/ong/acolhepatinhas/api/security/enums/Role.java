@@ -20,6 +20,10 @@ public enum Role {
 
     USER(Set.of(
         Permission.ANIMAL_READ
+    )),
+    
+    ANONYMOUS(Set.of(
+        Permission.ANIMAL_READ
     ));
 
 

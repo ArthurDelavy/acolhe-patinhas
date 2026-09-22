@@ -55,6 +55,17 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(tokens);
     }
 
+
+    @PostMapping("/anonymous")
+    @Operation(summary = "Login de usuário")
+        @ApiResponse(responseCode = "200", description = "Usuário autenticado com sucesso!")
+    public ResponseEntity<TokenResponse> authAnonUser() {
+        TokenResponse token = authSvc.authAnonUser();
+        return ResponseEntity.status(HttpStatus.OK).body(token);
+    }
+
+
+
     @PostMapping("/refresh")
     @Operation(summary = "Renovação de token")
         @ApiResponse(responseCode = "200", description = "Sessão renovada com sucesso!")
