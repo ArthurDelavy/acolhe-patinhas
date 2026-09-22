@@ -88,6 +88,7 @@ public class AnimalService {
             .birthDate(data.birthDate())
             .intakeDate(data.intakeDate())
             .toAdoption(data.toAdoption())
+            .description(data.description())
             .build();
 
         Animal savedAnimal = anmRep.save(animal);
@@ -132,6 +133,7 @@ public class AnimalService {
         animal.setDischargeDate(data.dischargeDate());
         animal.setDischargeReason(data.dischargeDate() != null ? rfcSvc.getDischargeReason(data.dischargeReasonId()) : null);
         animal.setToAdoption(data.toAdoption());
+        animal.setDescription(data.description());
 
         vrcSvc.editRecord(
             animal,

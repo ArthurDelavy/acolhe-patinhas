@@ -2,9 +2,11 @@ package com.ong.acolhepatinhas.api.animal.references;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -35,7 +37,8 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class ReferencesService {
     
-    private final AnimalService anmSvc;
+    @Autowired @Lazy
+    private AnimalService anmSvc;
 
     private final AnimalBreedRepository brdRep;
     private final AnimalColorRepository clrRep;
