@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import com.ong.acolhepatinhas.api.animal.AnimalRepository;
+import com.ong.acolhepatinhas.api.animal.AnimalService;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewBreedRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewColorRequest;
 import com.ong.acolhepatinhas.api.animal.references.DTO.NewDischargeReasonRequest;
@@ -35,7 +35,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class ReferencesService {
     
-    private final AnimalRepository anmRep;
+    private final AnimalService anmSvc;
 
     private final AnimalBreedRepository brdRep;
     private final AnimalColorRepository clrRep;
@@ -154,7 +154,7 @@ public class ReferencesService {
     public void deleteBreed(int breedId) {
 
         AnimalBreed breed = brdRep.findById(breedId).orElseThrow(() -> new ValueNotFoundException("Raça não encontrada."));
-        if (anmRep.existsByBreed(breed)) throw new ResourceInUseException("A raça não pôde ser deletada pois está vinculada a um animal.");
+        if (anmSvc.existsByBreed(breed)) throw new ResourceInUseException("A raça não pôde ser deletada pois está vinculada a um animal.");
 
         brdRep.delete(breed);
     }
@@ -165,7 +165,7 @@ public class ReferencesService {
     public void deleteSpecie(int specieId) {
 
         AnimalSpecie specie = spcRep.findById(specieId).orElseThrow(() -> new ValueNotFoundException("Espécie não encontrada."));
-        if (anmRep.existsByBreed_Specie(specie)) throw new ResourceInUseException("A espécie não pôde ser deletada pois está vinculada a um animal.");
+        if (anmSvc.existsByBreedSpecie(specie)) throw new ResourceInUseException("A espécie não pôde ser deletada pois está vinculada a um animal.");
 
         spcRep.delete(specie);
     }
@@ -179,7 +179,7 @@ public class ReferencesService {
     public void deleteColor(int colorId) {
 
         AnimalColor color = clrRep.findById(colorId).orElseThrow(() -> new ValueNotFoundException("Cor não encontrada."));
-        if (anmRep.existsByColor(color)) throw new ResourceInUseException("A cor não pôde ser deletada pois está vinculada a um animal.");
+        if (anmSvc.existsByColor(color)) throw new ResourceInUseException("A cor não pôde ser deletada pois está vinculada a um animal.");
 
         clrRep.delete(color);
     }
@@ -193,7 +193,7 @@ public class ReferencesService {
     public void deleteDischargeReason(int reasonId) {
 
         AnimalDischargeReason reason = drsRep.findById(reasonId).orElseThrow(() -> new ValueNotFoundException("Motivo não encontrado."));
-        if (anmRep.existsByDischargeReason(reason)) throw new ResourceInUseException("O motivo não pôde ser deletado pois está vinculado a um animal.");
+        if (anmSvc.existsByDischargeReason(reason)) throw new ResourceInUseException("O motivo não pôde ser deletado pois está vinculado a um animal.");
 
         drsRep.delete(reason);
     }

@@ -10,6 +10,10 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.animal.DTO.EditAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.references.ReferencesService;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReason;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalSpecie;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.services.imageService.ImageService;
@@ -42,6 +46,23 @@ public class AnimalService {
     public List<Animal> listAll(Boolean toAdoption) {
         if (toAdoption != null) anmRep.findAllByToAdoption(toAdoption);
         return anmRep.findAll();
+    }
+
+
+    public boolean existsByBreed(AnimalBreed breed) {
+        return anmRep.existsByBreed(breed);
+    }
+
+    public boolean existsByBreedSpecie(AnimalSpecie specie) {
+        return anmRep.existsByBreed_Specie(specie);
+    }
+
+    public boolean existsByColor(AnimalColor color) {
+        return anmRep.existsByColor(color);
+    }
+
+    public boolean existsByDischargeReason(AnimalDischargeReason reason) {
+        return anmRep.existsByDischargeReason(reason);
     }
 
 
