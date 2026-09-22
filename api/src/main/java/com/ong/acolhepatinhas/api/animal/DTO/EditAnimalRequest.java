@@ -54,6 +54,10 @@ public record EditAnimalRequest(
     @Schema(example = "false")
     boolean toAdoption,
 
+    @Size(max = 5000)
+    @Schema(example = "...")
+    String description,
+
     @Positive
     @Schema(example = "90", description = "Valor em cm")
     Integer size,

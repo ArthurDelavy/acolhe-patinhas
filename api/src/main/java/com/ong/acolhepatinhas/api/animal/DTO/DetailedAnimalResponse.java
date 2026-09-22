@@ -49,6 +49,9 @@ public record DetailedAnimalResponse(
     
     @Schema(example = "false")
     boolean toAdoption,
+
+    @Schema(example = "...")
+    String description,
     
     @Schema(example = "https://...")
     String imageUrl,
@@ -72,6 +75,7 @@ public record DetailedAnimalResponse(
             data.getDischargeDate(),
             data.getDischargeReason() != null ? data.getDischargeReason().getName() : null,
             data.isToAdoption(),
+            data.getDescription(),
             data.getImageUrl(),
             new BasicVeterinaryRecordResponse(data.getVetRecord())
         );
