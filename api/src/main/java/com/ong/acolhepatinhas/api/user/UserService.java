@@ -1,6 +1,7 @@
 package com.ong.acolhepatinhas.api.user;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -62,6 +63,11 @@ public class UserService implements UserDetailsService {
 
     public User getById(int userId) {
         return usrRep.findById(userId).orElseThrow(() -> new ValueNotFoundException("Usuário não encontrado."));
+    }
+
+
+    public List<User> listAll() {
+        return usrRep.findAll();
     }
 
 
