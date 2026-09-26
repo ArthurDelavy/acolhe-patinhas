@@ -20,6 +20,7 @@ import com.ong.acolhepatinhas.api.auth.DTO.ResendVerificationRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.VerifyEmailRequest;
 import com.ong.acolhepatinhas.api.emailverification.EmailVerificationCode;
 import com.ong.acolhepatinhas.api.emailverification.EmailVerificationCodeService;
+import com.ong.acolhepatinhas.api.exceptions.custom.BusinessRuleException;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCode;
@@ -56,6 +57,11 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return usrRep.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("Usuário não cadastrado."));
+    }
+
+
+    public User getById(int userId) {
+        return usrRep.findById(userId).orElseThrow(() -> new ValueNotFoundException("Usuário não encontrado."));
     }
 
 
@@ -137,5 +143,17 @@ public class UserService implements UserDetailsService {
         evcSvc.deleteCode(code);
 
         return user;
+    }
+
+    @Transactional
+    public void toggleUserVerification(int userId) {
+        
+        User user = this.getById(userId);
+
+        switch (user.getRole()) {
+            case ADMIN -> throw new BusinessRuleException("ADMINs não podem ser verificados.");
+            case USER -> user.setRole(Role.VERIFIED);
+            case VERIFIED -> user.setRole(Role.USER);
+        }
     }
 }
