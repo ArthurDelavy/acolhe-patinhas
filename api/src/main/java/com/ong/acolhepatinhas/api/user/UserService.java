@@ -160,6 +160,7 @@ public class UserService implements UserDetailsService {
             case ADMIN -> throw new BusinessRuleException("ADMINs não podem ser verificados.");
             case USER -> user.setRole(Role.VERIFIED);
             case VERIFIED -> user.setRole(Role.USER);
+            case ANONYMOUS -> throw new BusinessRuleException("Acessos anônimos não podem ser verificados.");
         }
     }
 }

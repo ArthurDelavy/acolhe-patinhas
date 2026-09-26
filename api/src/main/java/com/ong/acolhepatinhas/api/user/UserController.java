@@ -39,7 +39,7 @@ public class UserController {
             .stream()
             .map(ResumedUserResponse::new)
             .toList();
-            
+
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
 
@@ -62,7 +62,7 @@ public class UserController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content)
-        @ApiResponse(responseCode = "422", description = "Usuários ADMIN não podem ser verificados", content = @Content)
+        @ApiResponse(responseCode = "422", description = "Usuários ADMIN e Anônimos não podem ser verificados", content = @Content)
     public ResponseEntity<Void> toggleVerified(@PathVariable int userId) {
         usrSvc.toggleUserVerification(userId);
         return ResponseEntity.status(HttpStatus.OK).build();
