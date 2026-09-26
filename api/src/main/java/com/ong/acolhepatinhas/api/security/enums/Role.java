@@ -24,6 +24,11 @@ public enum Role {
         Permission.ANIMAL_READ
     )),
     
+    ANONYMOUS(Set.of(
+        Permission.ANIMAL_READ
+      
+    )),
+  
     VERIFIED(Set.of(
         Permission.ANIMAL_READ,
         Permission.ANIMAL_CREATE,
