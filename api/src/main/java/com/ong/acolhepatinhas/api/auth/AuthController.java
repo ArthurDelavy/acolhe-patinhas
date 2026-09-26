@@ -35,7 +35,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/auth")
-@Tag(name = "Usuários", description = "Gerenciamento de contas de usuários")
+@Tag(name = "Autenticação", description = "Autenticação de contas de usuários")
 public class AuthController {
 
     @Autowired
