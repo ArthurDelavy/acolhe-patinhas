@@ -45,6 +45,6 @@ public class Diagnosis {
 
     private LocalDate diagnosedAt;
 
-    @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.ENUM)
+    @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private DiseaseStatus status;
 }

@@ -68,6 +68,8 @@ public class Animal {
 
     private boolean toAdoption;
 
+    private String description;
+
     private String imageUrl;
 
     @OneToOne(mappedBy = "animal")

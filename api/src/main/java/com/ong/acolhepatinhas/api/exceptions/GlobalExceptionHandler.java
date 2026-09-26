@@ -15,6 +15,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.ong.acolhepatinhas.api.exceptions.custom.BusinessRuleException;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.EmailSendingException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ExpiredDataException;
@@ -119,7 +120,7 @@ public class GlobalExceptionHandler {
 
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handlerAccessDenied(AccessDeniedException e) {
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException e) {
         ErrorResponse error = new ErrorResponse(
             HttpStatus.FORBIDDEN.value(), 
             e.getMessage(), 
@@ -192,5 +193,18 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException e) {
+
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.UNPROCESSABLE_CONTENT.value(), 
+            e.getMessage(),
+            OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(error);
     }
 }
