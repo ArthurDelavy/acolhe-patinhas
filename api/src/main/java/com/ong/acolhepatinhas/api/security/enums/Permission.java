@@ -2,6 +2,7 @@ package com.ong.acolhepatinhas.api.security.enums;
 
 public enum Permission {
 
+    USER_READ("user:read"),
     USER_VERIFY("user:verify"),
 
     ANIMAL_READ("animal:read"),
