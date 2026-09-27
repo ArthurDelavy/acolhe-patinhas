@@ -10,6 +10,10 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.animal.DTO.EditAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.DTO.NewAnimalRequest;
 import com.ong.acolhepatinhas.api.animal.references.ReferencesService;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalBreed;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalColor;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalDischargeReason;
+import com.ong.acolhepatinhas.api.animal.references.entities.AnimalSpecie;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.services.imageService.ImageService;
@@ -45,6 +49,23 @@ public class AnimalService {
     }
 
 
+    public boolean existsByBreed(AnimalBreed breed) {
+        return anmRep.existsByBreed(breed);
+    }
+
+    public boolean existsByBreedSpecie(AnimalSpecie specie) {
+        return anmRep.existsByBreed_Specie(specie);
+    }
+
+    public boolean existsByColor(AnimalColor color) {
+        return anmRep.existsByColor(color);
+    }
+
+    public boolean existsByDischargeReason(AnimalDischargeReason reason) {
+        return anmRep.existsByDischargeReason(reason);
+    }
+
+
     public Animal getById(int animalId) {
         return anmRep.findById(animalId).orElseThrow(() -> new ValueNotFoundException("Animal não encontrado."));
     }
@@ -67,6 +88,7 @@ public class AnimalService {
             .birthDate(data.birthDate())
             .intakeDate(data.intakeDate())
             .toAdoption(data.toAdoption())
+            .description(data.description())
             .build();
 
         Animal savedAnimal = anmRep.save(animal);
@@ -111,6 +133,7 @@ public class AnimalService {
         animal.setDischargeDate(data.dischargeDate());
         animal.setDischargeReason(data.dischargeDate() != null ? rfcSvc.getDischargeReason(data.dischargeReasonId()) : null);
         animal.setToAdoption(data.toAdoption());
+        animal.setDescription(data.description());
 
         vrcSvc.editRecord(
             animal,
