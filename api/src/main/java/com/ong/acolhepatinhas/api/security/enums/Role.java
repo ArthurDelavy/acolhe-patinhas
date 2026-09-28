@@ -17,10 +17,17 @@ public enum Role {
         Permission.ANIMAL_REFERENCE_MANAGE,
         Permission.VETERINARY_READ,
         Permission.VETERINARY_ASSIGN,
-        Permission.VETERINARY_MANAGE
+        Permission.VETERINARY_MANAGE,
+
+        Permission.POST_READ,
+        Permission.POST_CREATE,
+        Permission.POST_EDIT,
+        Permission.POST_REMOVE
     )),
 
+    
     USER(Set.of(
+<<<<<<< HEAD
         Permission.ANIMAL_READ
     )),
     
@@ -35,6 +42,10 @@ public enum Role {
         Permission.ANIMAL_EDIT,
         Permission.VETERINARY_READ,
         Permission.VETERINARY_ASSIGN
+=======
+        Permission.ANIMAL_READ,
+        Permission.POST_READ
+>>>>>>> 072e49c (feat(post): adicionado sistema de postagens)
     ));
 
 
