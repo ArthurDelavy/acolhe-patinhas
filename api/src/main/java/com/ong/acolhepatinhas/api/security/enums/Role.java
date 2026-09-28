@@ -15,11 +15,18 @@ public enum Role {
         Permission.ANIMAL_REFERENCE_MANAGE,
         Permission.VETERINARY_READ,
         Permission.VETERINARY_ASSIGN,
-        Permission.VETERINARY_MANAGE
+        Permission.VETERINARY_MANAGE,
+
+        Permission.POST_READ,
+        Permission.POST_CREATE,
+        Permission.POST_EDIT,
+        Permission.POST_REMOVE
     )),
 
+    
     USER(Set.of(
-        Permission.ANIMAL_READ
+        Permission.ANIMAL_READ,
+        Permission.POST_READ
     ));
 
 

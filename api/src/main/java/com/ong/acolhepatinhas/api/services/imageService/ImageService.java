@@ -1,8 +1,12 @@
 package com.ong.acolhepatinhas.api.services.imageService;
 
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
+
+import javax.imageio.ImageIO;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,11 +40,12 @@ public class ImageService {
         
         MultipartFile image = file.image();
         if (image == null || image.isEmpty()) throw new IllegalArgumentException("Imagem inválida.");
+        this.assertIsImage(image);
         
         namePrefix = (namePrefix != null && !namePrefix.isBlank()) ? namePrefix.trim().toLowerCase().replaceAll("[^a-z0-9-]", "") : "img";
 
         String fileName = namePrefix + "_" + UUID.randomUUID() + ".jpg";
-        byte[] imageBytes = optimizeImage(image);
+        byte[] imageBytes = optimizeImage(image, fileType);
 
         return imageGateway.uploadImage(imageBytes, fileName, fileType, "image/jpeg");
     }
@@ -62,17 +67,32 @@ public class ImageService {
 
 
 
-    private byte[] optimizeImage(MultipartFile image) {
+    private void assertIsImage(MultipartFile image) {
+        try (InputStream input = image.getInputStream()) {
+            BufferedImage decoded = ImageIO.read(input);
+            if (decoded == null) throw new IllegalArgumentException("O arquivo enviado não é uma imagem.");
+        } catch (IOException e) {
+            throw new ImageProcessingException("Erro ao ler imagem.");
+        }
+    }
+
+
+    private byte[] optimizeImage(MultipartFile image, StorageFileType fileType) {
         
         if (image.getSize() < minCompressionKb * 1024) {
             try { return image.getBytes(); }
             catch (IOException e) { throw new ImageProcessingException("Erro ao ler imagem."); }
         }
 
+        int maxEdge = switch (fileType) {
+            case ANIMAL_REGISTER_PHOTO -> 80;
+            case POST_PHOTO -> 1080;
+        };
+
        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
             Thumbnails.of(image.getInputStream())
-                .size(80, 80)
+                .size(maxEdge, maxEdge)
                 .outputFormat("jpg")
                 .outputQuality(qualityCompression)
                 .toOutputStream(outputStream);
