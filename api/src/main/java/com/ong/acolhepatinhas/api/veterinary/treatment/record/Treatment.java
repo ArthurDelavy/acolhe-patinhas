@@ -46,7 +46,7 @@ public class Treatment {
     LocalDate startDate;
     LocalDate endDate;
 
-    @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.ENUM)
+    @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     TreatmentStatus status;
 
     String observations;

@@ -16,6 +16,7 @@ import com.ong.acolhepatinhas.api.auth.DTO.TokenResponse;
 import com.ong.acolhepatinhas.api.refreshtoken.RefreshToken;
 import com.ong.acolhepatinhas.api.refreshtoken.RefreshTokenService;
 import com.ong.acolhepatinhas.api.security.TokenService;
+import com.ong.acolhepatinhas.api.security.enums.Role;
 import com.ong.acolhepatinhas.api.user.User;
 
 import jakarta.validation.Valid;
@@ -54,6 +55,23 @@ public class AuthService {
 
 
         return new TokenResponse(authToken, refreshToken);
+    }
+
+
+    public TokenResponse authAnonUser() {
+        
+        UUID uuid = UUID.randomUUID();
+
+        User user = User.builder()
+            .id(0)
+            .name("guest_" + uuid)
+            .email("gest_" + uuid + "@anonymous.local")
+            .role(Role.ANONYMOUS)
+            .build();
+
+        String authToken = tknSvc.generateToken(user);
+
+        return new TokenResponse(authToken, null);
     }
 
 
