@@ -44,7 +44,7 @@ public class UserController {
     }
 
 
-    @GetMapping("{/userId}") @PreAuthorize("hasAuthority('user:read')")
+    @GetMapping("/{userId}") @PreAuthorize("hasAuthority('user:read')")
     @Operation(summary = "Lista os dados de um usuário específico")
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)

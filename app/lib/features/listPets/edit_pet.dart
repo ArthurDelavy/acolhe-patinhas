@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../components/navbar.dart';
 import '../../services/pet_service.dart';
+import '../../services/veterinary_service.dart';
+import '../../utils/veterinary_form_data.dart';
 import '../../utils/validators.dart';
 import '../../features/register/register_modal.dart';
+import '../register/register_pets.dart' show VeterinarySection;
 
 class EditPetScreen extends StatefulWidget {
   final Map<String, dynamic> petData;
@@ -46,6 +49,8 @@ class _EditPetScreenState extends State<EditPetScreen> {
   List<Map<String, dynamic>> _colorsList = [];
   List<Map<String, dynamic>> _dischargeReasonsList = [];
 
+  final VeterinaryFormData _vetData = VeterinaryFormData();
+
   bool _isLoading = true;
   bool _isSubmitting = false;
   String? _loadError;
@@ -62,6 +67,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
     _microchipController.dispose();
     _birthDateController.dispose();
     _dischargeDateController.dispose();
+    _vetData.dispose();
     super.dispose();
   }
 
@@ -91,6 +97,11 @@ class _EditPetScreenState extends State<EditPetScreen> {
       _toAdoption = detail['toAdoption'] ?? false;
       _existingImageUrl = detail['imageUrl']?.toString();
       _originalIntakeDate = detail['intakeDate']?.toString();
+
+      final vetRecord = detail['veterinaryRecord'] as Map<String, dynamic>?;
+      _vetData.sizeController.text = vetRecord?['size']?.toString() ?? '';
+      _vetData.weightController.text = vetRecord?['weight']?.toString() ?? '';
+      _vetData.neutered = vetRecord?['neutered'] ?? false;
 
       final String? specieName = detail['specie']?.toString();
       final String? breedName = detail['breed']?.toString();
@@ -288,7 +299,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
     });
   }
 
-  // 1. CORREÇÃO DA FOTO: Comprime a imagem para evitar Erro 413
   Future<void> _pickPetImage() async {
     if (!widget.isAdmin) return;
     try {
@@ -357,6 +367,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
       if (_selectedColorId != null) "color": {"id": _selectedColorId},
       if (rawMicrochip.isNotEmpty) "microchipNumber": rawMicrochip,
       if (formattedBirthDate != null) "birthDate": formattedBirthDate,
+      ..._vetData.recordPayload(),
     };
 
     try {
@@ -365,6 +376,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
         payload: petPayload,
         imageFile: _selectedImage,
       );
+
+      if (success && _vetData.hasItems) {
+        await VeterinaryService.saveAll(widget.petData['id'], _vetData);
+      }
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -511,6 +526,124 @@ class _EditPetScreenState extends State<EditPetScreen> {
     }
   }
 
+  // --- WIDGETS AUXILIARES PARA LIMPAR O BUILD --- //
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool readOnly = false,
+    int? maxLength,
+    String? Function(String?)? validator,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
+  }) {
+    return TextFormField(
+      controller: controller,
+      enabled: widget.isAdmin,
+      readOnly: readOnly,
+      maxLength: maxLength,
+      onTap: onTap,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        prefixIcon: Icon(icon),
+        suffixIcon: suffixIcon,
+      ),
+      validator: validator,
+    );
+  }
+
+  Widget _buildDropdownWithAdd<T>({
+    required T? value,
+    required String label,
+    IconData? icon,
+    required List<DropdownMenuItem<T>> items,
+    required void Function(T?)? onChanged,
+    required VoidCallback? onAddPressed,
+    String? Function(T?)? validator,
+    String? helperText,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<T>(
+            value: value,
+            decoration: InputDecoration(
+              labelText: label,
+              border: const OutlineInputBorder(),
+              prefixIcon: icon != null ? Icon(icon) : null,
+              helperText: helperText,
+            ),
+            items: items,
+            onChanged: onChanged,
+            validator: validator,
+          ),
+        ),
+        if (widget.isAdmin && onAddPressed != null)
+          IconButton(
+            tooltip: 'Cadastrar $label',
+            icon: const Icon(Icons.add_circle_outline, color: primaryColor),
+            onPressed: onAddPressed,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildImagePickerWidget() {
+    return Center(
+      child: GestureDetector(
+        onTap: widget.isAdmin ? _pickPetImage : null,
+        child: Container(
+          width: 130,
+          height: 130,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: primaryColor, width: 2),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: _selectedImage != null
+              ? Image.network(
+                  _selectedImage!.path,
+                  fit: BoxFit.cover,
+                  width: 130,
+                  height: 130,
+                )
+              : (_existingImageUrl != null && _existingImageUrl!.isNotEmpty)
+              ? Image.network(
+                  _existingImageUrl!,
+                  fit: BoxFit.cover,
+                  width: 130,
+                  height: 130,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.pets, size: 40, color: primaryColor),
+                )
+              : const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_a_photo_outlined,
+                      size: 40,
+                      color: primaryColor,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Foto do Pet',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -539,223 +672,99 @@ class _EditPetScreenState extends State<EditPetScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: GestureDetector(
-                        onTap: widget.isAdmin ? _pickPetImage : null,
-                        child: Container(
-                          width: 130,
-                          height: 130,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: primaryColor, width: 2),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: _selectedImage != null
-                              ? Image.network(
-                                  _selectedImage!.path,
-                                  fit: BoxFit.cover,
-                                  width: 130,
-                                  height: 130,
-                                )
-                              : (_existingImageUrl != null &&
-                                    _existingImageUrl!.isNotEmpty)
-                              ? Image.network(
-                                  _existingImageUrl!,
-                                  fit: BoxFit.cover,
-                                  width: 130,
-                                  height: 130,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.pets,
-                                    size: 40,
-                                    color: primaryColor,
-                                  ),
-                                )
-                              : const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.add_a_photo_outlined,
-                                      size: 40,
-                                      color: primaryColor,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Foto do Pet',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ),
-
+                    _buildImagePickerWidget(),
                     const SizedBox(height: 24),
 
-                    TextFormField(
+                    _buildTextField(
                       controller: _nameController,
-                      enabled: widget.isAdmin,
+                      label: 'Nome do Pet *',
+                      icon: Icons.pets,
                       maxLength: 45,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome do Pet *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.pets),
-                      ),
-                      validator: (value) {
-                        if (value == null ||
-                            !Validators.isValidPetName(value)) {
-                          return 'Informe um nome válido';
-                        }
-                        return null;
-                      },
+                      validator: (value) =>
+                          value == null || !Validators.isValidPetName(value)
+                          ? 'Informe um nome válido'
+                          : null,
                     ),
-
                     const SizedBox(height: 8),
 
-                    TextFormField(
+                    _buildTextField(
                       controller: _microchipController,
-                      enabled: widget.isAdmin,
+                      label: 'Número do Microchip (Opcional)',
+                      icon: Icons.qr_code,
                       maxLength: 15,
-                      decoration: const InputDecoration(
-                        labelText: 'Número do Microchip (Opcional)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.qr_code),
-                      ),
                       validator: _validateMicrochip,
                     ),
-
                     const SizedBox(height: 8),
 
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            value: _selectedSpeciesId,
-                            decoration: const InputDecoration(
-                              labelText: 'Espécie *',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.category_outlined),
+                    _buildDropdownWithAdd<int>(
+                      value: _selectedSpeciesId,
+                      label: 'Espécie *',
+                      icon: Icons.category_outlined,
+                      items: _speciesList
+                          .map(
+                            (s) => DropdownMenuItem<int>(
+                              value: s['id'],
+                              child: Text(s['name']),
                             ),
-                            items: _speciesList.map((species) {
-                              return DropdownMenuItem<int>(
-                                value: species['id'],
-                                child: Text(species['name']),
-                              );
-                            }).toList(),
-                            onChanged: widget.isAdmin
-                                ? _onSpeciesChanged
-                                : null,
-                            validator: (value) =>
-                                Validators.isValidSpecies(value)
-                                ? null
-                                : 'Selecione a espécie',
-                          ),
-                        ),
-                        if (widget.isAdmin)
-                          IconButton(
-                            tooltip: 'Cadastrar espécie',
-                            icon: const Icon(
-                              Icons.add_circle_outline,
-                              color: primaryColor,
-                            ),
-                            onPressed: _openRegisterSpeciesDialog,
-                          ),
-                      ],
+                          )
+                          .toList(),
+                      onChanged: widget.isAdmin ? _onSpeciesChanged : null,
+                      onAddPressed: _openRegisterSpeciesDialog,
+                      validator: (value) => Validators.isValidSpecies(value)
+                          ? null
+                          : 'Selecione a espécie',
                     ),
-
                     const SizedBox(height: 16),
 
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            value: _selectedBreedId,
-                            decoration: InputDecoration(
-                              labelText: 'Raça *',
-                              border: const OutlineInputBorder(),
-                              helperText: _selectedSpeciesId == null
-                                  ? 'Selecione a espécie primeiro'
-                                  : null,
+                    _buildDropdownWithAdd<int>(
+                      value: _selectedBreedId,
+                      label: 'Raça *',
+                      helperText: _selectedSpeciesId == null
+                          ? 'Selecione a espécie primeiro'
+                          : null,
+                      items: _filteredBreedsList
+                          .map(
+                            (b) => DropdownMenuItem<int>(
+                              value: b['id'],
+                              child: Text(
+                                b['name'],
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            items: _filteredBreedsList.map((breed) {
-                              return DropdownMenuItem<int>(
-                                value: breed['id'],
-                                child: Text(
-                                  breed['name'],
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList(),
-                            onChanged:
-                                (_selectedSpeciesId == null || !widget.isAdmin)
-                                ? null
-                                : (value) =>
-                                      setState(() => _selectedBreedId = value),
-                            validator: (value) => Validators.isValidBreed(value)
-                                ? null
-                                : 'Selecione a raça',
-                          ),
-                        ),
-                        if (widget.isAdmin)
-                          IconButton(
-                            tooltip: 'Cadastrar raça',
-                            icon: const Icon(
-                              Icons.add_circle_outline,
-                              color: primaryColor,
-                            ),
-                            onPressed: _openRegisterBreedDialog,
-                          ),
-                      ],
+                          )
+                          .toList(),
+                      onChanged: (_selectedSpeciesId == null || !widget.isAdmin)
+                          ? null
+                          : (val) => setState(() => _selectedBreedId = val),
+                      onAddPressed: _openRegisterBreedDialog,
+                      validator: (value) => Validators.isValidBreed(value)
+                          ? null
+                          : 'Selecione a raça',
                     ),
-
                     const SizedBox(height: 8),
 
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            value: _selectedColorId,
-                            decoration: const InputDecoration(
-                              labelText: 'Cor *',
-                              border: OutlineInputBorder(),
+                    _buildDropdownWithAdd<int>(
+                      value: _selectedColorId,
+                      label: 'Cor *',
+                      items: _colorsList
+                          .map(
+                            (c) => DropdownMenuItem<int>(
+                              value: c['id'],
+                              child: Text(
+                                c['name'],
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            items: _colorsList.map((color) {
-                              return DropdownMenuItem<int>(
-                                value: color['id'],
-                                child: Text(
-                                  color['name'],
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: widget.isAdmin
-                                ? (value) =>
-                                      setState(() => _selectedColorId = value)
-                                : null,
-                            validator: (value) => Validators.isValidColor(value)
-                                ? null
-                                : 'Selecione a cor',
-                          ),
-                        ),
-                        if (widget.isAdmin)
-                          IconButton(
-                            tooltip: 'Cadastrar cor',
-                            icon: const Icon(
-                              Icons.add_circle_outline,
-                              color: primaryColor,
-                            ),
-                            onPressed: _openRegisterColorDialog,
-                          ),
-                      ],
+                          )
+                          .toList(),
+                      onChanged: widget.isAdmin
+                          ? (val) => setState(() => _selectedColorId = val)
+                          : null,
+                      onAddPressed: _openRegisterColorDialog,
+                      validator: (value) => Validators.isValidColor(value)
+                          ? null
+                          : 'Selecione a cor',
                     ),
-
                     const SizedBox(height: 16),
 
                     Row(
@@ -778,8 +787,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
                               ),
                             ],
                             onChanged: widget.isAdmin
-                                ? (value) =>
-                                      setState(() => _selectedGender = value)
+                                ? (val) => setState(() => _selectedGender = val)
                                 : null,
                             validator: (value) =>
                                 Validators.isValidGender(value)
@@ -789,33 +797,26 @@ class _EditPetScreenState extends State<EditPetScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: TextFormField(
+                          child: _buildTextField(
                             controller: _birthDateController,
+                            label: 'Data Nasc. (Opcional)',
+                            icon: Icons.calendar_today,
                             readOnly: true,
-                            enabled: widget.isAdmin,
                             onTap: () => _selectBirthDate(context),
-                            decoration: InputDecoration(
-                              labelText: 'Data Nasc. (Opcional)',
-                              border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.calendar_today),
-                              suffixIcon:
-                                  (_selectedBirthDate != null && widget.isAdmin)
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      onPressed: () {
-                                        setState(() {
-                                          _selectedBirthDate = null;
-                                          _birthDateController.clear();
-                                        });
-                                      },
-                                    )
-                                  : null,
-                            ),
+                            suffixIcon:
+                                (_selectedBirthDate != null && widget.isAdmin)
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () => setState(() {
+                                      _selectedBirthDate = null;
+                                      _birthDateController.clear();
+                                    }),
+                                  )
+                                : null,
                           ),
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 16),
 
                     SwitchListTile(
@@ -830,9 +831,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
                           : null,
                     ),
 
+                    if (widget.isAdmin) VeterinarySection(data: _vetData),
+
                     if (widget.isAdmin) ...[
                       const SizedBox(height: 24),
-
                       ElevatedButton(
                         onPressed: _isSubmitting ? null : _submitForm,
                         style: ElevatedButton.styleFrom(
@@ -893,69 +895,45 @@ class _EditPetScreenState extends State<EditPetScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 16),
 
-                      TextFormField(
+                      _buildTextField(
                         controller: _dischargeDateController,
+                        label: 'Data da Baixa',
+                        icon: Icons.event_busy,
                         readOnly: true,
                         onTap: () => _selectDischargeDate(context),
-                        decoration: InputDecoration(
-                          labelText: 'Data da Baixa',
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.event_busy),
-                          suffixIcon: _selectedDischargeDate != null
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedDischargeDate = null;
-                                      _dischargeDateController.clear();
-                                    });
-                                  },
-                                )
-                              : null,
-                        ),
+                        suffixIcon: _selectedDischargeDate != null
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () => setState(() {
+                                  _selectedDischargeDate = null;
+                                  _dischargeDateController.clear();
+                                }),
+                              )
+                            : null,
                       ),
-
                       const SizedBox(height: 16),
 
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              value: _selectedDischargeReasonId,
-                              decoration: const InputDecoration(
-                                labelText: 'Motivo da Baixa',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.report_problem_outlined),
+                      _buildDropdownWithAdd<int>(
+                        value: _selectedDischargeReasonId,
+                        label: 'Motivo da Baixa',
+                        icon: Icons.report_problem_outlined,
+                        items: _dischargeReasonsList
+                            .map(
+                              (r) => DropdownMenuItem<int>(
+                                value: r['id'],
+                                child: Text(
+                                  r['name'],
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              items: _dischargeReasonsList.map((reason) {
-                                return DropdownMenuItem<int>(
-                                  value: reason['id'],
-                                  child: Text(
-                                    reason['name'],
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (value) => setState(
-                                () => _selectedDischargeReasonId = value,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Cadastrar motivo',
-                            icon: const Icon(
-                              Icons.add_circle_outline,
-                              color: primaryColor,
-                            ),
-                            onPressed: _openRegisterDischargeReasonDialog,
-                          ),
-                        ],
+                            )
+                            .toList(),
+                        onChanged: (val) =>
+                            setState(() => _selectedDischargeReasonId = val),
+                        onAddPressed: _openRegisterDischargeReasonDialog,
                       ),
-
                       const SizedBox(height: 12),
 
                       ElevatedButton.icon(
@@ -978,7 +956,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
                         ),
                       ),
                     ],
-
                     const SizedBox(height: 24),
                   ],
                 ),
