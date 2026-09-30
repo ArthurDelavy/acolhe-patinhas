@@ -6,6 +6,219 @@ import '../../services/veterinary_service.dart';
 
 const Color _kOrange = Color(0xFFE27B1D);
 
+ShapeBorder get _dialogShape =>
+    RoundedRectangleBorder(borderRadius: BorderRadius.circular(20));
+
+InputDecoration compactInput(
+  String label, {
+  IconData? icon,
+  String? hint,
+  Widget? suffixIcon,
+  bool showCounter = false,
+  bool multiline = false,
+}) {
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    isDense: true,
+    filled: true,
+    fillColor: Colors.grey.withOpacity(0.06),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: _kOrange, width: 1.5),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.red.shade400),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.red.shade700, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    prefixIcon: icon == null
+        ? null
+        : Icon(icon, size: 20, color: Colors.grey.shade700),
+    suffixIcon: suffixIcon,
+    counterText: showCounter ? null : '',
+    alignLabelWithHint: multiline,
+  );
+}
+
+String _fmt(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+String _iso(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+DateTime _today() {
+  final n = DateTime.now();
+  return DateTime(n.year, n.month, n.day);
+}
+
+Future<DateTime?> _pickDate(
+  BuildContext context, {
+  DateTime? current,
+  required DateTime first,
+  required DateTime last,
+}) {
+  var initial = current ?? _today();
+  if (initial.isAfter(last)) initial = last;
+  if (initial.isBefore(first)) initial = first;
+
+  return showDatePicker(
+    context: context,
+    initialDate: initial,
+    firstDate: first,
+    lastDate: last,
+    builder: (context, child) {
+      return Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: _kOrange),
+        ),
+        child: child!,
+      );
+    },
+  );
+}
+
+class _DateTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final bool required;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  const _DateTextField({
+    required this.controller,
+    required this.label,
+    required this.onTap,
+    required this.onClear,
+    this.required = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      readOnly: true,
+      onTap: onTap,
+      decoration: compactInput(
+        label,
+        icon: Icons.calendar_today_outlined,
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: onClear,
+              ),
+      ),
+      validator: (v) =>
+          required && (v == null || v.isEmpty) ? 'Informe a data' : null,
+    );
+  }
+}
+
+class _CatalogDropdown extends StatelessWidget {
+  final String label;
+  final int? value;
+  final List<Map<String, dynamic>> items;
+  final ValueChanged<int?> onChanged;
+  final VoidCallback? onAdd;
+  final String? addTooltip;
+  final bool allowNone;
+  final String? Function(int?)? validator;
+
+  const _CatalogDropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.onAdd,
+    this.addTooltip,
+    this.allowNone = false,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool empty = items.isEmpty;
+
+    final dropdown = DropdownButtonFormField<int>(
+      value: value,
+      isExpanded: true,
+      borderRadius: BorderRadius.circular(16),
+      decoration: compactInput(label),
+      hint: Text(
+        empty
+            ? (onAdd != null
+                  ? 'Nenhum cadastrado. Toque aqui'
+                  : 'Nenhum cadastrado')
+            : 'Selecione',
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+      ),
+      items: [
+        if (allowNone)
+          const DropdownMenuItem<int>(value: null, child: Text('Nenhum')),
+        ...items.map(
+          (i) => DropdownMenuItem<int>(
+            value: i['id'] as int,
+            child: Text(i['name'].toString(), overflow: TextOverflow.ellipsis),
+          ),
+        ),
+      ],
+      onChanged: onChanged,
+      validator: validator,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: (empty && onAdd != null)
+              ? GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onAdd,
+                  child: IgnorePointer(child: dropdown),
+                )
+              : dropdown,
+        ),
+        if (onAdd != null) ...[
+          const SizedBox(width: 6),
+          IconButton.filledTonal(
+            tooltip: addTooltip,
+            style: IconButton.styleFrom(
+              backgroundColor: _kOrange.withOpacity(0.12),
+              foregroundColor: _kOrange,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(10),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 22),
+            onPressed: onAdd,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// REGISTROS SIMPLES (RAÇA/COR, ESPÉCIE, MOTIVO BAIXA)
+// ============================================================================
+
 class RegisterBreedColor extends StatefulWidget {
   final int? speciesId;
   final bool isBreed;
@@ -81,17 +294,24 @@ class _RegisterBreedColorState extends State<RegisterBreedColor> {
     final label = widget.isBreed ? 'Nome da raça' : 'Nome da cor';
 
     return AlertDialog(
-      title: Text(title),
-      content: TextField(
-        controller: _nameController,
-        autofocus: true,
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) {
-          if (!_isSaving) _save();
-        },
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
+      content: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: TextField(
+          controller: _nameController,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_isSaving) _save();
+          },
+          decoration: compactInput(label),
         ),
       ),
       actions: [
@@ -100,12 +320,16 @@ class _RegisterBreedColorState extends State<RegisterBreedColor> {
           child: const Text('Cancelar'),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
           onPressed: _isSaving ? null : _save,
           child: _isSaving
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
                 )
               : const Text('Adicionar'),
         ),
@@ -161,17 +385,24 @@ class _RegisterSpeciesState extends State<RegisterSpecies> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar espécie'),
-      content: TextField(
-        controller: _nameController,
-        autofocus: true,
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) {
-          if (!_isSaving) _save();
-        },
-        decoration: const InputDecoration(
-          labelText: 'Nome da espécie',
-          border: OutlineInputBorder(),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar espécie',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
+      content: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: TextField(
+          controller: _nameController,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_isSaving) _save();
+          },
+          decoration: compactInput('Nome da espécie'),
         ),
       ),
       actions: [
@@ -180,12 +411,16 @@ class _RegisterSpeciesState extends State<RegisterSpecies> {
           child: const Text('Cancelar'),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
           onPressed: _isSaving ? null : _save,
           child: _isSaving
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
                 )
               : const Text('Adicionar'),
         ),
@@ -242,17 +477,24 @@ class _RegisterDischargeReasonState extends State<RegisterDischargeReason> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar motivo de baixa'),
-      content: TextField(
-        controller: _nameController,
-        autofocus: true,
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) {
-          if (!_isSaving) _save();
-        },
-        decoration: const InputDecoration(
-          labelText: 'Nome do motivo',
-          border: OutlineInputBorder(),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar motivo de baixa',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
+      content: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: TextField(
+          controller: _nameController,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_isSaving) _save();
+          },
+          decoration: compactInput('Nome do motivo'),
         ),
       ),
       actions: [
@@ -261,12 +503,16 @@ class _RegisterDischargeReasonState extends State<RegisterDischargeReason> {
           child: const Text('Cancelar'),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
           onPressed: _isSaving ? null : _save,
           child: _isSaving
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
                 )
               : const Text('Adicionar'),
         ),
@@ -275,173 +521,9 @@ class _RegisterDischargeReasonState extends State<RegisterDischargeReason> {
   }
 }
 
-InputDecoration compactInput(
-  String label, {
-  IconData? icon,
-  String? hint,
-  Widget? suffixIcon,
-  bool showCounter = false,
-  bool multiline = false,
-}) {
-  return InputDecoration(
-    labelText: label,
-    hintText: hint,
-    isDense: true,
-    border: const OutlineInputBorder(),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-    prefixIcon: icon == null ? null : Icon(icon, size: 20),
-    suffixIcon: suffixIcon,
-    counterText: showCounter ? null : '',
-    alignLabelWithHint: multiline,
-  );
-}
-
-String _fmt(DateTime d) =>
-    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
-String _iso(DateTime d) =>
-    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
-DateTime _today() {
-  final n = DateTime.now();
-  return DateTime(n.year, n.month, n.day);
-}
-
-Future<DateTime?> _pickDate(
-  BuildContext context, {
-  DateTime? current,
-  required DateTime first,
-  required DateTime last,
-}) {
-  var initial = current ?? _today();
-  if (initial.isAfter(last)) initial = last;
-  if (initial.isBefore(first)) initial = first;
-
-  return showDatePicker(
-    context: context,
-    initialDate: initial,
-    firstDate: first,
-    lastDate: last,
-  );
-}
-
-class _DateTextField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final bool required;
-  final VoidCallback onTap;
-  final VoidCallback onClear;
-
-  const _DateTextField({
-    required this.controller,
-    required this.label,
-    required this.onTap,
-    required this.onClear,
-    this.required = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      readOnly: true,
-      onTap: onTap,
-      decoration: compactInput(
-        label,
-        icon: Icons.calendar_today,
-        suffixIcon: controller.text.isEmpty
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.clear, size: 18),
-                onPressed: onClear,
-              ),
-      ),
-      validator: (v) =>
-          required && (v == null || v.isEmpty) ? 'Informe a data' : null,
-    );
-  }
-}
-
-class _CatalogDropdown extends StatelessWidget {
-  final String label;
-  final int? value;
-  final List<Map<String, dynamic>> items;
-  final ValueChanged<int?> onChanged;
-  final VoidCallback? onAdd;
-  final String? addTooltip;
-  final bool allowNone;
-  final String? Function(int?)? validator;
-
-  const _CatalogDropdown({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-    this.onAdd,
-    this.addTooltip,
-    this.allowNone = false,
-    this.validator,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bool empty = items.isEmpty;
-
-    final dropdown = DropdownButtonFormField<int>(
-      value: value,
-      isExpanded: true,
-      decoration: compactInput(label),
-      hint: Text(
-        empty
-            ? (onAdd != null
-                  ? 'Nenhum cadastrado. Toque aqui'
-                  : 'Nenhum cadastrado')
-            : 'Selecione',
-        overflow: TextOverflow.ellipsis,
-      ),
-      items: [
-        if (allowNone)
-          const DropdownMenuItem<int>(value: null, child: Text('Nenhum')),
-        ...items.map(
-          (i) => DropdownMenuItem<int>(
-            value: i['id'] as int,
-            child: Text(i['name'].toString(), overflow: TextOverflow.ellipsis),
-          ),
-        ),
-      ],
-      onChanged: onChanged,
-      validator: validator,
-    );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: (empty && onAdd != null)
-              ? GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onAdd,
-                  child: IgnorePointer(child: dropdown),
-                )
-              : dropdown,
-        ),
-        if (onAdd != null)
-          IconButton(
-            tooltip: addTooltip,
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 44),
-            icon: const Icon(
-              Icons.add_circle_outline,
-              color: _kOrange,
-              size: 22,
-            ),
-            onPressed: onAdd,
-          ),
-      ],
-    );
-  }
-}
+// ============================================================================
+// CATALOG DIALOG
+// ============================================================================
 
 class VetCatalogDialog extends StatefulWidget {
   final String title;
@@ -529,13 +611,21 @@ class _VetCatalogDialogState extends State<VetCatalogDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.title),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: Text(
+        widget.title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width.clamp(280, 360),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 6),
             TextField(
               controller: _nameController,
               autofocus: true,
@@ -551,7 +641,7 @@ class _VetCatalogDialogState extends State<VetCatalogDialog> {
               ).copyWith(errorText: _nameError),
             ),
             if (widget.askFrequency) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextField(
                 controller: _frequencyController,
                 keyboardType: TextInputType.number,
@@ -582,12 +672,16 @@ class _VetCatalogDialogState extends State<VetCatalogDialog> {
           child: const Text('Cancelar'),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
           onPressed: _isSaving ? null : _save,
           child: _isSaving
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
                 )
               : const Text('Adicionar'),
         ),
@@ -596,10 +690,11 @@ class _VetCatalogDialogState extends State<VetCatalogDialog> {
   }
 }
 
-// ============================================================ vacina aplicada
+// ============================================================================
+// VACINA
+// ============================================================================
 
 class VaccinationDialog extends StatefulWidget {
-  /// Lista mutável compartilhada com a seção (novas vacinas entram nela).
   final List<Map<String, dynamic>> vaccines;
 
   const VaccinationDialog({super.key, required this.vaccines});
@@ -711,8 +806,7 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
           'vaccineId': _vaccineId,
           'dose': dose,
           'manufacturer': manufacturer,
-          // ⚠️ "batchNumer" (sem o "b") é como está escrito no DTO do backend
-          // (NewVaccinationRequest). Se corrigirem lá, corrija aqui também.
+          // ⚠️ "batchNumer" (sem o "b") é mantido do DTO do backend
           'batchNumer': batch,
           if (_date != null) 'vaccinationDate': _iso(_date!),
           if (_next != null) 'nextDoseDate': _iso(_next!),
@@ -724,7 +818,14 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar vacina'),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar vacina',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width.clamp(280, 360),
         child: SingleChildScrollView(
@@ -734,7 +835,7 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 _CatalogDropdown(
                   label: 'Vacina *',
                   value: _vaccineId,
@@ -744,7 +845,7 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
                   addTooltip: 'Cadastrar vacina',
                   validator: (v) => v == null ? 'Selecione a vacina' : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _doseCtl,
                   maxLength: 10,
@@ -752,18 +853,27 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Informe a dose' : null,
                 ),
-                Wrap(
-                  spacing: 6,
-                  children: [
-                    for (final s in _doseSuggestions)
-                      ActionChip(
-                        label: Text(s),
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => _doseCtl.text = s,
-                      ),
-                  ],
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      for (final s in _doseSuggestions)
+                        ActionChip(
+                          label: Text(s, style: const TextStyle(fontSize: 12)),
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: Colors.grey.shade100,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          onPressed: () => _doseCtl.text = s,
+                        ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 4),
                 TextFormField(
                   controller: _manufacturerCtl,
                   maxLength: 50,
@@ -772,7 +882,7 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
                       ? 'Informe o fabricante'
                       : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _batchCtl,
                   maxLength: 50,
@@ -780,7 +890,7 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Informe o lote' : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _DateTextField(
                   controller: _dateCtl,
                   label: 'Data da aplicação',
@@ -790,7 +900,7 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
                     _dateCtl.clear();
                   }),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _DateTextField(
                   controller: _nextCtl,
                   label: 'Próxima dose',
@@ -810,13 +920,19 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('Adicionar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
+          onPressed: _confirm,
+          child: const Text('Adicionar'),
+        ),
       ],
     );
   }
 }
 
-// ================================================================== cirurgia
+// ============================================================================
+// CIRURGIA
+// ============================================================================
 
 class SurgeryDialog extends StatefulWidget {
   final List<Map<String, dynamic>> procedures;
@@ -898,7 +1014,14 @@ class _SurgeryDialogState extends State<SurgeryDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar cirurgia'),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar cirurgia',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width.clamp(280, 360),
         child: SingleChildScrollView(
@@ -908,7 +1031,7 @@ class _SurgeryDialogState extends State<SurgeryDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 _CatalogDropdown(
                   label: 'Procedimento *',
                   value: _procedureId,
@@ -919,7 +1042,7 @@ class _SurgeryDialogState extends State<SurgeryDialog> {
                   validator: (v) =>
                       v == null ? 'Selecione o procedimento' : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _DateTextField(
                   controller: _dateCtl,
                   label: 'Data da cirurgia *',
@@ -930,7 +1053,7 @@ class _SurgeryDialogState extends State<SurgeryDialog> {
                     _dateCtl.clear();
                   }),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _obsCtl,
                   maxLines: 3,
@@ -948,13 +1071,19 @@ class _SurgeryDialogState extends State<SurgeryDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('Adicionar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
+          onPressed: _confirm,
+          child: const Text('Adicionar'),
+        ),
       ],
     );
   }
 }
 
-// ======================================================== cuidado preventivo
+// ============================================================================
+// CUIDADO PREVENTIVO
+// ============================================================================
 
 class PreventiveDialog extends StatefulWidget {
   final List<Map<String, dynamic>> procedures;
@@ -1021,8 +1150,6 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
     });
   }
 
-  /// Sugere a próxima data usando a frequência padrão do procedimento.
-  /// Não sobrescreve uma data que o usuário escolheu manualmente.
   void _suggestNext() {
     if (_date == null || _procedureId == null) return;
     if (_next != null && !_nextAuto) return;
@@ -1110,7 +1237,14 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar cuidado preventivo'),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar cuidado preventivo',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width.clamp(280, 360),
         child: SingleChildScrollView(
@@ -1120,7 +1254,7 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 _CatalogDropdown(
                   label: 'Procedimento *',
                   value: _procedureId,
@@ -1134,7 +1268,7 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
                   validator: (v) =>
                       v == null ? 'Selecione o procedimento' : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _CatalogDropdown(
                   label: 'Medicamento (opcional)',
                   value: _medicineId,
@@ -1144,7 +1278,7 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
                   onAdd: _createMedicine,
                   addTooltip: 'Cadastrar medicamento',
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _DateTextField(
                   controller: _dateCtl,
                   label: 'Data do procedimento *',
@@ -1155,7 +1289,7 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
                     _dateCtl.clear();
                   }),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _DateTextField(
                   controller: _nextCtl,
                   label: 'Próximo procedimento',
@@ -1166,7 +1300,7 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
                     _nextCtl.clear();
                   }),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _obsCtl,
                   maxLines: 3,
@@ -1184,15 +1318,19 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('Adicionar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
+          onPressed: _confirm,
+          child: const Text('Adicionar'),
+        ),
       ],
     );
   }
 }
 
-// ====================================================================
-// MEDICAMENTO (cadastro rápido, usado no preventivo e no tratamento)
-// ====================================================================
+// ============================================================================
+// MEDICAMENTO (CADASTRO RÁPIDO) & EXAME
+// ============================================================================
 
 Future<Map<String, dynamic>?> _createMedicineDialog(BuildContext context) {
   return showDialog<Map<String, dynamic>>(
@@ -1300,7 +1438,14 @@ class _LabTestDialogState extends State<LabTestDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar exame'),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar exame',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width.clamp(280, 360),
         child: SingleChildScrollView(
@@ -1310,7 +1455,7 @@ class _LabTestDialogState extends State<LabTestDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 _CatalogDropdown(
                   label: 'Exame *',
                   value: _testId,
@@ -1320,7 +1465,7 @@ class _LabTestDialogState extends State<LabTestDialog> {
                   addTooltip: 'Cadastrar tipo de exame',
                   validator: (v) => v == null ? 'Selecione o exame' : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _DateTextField(
                   controller: _dateCtl,
                   label: 'Data do exame *',
@@ -1331,7 +1476,7 @@ class _LabTestDialogState extends State<LabTestDialog> {
                     _dateCtl.clear();
                   }),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _resultsCtl,
                   minLines: 2,
@@ -1342,7 +1487,7 @@ class _LabTestDialogState extends State<LabTestDialog> {
                       ? 'Informe o resultado'
                       : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _obsCtl,
                   minLines: 2,
@@ -1360,18 +1505,22 @@ class _LabTestDialogState extends State<LabTestDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('Adicionar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
+          onPressed: _confirm,
+          child: const Text('Adicionar'),
+        ),
       ],
     );
   }
 }
 
-// ============================================================== diagnóstico
+// ============================================================================
+// DIAGNÓSTICO
+// ============================================================================
 
 class DiagnosisDialog extends StatefulWidget {
   final List<Map<String, dynamic>> diseases;
-
-  /// Identificador do diagnóstico dentro da tela (o tratamento usa para se ligar a ele).
   final int localId;
 
   const DiagnosisDialog({
@@ -1456,8 +1605,6 @@ class _DiagnosisDialogState extends State<DiagnosisDialog> {
           'status': _status,
           if (iso != null) 'diagnosedAt': iso,
         },
-        // Usado para descobrir o id do diagnóstico depois de salvar
-        // (o POST devolve 201 sem corpo).
         meta: {
           'localId': widget.localId,
           'diseaseName': name,
@@ -1471,7 +1618,14 @@ class _DiagnosisDialogState extends State<DiagnosisDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar diagnóstico'),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar diagnóstico',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width.clamp(280, 360),
         child: SingleChildScrollView(
@@ -1481,7 +1635,7 @@ class _DiagnosisDialogState extends State<DiagnosisDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 _CatalogDropdown(
                   label: 'Doença *',
                   value: _diseaseId,
@@ -1491,10 +1645,11 @@ class _DiagnosisDialogState extends State<DiagnosisDialog> {
                   addTooltip: 'Cadastrar doença',
                   validator: (v) => v == null ? 'Selecione a doença' : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _status,
                   isExpanded: true,
+                  borderRadius: BorderRadius.circular(16),
                   decoration: compactInput('Situação'),
                   items: _statuses.entries
                       .map(
@@ -1506,7 +1661,7 @@ class _DiagnosisDialogState extends State<DiagnosisDialog> {
                       .toList(),
                   onChanged: (v) => setState(() => _status = v ?? 'ACTIVE'),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _DateTextField(
                   controller: _dateCtl,
                   label: 'Data do diagnóstico',
@@ -1526,13 +1681,19 @@ class _DiagnosisDialogState extends State<DiagnosisDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('Adicionar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
+          onPressed: _confirm,
+          child: const Text('Adicionar'),
+        ),
       ],
     );
   }
 }
 
-// ============================ posologia (medicamento dentro de um tratamento)
+// ============================================================================
+// POSOLOGIA & TRATAMENTO
+// ============================================================================
 
 class PosologyDialog extends StatefulWidget {
   final List<Map<String, dynamic>> medicines;
@@ -1614,7 +1775,7 @@ class _PosologyDialogState extends State<PosologyDialog> {
           'dosage': dosage,
           'frequency': frequency,
           'durationDays': days,
-          // "starDate" (sem o "t") é como está no NewPosologyRequest do backend.
+          // ⚠️ "starDate" (sem o "t") é mantido do NewPosologyRequest do backend
           'starDate': _iso(_date),
         },
       ),
@@ -1624,7 +1785,14 @@ class _PosologyDialogState extends State<PosologyDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar medicamento'),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar medicamento',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width.clamp(280, 360),
         child: SingleChildScrollView(
@@ -1634,7 +1802,7 @@ class _PosologyDialogState extends State<PosologyDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 _CatalogDropdown(
                   label: 'Medicamento *',
                   value: _medicineId,
@@ -1645,7 +1813,7 @@ class _PosologyDialogState extends State<PosologyDialog> {
                   validator: (v) =>
                       v == null ? 'Selecione o medicamento' : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _dosageCtl,
                   maxLength: 30,
@@ -1653,7 +1821,7 @@ class _PosologyDialogState extends State<PosologyDialog> {
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Informe a dose' : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _frequencyCtl,
                   maxLength: 30,
@@ -1665,7 +1833,7 @@ class _PosologyDialogState extends State<PosologyDialog> {
                       ? 'Informe a frequência'
                       : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _daysCtl,
                   keyboardType: TextInputType.number,
@@ -1676,14 +1844,14 @@ class _PosologyDialogState extends State<PosologyDialog> {
                       ? 'Informe os dias'
                       : null,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _dateCtl,
                   readOnly: true,
                   onTap: _pickStart,
                   decoration: compactInput(
                     'Início *',
-                    icon: Icons.calendar_today,
+                    icon: Icons.calendar_today_outlined,
                   ),
                 ),
               ],
@@ -1696,17 +1864,18 @@ class _PosologyDialogState extends State<PosologyDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('Adicionar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
+          onPressed: _confirm,
+          child: const Text('Adicionar'),
+        ),
       ],
     );
   }
 }
 
-// ================================================================ tratamento
-
 class TreatmentDialog extends StatefulWidget {
   final List<Map<String, dynamic>> medicines;
-
   final List<VetEntry> diagnoses;
 
   const TreatmentDialog({
@@ -1785,9 +1954,6 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
   }
 
   void _confirm() {
-    // O diagnóstico é obrigatório no app: o backend falha ao montar a resposta
-    // de um tratamento sem diagnóstico (o tratamento é salvo, mas a resposta
-    // dá erro 500 e o app não consegue ligar os medicamentos).
     if (_diagnosisLocalId == null) {
       setState(
         () => _error =
@@ -1816,7 +1982,6 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
           if (_end != null) 'Fim ${_fmt(_end!)}',
           if (_meds.isNotEmpty) '${_meds.length} medicamento(s)',
         ].join('  •  '),
-
         payload: {
           'status': _status,
           if (_start != null) 'startDate': _iso(_start!),
@@ -1835,7 +2000,14 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adicionar tratamento'),
+      shape: _dialogShape,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      actionsPadding: const EdgeInsets.all(16),
+      title: const Text(
+        'Adicionar tratamento',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+      ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width.clamp(280, 360),
         child: SingleChildScrollView(
@@ -1843,16 +2015,18 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               DropdownButtonFormField<int>(
                 value: _diagnosisLocalId,
                 isExpanded: true,
+                borderRadius: BorderRadius.circular(16),
                 decoration: compactInput('Diagnóstico *'),
                 hint: Text(
                   widget.diagnoses.isEmpty
                       ? 'Adicione um diagnóstico antes'
                       : 'Selecione',
                   overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),
                 items: widget.diagnoses
                     .map(
@@ -1867,10 +2041,11 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
                   _error = null;
                 }),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _status,
                 isExpanded: true,
+                borderRadius: BorderRadius.circular(16),
                 decoration: compactInput('Situação'),
                 items: _statuses.entries
                     .map(
@@ -1882,7 +2057,7 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
                     .toList(),
                 onChanged: (v) => setState(() => _status = v ?? 'PENDING'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               _DateTextField(
                 controller: _startCtl,
                 label: 'Início',
@@ -1892,7 +2067,7 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
                   _startCtl.clear();
                 }),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               _DateTextField(
                 controller: _endCtl,
                 label: 'Fim',
@@ -1902,7 +2077,7 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
                   _endCtl.clear();
                 }),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _obsCtl,
                 minLines: 2,
@@ -1911,39 +2086,78 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
                 decoration: compactInput('Observações', multiline: true),
               ),
               if (VetRoutes.posologyEnabled) ...[
+                const SizedBox(height: 8),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Medicamentos',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                    const Text(
+                      'Medicamentos',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
                     ),
                     TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: _kOrange,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                      ),
                       onPressed: _addMed,
-                      icon: const Icon(Icons.add, size: 18),
+                      icon: const Icon(Icons.add_rounded, size: 18),
                       label: const Text('Adicionar'),
                     ),
                   ],
                 ),
+                const SizedBox(height: 4),
                 for (int i = 0; i < _meds.length; i++)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(_meds[i].title),
-                    subtitle: Text(_meds[i].subtitle),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      onPressed: () => setState(() => _meds.removeAt(i)),
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 2,
+                      ),
+                      title: Text(
+                        _meds[i].title,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        _meds[i].subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 20,
+                          color: Colors.redAccent,
+                        ),
+                        onPressed: () => setState(() => _meds.removeAt(i)),
+                      ),
                     ),
                   ),
               ],
               if (_error != null)
                 Padding(
-                  padding: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     _error!,
-                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
             ],
@@ -1955,7 +2169,11 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        FilledButton(onPressed: _confirm, child: const Text('Adicionar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
+          onPressed: _confirm,
+          child: const Text('Adicionar'),
+        ),
       ],
     );
   }

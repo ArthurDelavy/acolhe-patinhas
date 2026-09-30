@@ -432,12 +432,14 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         ? Image.network(
                             _selectedImage!.path,
                             fit: BoxFit.cover,
+                            alignment: Alignment.topCenter,
                             width: size,
                             height: size,
                           )
                         : Image.file(
                             File(_selectedImage!.path),
                             fit: BoxFit.cover,
+                            alignment: Alignment.topCenter,
                             width: size,
                             height: size,
                           )),

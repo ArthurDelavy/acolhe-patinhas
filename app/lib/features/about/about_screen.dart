@@ -13,8 +13,9 @@ class _AboutScreenState extends State<AboutScreen>
   static const Color primaryColor = Color(0xFFFFA94D);
   static const Color secondaryColor = Color(0xFFFF8C42);
   static const Color darkOrange = Color(0xFFE0641B);
+  static const Color backgroundColor = Color(0xFFF8F9FA);
 
-  // Animação de entrada do título "Associação Acolher"
+  // Animação de entrada do título
   late final AnimationController _titleController;
   late final Animation<double> _titleFade;
   late final Animation<Offset> _titleSlide;
@@ -33,15 +34,11 @@ class _AboutScreenState extends State<AboutScreen>
       curve: Curves.easeOut,
     );
 
-    _titleSlide =
-        Tween<Offset>(
-          begin: const Offset(0, -0.4), // começa um pouco acima
-          end: Offset.zero,
-        ).animate(
+    _titleSlide = Tween<Offset>(begin: const Offset(0, -0.4), end: Offset.zero)
+        .animate(
           CurvedAnimation(parent: _titleController, curve: Curves.easeOutCubic),
         );
 
-    // Pequeno atraso pra dar tempo da tela montar antes de animar
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted) _titleController.forward();
     });
@@ -56,12 +53,13 @@ class _AboutScreenState extends State<AboutScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // Header Curvado e Alongado (ClipPath Original)
             SizedBox(
-              height: 380,
+              height: 360,
               child: Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.topCenter,
@@ -69,7 +67,7 @@ class _AboutScreenState extends State<AboutScreen>
                   ClipPath(
                     clipper: HeaderCurveClipper(),
                     child: Container(
-                      height: 320,
+                      height: 310,
                       width: double.infinity,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
@@ -100,20 +98,20 @@ class _AboutScreenState extends State<AboutScreen>
                     ),
                   ),
 
-                  // Logo circular centralizada
+                  // Logo circular centralizada sobre a curva
                   Positioned(
-                    top: 190, // Reposicionada para a curva maior
+                    top: 185,
                     child: Container(
-                      width: 140,
-                      height: 140,
+                      width: 135,
+                      height: 135,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white,
                         border: Border.all(color: Colors.white, width: 4),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 15,
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 16,
                             offset: const Offset(0, 8),
                           ),
                         ],
@@ -131,210 +129,121 @@ class _AboutScreenState extends State<AboutScreen>
               ),
             ),
 
-            const Center(
-              child: Text(
-                'Encantado, RS',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: darkOrange,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.1,
+            // Localização
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.location_on, color: darkOrange, size: 18),
+                SizedBox(width: 4),
+                Text(
+                  'Encantado, RS',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: darkOrange,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-              ),
+              ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [_SupportButton()],
-                ),
-              ),
-            ),
+            // Badge de Apoio Bonito, Interativo e Compacto
+            const _SupportBadge(),
 
             const SizedBox(height: 35),
 
+            // Conteúdo Principal
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Seção Sobre Nós
+                  // Seção Sobre Nós em Card Clean
                   const Text(
                     'Sobre Nós',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: secondaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    'A Associação Acolher é um refúgio de esperança para animais em situação de abandono na cidade de Encantado, RS. Nossa missão é resgatar, cuidar e encontrar lares cheios de amor para cães e gatos que mais precisam.\n\n"A compaixão pelos animais está intimamente ligada à bondade de caráter, e quem é cruel com os animais não pode ser um bom homem." — Arthur Schopenhauer',
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.6,
                       color: Colors.black87,
                     ),
-                    textAlign: TextAlign.justify,
                   ),
-
-                  const SizedBox(height: 35),
-
-                  // Seção Contato
-                  const Text(
-                    'Contato',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: secondaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.phone, color: secondaryColor),
-                    ),
-                    title: const Text(
-                      '(51) 9XXXX-XXXX',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 35),
-
-                  // Seção Redes Sociais (nova, como pedido)
-                  const Text(
-                    'Redes Sociais',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: secondaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  // Instagram
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: secondaryColor,
-                      ),
-                    ),
-                    title: const Text(
-                      '@associacaoacolher',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.facebook, color: secondaryColor),
-                    ),
-                    title: const Text(
-                      'Associação Acolher',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  // WhatsApp
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.chat_bubble_outline,
-                        color: secondaryColor,
-                      ),
-                    ),
-                    title: const Text(
-                      '(51) 9XXXX-XXXX',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 35),
-
-                  const Text(
-                    'Nosso Impacto',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: secondaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 12),
                   Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: primaryColor.withOpacity(0.10),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    child: const Text(
+                      'A Associação Acolher é um refúgio de esperança para animais em situação de abandono na cidade de Encantado, RS. Nossa missão é resgatar, cuidar e encontrar lares cheios de amor para cães e gatos que mais precisam.\n\n"A compaixão pelos animais está intimamente ligada à bondade de caráter, e quem é cruel com os animais não pode ser um bom homem." — Arthur Schopenhauer',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.6,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.justify,
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Seção Contato e Redes
+                  const Text(
+                    'Contato e Redes',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
                       children: [
-                        _ImpactStat(number: '120+', label: 'Resgatados'),
-                        _ImpactStat(number: '85', label: 'Adoções'),
-                        _ImpactStat(number: '40', label: 'Voluntários'),
+                        _buildContactTile(
+                          icon: Icons.phone,
+                          title: 'Telefone / WhatsApp',
+                          subtitle: '(51) 9XXXX-XXXX',
+                          isLast: false,
+                        ),
+                        _buildContactTile(
+                          icon: Icons.camera_alt,
+                          title: 'Instagram',
+                          subtitle: '@associacaoacolher',
+                          isLast: false,
+                        ),
+                        _buildContactTile(
+                          icon: Icons.facebook,
+                          title: 'Facebook',
+                          subtitle: 'Associação Acolher',
+                          isLast: true,
+                        ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 30,
-                  ), // Espaço no final para não colar na Navbar
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -344,16 +253,67 @@ class _AboutScreenState extends State<AboutScreen>
       bottomNavigationBar: const NavbarComponent(currentIndex: 7),
     );
   }
+
+  Widget _buildContactTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isLast,
+  }) {
+    return Column(
+      children: [
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 6,
+          ),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: secondaryColor, size: 22),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black45,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 15,
+              color: Colors.black87,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        if (!isLast)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Colors.grey.withOpacity(0.1),
+            indent: 68,
+            endIndent: 20,
+          ),
+      ],
+    );
+  }
 }
 
-class _SupportButton extends StatefulWidget {
-  const _SupportButton();
+// Badge de Apoio Compacto e Estilizado
+class _SupportBadge extends StatefulWidget {
+  const _SupportBadge();
 
   @override
-  State<_SupportButton> createState() => _SupportButtonState();
+  State<_SupportBadge> createState() => _SupportBadgeState();
 }
 
-class _SupportButtonState extends State<_SupportButton> {
+class _SupportBadgeState extends State<_SupportBadge> {
   bool _isSupporting = false;
 
   void _toggleSupport() {
@@ -368,44 +328,59 @@ class _SupportButtonState extends State<_SupportButton> {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: _toggleSupport,
-      borderRadius: BorderRadius.circular(30),
-      child: Column(
-        children: [
-          AnimatedScale(
-            scale: _isSupporting ? 1.15 : 1.0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutBack,
-            child: Container(
-              width: 54,
-              height: 54,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  _isSupporting ? Icons.favorite : Icons.favorite_border,
-                  key: ValueKey(_isSupporting),
-                  color: _isSupporting
-                      ? Colors.red
-                      : _AboutScreenState.secondaryColor,
-                ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        decoration: BoxDecoration(
+          color: _isSupporting ? Colors.red.withOpacity(0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: _isSupporting ? Colors.red : _AboutScreenState.primaryColor,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: _isSupporting
+                  ? Colors.red.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Icon(
+                _isSupporting ? Icons.favorite : Icons.favorite_border,
+                key: ValueKey<bool>(_isSupporting),
+                color: _isSupporting
+                    ? Colors.red
+                    : _AboutScreenState.darkOrange,
+                size: 20,
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _isSupporting ? 'Apoiado!' : 'Apoiar',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+            const SizedBox(width: 8),
+            Text(
+              _isSupporting ? 'Apoiado!' : 'Apoiar Projeto',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: _isSupporting
+                    ? Colors.red
+                    : _AboutScreenState.darkOrange,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -419,13 +394,11 @@ void _showThankYouModal(BuildContext context) {
     barrierColor: Colors.black.withOpacity(0.35),
     transitionDuration: const Duration(milliseconds: 250),
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
-      // Fecha sozinho depois de 2 segundos
-      Future.delayed(const Duration(seconds: 4), () {
+      Future.delayed(const Duration(seconds: 3), () {
         if (Navigator.of(dialogContext).canPop()) {
           Navigator.of(dialogContext).pop();
         }
       });
-
       return const Center(child: _ThankYouCard());
     },
     transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
@@ -448,14 +421,14 @@ class _ThankYouCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 48),
+        margin: const EdgeInsets.symmetric(horizontal: 44),
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withOpacity(0.18),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -464,8 +437,8 @@ class _ThankYouCard extends StatelessWidget {
         child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.favorite, color: Colors.red, size: 40),
-            SizedBox(height: 20),
+            Icon(Icons.favorite, color: Colors.red, size: 44),
+            SizedBox(height: 16),
             Text(
               'Obrigado pelo carinho! 🐾\nSeu apoio ajuda a mudar uma vida.',
               textAlign: TextAlign.center,
@@ -482,34 +455,7 @@ class _ThankYouCard extends StatelessWidget {
   }
 }
 
-class _ImpactStat extends StatelessWidget {
-  final String number;
-  final String label;
-
-  const _ImpactStat({required this.number, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          number,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: _AboutScreenState.secondaryColor,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 13, color: Colors.black54),
-        ),
-      ],
-    );
-  }
-}
-
+// Clipper Alongado Curvado Original
 class HeaderCurveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
