@@ -28,11 +28,17 @@ public enum Role {
     
     USER(Set.of(
 <<<<<<< HEAD
+<<<<<<< HEAD
         Permission.ANIMAL_READ
+=======
+        Permission.ANIMAL_READ,
+        Permission.VETERINARY_READ
+>>>>>>> e6346cc (feat(user): adicionada permissao de leitura de dados veterinarios para users comuns e anonimos)
     )),
     
     ANONYMOUS(Set.of(
-        Permission.ANIMAL_READ
+        Permission.ANIMAL_READ,
+        Permission.VETERINARY_READ
       
     )),
   
