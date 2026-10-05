@@ -8,6 +8,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public enum Role {
     ADMIN(Set.of(
+        Permission.USER_READ,
+        Permission.USER_VERIFY,
         Permission.ANIMAL_READ,
         Permission.ANIMAL_CREATE,
         Permission.ANIMAL_EDIT,
@@ -15,13 +17,15 @@ public enum Role {
         Permission.ANIMAL_REFERENCE_MANAGE,
         Permission.VETERINARY_READ,
         Permission.VETERINARY_ASSIGN,
-        Permission.VETERINARY_MANAGE
+        Permission.VETERINARY_MANAGE,
+
+        Permission.POST_READ,
+        Permission.POST_CREATE,
+        Permission.POST_EDIT,
+        Permission.POST_REMOVE
     )),
 
     USER(Set.of(
-<<<<<<< Updated upstream
-        Permission.ANIMAL_READ
-=======
         Permission.ANIMAL_READ,
         Permission.VETERINARY_READ,
         Permission.POST_READ
@@ -39,7 +43,6 @@ public enum Role {
         Permission.VETERINARY_READ,
         Permission.VETERINARY_ASSIGN,
         Permission.POST_READ
->>>>>>> Stashed changes
     ));
 
     private final Set<Permission> permissions;

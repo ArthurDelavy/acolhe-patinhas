@@ -6,10 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.veterinary.vaccine.vaccination.DTO.NewVaccinationRequest;
@@ -39,7 +39,7 @@ public class AnimalVaccinationController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro veterinário não encontrado", content = @Content)
-    public ResponseEntity<List<ResumedVaccinationResponse>> listByAnimal(@RequestParam int animalId) {
+    public ResponseEntity<List<ResumedVaccinationResponse>> listByAnimal(@PathVariable int animalId) {
         List<ResumedVaccinationResponse> responseData = vctSvc.listAllByAnimal(animalId)
             .stream()
             .map(ResumedVaccinationResponse::new)
@@ -56,7 +56,7 @@ public class AnimalVaccinationController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro ou vacina não encontrado", content = @Content)
-    public ResponseEntity<VaccinationResponse> newVaccination(@RequestParam int animalId, @RequestBody @Valid NewVaccinationRequest data) {
+    public ResponseEntity<VaccinationResponse> newVaccination(@PathVariable int animalId, @RequestBody @Valid NewVaccinationRequest data) {
         VaccinationResponse responseData = new VaccinationResponse(vctSvc.newVaccination(animalId, data));
         return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }

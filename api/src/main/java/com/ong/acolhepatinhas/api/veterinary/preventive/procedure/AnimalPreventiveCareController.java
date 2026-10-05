@@ -6,10 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.veterinary.preventive.procedure.DTO.NewPreventiveCareRequest;
@@ -39,7 +39,7 @@ public class AnimalPreventiveCareController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro veterinário não encontrado", content = @Content)
-    public ResponseEntity<List<PreventiveCareResponse>> listByAnimal(@RequestParam int animalId) {
+    public ResponseEntity<List<PreventiveCareResponse>> listByAnimal(@PathVariable int animalId) {
         List<PreventiveCareResponse> responseData = pvcSvc.listAllByAnimal(animalId)
             .stream()
             .map(PreventiveCareResponse::new)
@@ -56,7 +56,7 @@ public class AnimalPreventiveCareController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro veterinário, procedimento ou medicamento não encontrado", content = @Content)
-    public ResponseEntity<PreventiveCareResponse> newPreventive(@RequestParam int animalId, @RequestBody @Valid NewPreventiveCareRequest data) {
+    public ResponseEntity<PreventiveCareResponse> newPreventive(@PathVariable int animalId, @RequestBody @Valid NewPreventiveCareRequest data) {
         PreventiveCareResponse responseData = new PreventiveCareResponse(pvcSvc.newPreventive(animalId, data));
         return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }

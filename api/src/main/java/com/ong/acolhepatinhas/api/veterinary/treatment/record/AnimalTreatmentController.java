@@ -6,10 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.veterinary.treatment.record.DTO.NewTreatmentRequest;
@@ -40,7 +40,7 @@ public class AnimalTreatmentController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro veterinário não encontrado", content = @Content)
-    public ResponseEntity<List<ResumedTreatmentResponse>> listByAnimal(@RequestParam int animalId) {
+    public ResponseEntity<List<ResumedTreatmentResponse>> listByAnimal(@PathVariable int animalId) {
         List<ResumedTreatmentResponse> responseData = ttmSvc.listAllByAnimal(animalId)
             .stream()
             .map(ResumedTreatmentResponse::new)
@@ -57,7 +57,7 @@ public class AnimalTreatmentController {
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Registro ou diagnóstico não encontrado", content = @Content)
-    public ResponseEntity<TreatmentResponse> newTreatment(@RequestParam int animalId, @RequestBody @Valid NewTreatmentRequest data) {
+    public ResponseEntity<TreatmentResponse> newTreatment(@PathVariable int animalId, @RequestBody @Valid NewTreatmentRequest data) {
         TreatmentResponse responseData = new TreatmentResponse(ttmSvc.newTreatment(animalId, data));
         return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }

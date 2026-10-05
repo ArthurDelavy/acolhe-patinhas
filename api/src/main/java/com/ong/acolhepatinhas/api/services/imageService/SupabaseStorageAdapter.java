@@ -84,6 +84,7 @@ public class SupabaseStorageAdapter implements ImageGateway {
     private String resolveFolder(StorageFileType type) {
         return switch (type) {
             case ANIMAL_REGISTER_PHOTO -> "animal/avatar";
+            case POST_PHOTO -> "post/photo";
         };
     }
 }

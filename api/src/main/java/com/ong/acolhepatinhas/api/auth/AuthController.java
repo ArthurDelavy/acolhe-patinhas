@@ -35,7 +35,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/auth")
-@Tag(name = "Usuários", description = "Gerenciamento de contas de usuários")
+@Tag(name = "Autenticação", description = "Autenticação de contas de usuários")
 public class AuthController {
 
     @Autowired
@@ -54,6 +54,17 @@ public class AuthController {
         TokenResponse tokens = authSvc.authUser(data);
         return ResponseEntity.status(HttpStatus.OK).body(tokens);
     }
+
+
+    @PostMapping("/anonymous")
+    @Operation(summary = "Login de usuário")
+        @ApiResponse(responseCode = "200", description = "Usuário autenticado com sucesso!")
+    public ResponseEntity<TokenResponse> authAnonUser() {
+        TokenResponse token = authSvc.authAnonUser();
+        return ResponseEntity.status(HttpStatus.OK).body(token);
+    }
+
+
 
     @PostMapping("/refresh")
     @Operation(summary = "Renovação de token")

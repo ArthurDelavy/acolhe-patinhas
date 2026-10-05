@@ -1,6 +1,10 @@
 package com.ong.acolhepatinhas.api.security.enums;
 
 public enum Permission {
+
+    USER_READ("user:read"),
+    USER_VERIFY("user:verify"),
+
     ANIMAL_READ("animal:read"),
     ANIMAL_CREATE("animal:create"),
     ANIMAL_EDIT("animal:edit"),
@@ -10,7 +14,12 @@ public enum Permission {
     
     VETERINARY_READ("veterinary:read"),
     VETERINARY_ASSIGN("veterinary:assign"),
-    VETERINARY_MANAGE("veterinary:manage");
+    VETERINARY_MANAGE("veterinary:manage"),
+
+    POST_READ("post:read"),
+    POST_CREATE("post:create"),
+    POST_EDIT("post:edit"),
+    POST_REMOVE("post:remove");
 
 
 
