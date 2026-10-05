@@ -100,7 +100,6 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
     return '$ageRaw anos';
   }
 
-  // --- MODAL DE DETALHES DO PET (MODO USUÁRIO) ---
   void _showPetDetailsModal(Map<String, dynamic> pet, String heroTag) {
     final String name = pet['name']?.toString() ?? 'Sem Nome';
     final String imageUrl = _resolveImageUrl(pet) ?? '';
@@ -290,8 +289,10 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 48,
         title: Text(
           widget.isAdminMode ? 'Gestão de Pets (Admin)' : 'Pets para Adoção',
+          style: const TextStyle(fontSize: 18),
         ),
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,

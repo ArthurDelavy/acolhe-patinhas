@@ -318,9 +318,11 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cadastrar Pet'),
+        toolbarHeight: 48, // menor = mais fina
+        title: const Text('Cadastrar Pet', style: TextStyle(fontSize: 16)),
         backgroundColor: const Color(0xFFE27B1D),
         foregroundColor: Colors.white,
+        centerTitle: true, // opcional
       ),
       body: _isLoading
           ? const Center(
