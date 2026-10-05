@@ -19,10 +19,28 @@ public enum Role {
     )),
 
     USER(Set.of(
+<<<<<<< Updated upstream
         Permission.ANIMAL_READ
+=======
+        Permission.ANIMAL_READ,
+        Permission.VETERINARY_READ,
+        Permission.POST_READ
+    )),
+
+    ANONYMOUS(Set.of(
+        Permission.ANIMAL_READ,
+        Permission.VETERINARY_READ
+    )),
+
+    VERIFIED(Set.of(
+        Permission.ANIMAL_READ,
+        Permission.ANIMAL_CREATE,
+        Permission.ANIMAL_EDIT,
+        Permission.VETERINARY_READ,
+        Permission.VETERINARY_ASSIGN,
+        Permission.POST_READ
+>>>>>>> Stashed changes
     ));
-
-
 
     private final Set<Permission> permissions;
 
@@ -30,10 +48,8 @@ public enum Role {
         this.permissions = permissions;
     }
 
-
-
     public List<SimpleGrantedAuthority> getAuthorities() {
-        
+
         List<SimpleGrantedAuthority> authorities = permissions.stream()
             .map(permission -> new SimpleGrantedAuthority(permission.getPermission()))
             .collect(Collectors.toList());
