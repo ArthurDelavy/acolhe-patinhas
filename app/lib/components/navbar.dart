@@ -30,31 +30,23 @@ class _NavbarComponentState extends State<NavbarComponent> {
 
   // Definição centralizada de Ícones e Rotas
   final List<NavItem> _allItems = const [
-    NavItem(
-      icon: Icons.home_outlined,
-      route: '/feed',
-    ), // Ícone 1 (Índice 0): Feed
-    NavItem(
-      icon: Icons.pets_outlined,
-      route: '/user_pets',
-    ), // Ícone 2 (Índice 1): Listagem de Adoção (Usuários)
-    NavItem(
-      icon: Icons.feedback_outlined,
-      route: '/feedback',
-    ), // Ícone 3 (Índice 2): Feedback
+    NavItem(icon: Icons.home_outlined, route: '/feed'),
+
+    NavItem(icon: Icons.pets_outlined, route: '/user_pets'),
+
+    NavItem(icon: Icons.feedback_outlined, route: '/feedback'),
+
     NavItem(
       icon: Icons.admin_panel_settings_outlined,
       route: '/admin_pets',
       adminOnly: true,
-    ), // Ícone 4 (Índice 3): Painel de Gestão (Exclusivo Admin)
-    NavItem(
-      icon: Icons.info_outline,
-      route: '/info',
-    ), // Ícone 5 (Índice 4): Informações
-    NavItem(
-      icon: Icons.settings_outlined,
-      route: '/configuracoes',
-    ), // Ícone 6 (Índice 5): Configurações
+    ),
+
+    NavItem(icon: Icons.info_outline, route: '/info'),
+
+    NavItem(icon: Icons.settings_outlined, route: '/configuracoes'),
+
+    NavItem(icon: Icons.badge_outlined, route: '/about'),
   ];
 
   @override
