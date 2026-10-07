@@ -25,25 +25,36 @@ public enum Role {
         Permission.POST_REMOVE
     )),
 
+    
     USER(Set.of(
+<<<<<<< HEAD
+<<<<<<< HEAD
+        Permission.ANIMAL_READ
+=======
         Permission.ANIMAL_READ,
-        Permission.VETERINARY_READ,
-        Permission.POST_READ
+        Permission.VETERINARY_READ
+>>>>>>> e6346cc (feat(user): adicionada permissao de leitura de dados veterinarios para users comuns e anonimos)
     )),
-
+    
     ANONYMOUS(Set.of(
         Permission.ANIMAL_READ,
         Permission.VETERINARY_READ
+      
     )),
-
+  
     VERIFIED(Set.of(
         Permission.ANIMAL_READ,
         Permission.ANIMAL_CREATE,
         Permission.ANIMAL_EDIT,
         Permission.VETERINARY_READ,
-        Permission.VETERINARY_ASSIGN,
+        Permission.VETERINARY_ASSIGN
+=======
+        Permission.ANIMAL_READ,
         Permission.POST_READ
+>>>>>>> 072e49c (feat(post): adicionado sistema de postagens)
     ));
+
+
 
     private final Set<Permission> permissions;
 
@@ -51,8 +62,10 @@ public enum Role {
         this.permissions = permissions;
     }
 
-    public List<SimpleGrantedAuthority> getAuthorities() {
 
+
+    public List<SimpleGrantedAuthority> getAuthorities() {
+        
         List<SimpleGrantedAuthority> authorities = permissions.stream()
             .map(permission -> new SimpleGrantedAuthority(permission.getPermission()))
             .collect(Collectors.toList());

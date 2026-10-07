@@ -133,7 +133,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 child: UnconstrainedBox(
                   child: Image.asset(
-                    'assets/img/image.png',
+                    'assets/img/image-inicial.png',
                     width: 140,
                     height: 140,
                   ),

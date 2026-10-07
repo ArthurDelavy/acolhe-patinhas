@@ -151,6 +151,75 @@ class PetService {
     return await uploadAnimalImage(animalId: animalId, imageFile: imageFile);
   }
 
+  static Future<Map<String, dynamic>> withVeterinaryRecord(
+    dynamic id,
+    Map<String, dynamic> payload,
+  ) async {
+    if (payload.containsKey('size') &&
+        payload.containsKey('weight') &&
+        payload.containsKey('neutered')) {
+      return payload;
+    }
+
+    final record =
+        await _get('/animal/$id/veterinary-record') as Map<String, dynamic>;
+
+    return {
+      'size': record['size'],
+      'weight': record['weight'],
+      'neutered': record['neutered'] ?? false,
+      ...payload,
+    };
+  }
+
+  static Future<int> registerAnimalAndGetId({
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/animal'),
+      headers: await _getHeaders(),
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode != 201) {
+      throw Exception(
+        'Falha ao cadastrar animal (${response.statusCode})'
+        '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
+      );
+    }
+
+    if (response.body.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded['id'] is int) {
+          return decoded['id'] as int;
+        }
+      } catch (_) {}
+    }
+
+    final animals = await fetchAnimals();
+
+    final matches = animals.where((a) {
+      final matchesName =
+          a['name']?.toString().trim().toLowerCase() ==
+          payload['name']?.toString().trim().toLowerCase();
+      final matchesGender =
+          a['gender']?.toString() == payload['gender']?.toString();
+      final matchesAdoption = a['toAdoption'] == payload['toAdoption'];
+      final hasNoImage = a['imageUrl'] == null;
+      return matchesName && matchesGender && matchesAdoption && hasNoImage;
+    }).toList();
+
+    if (matches.isEmpty) {
+      throw Exception(
+        'Animal criado, mas não foi possível localizá-lo na lista.',
+      );
+    }
+
+    matches.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+    return matches.last['id'] as int;
+  }
+
   static Future<bool> updateAnimalWithImage({
     required dynamic id,
     required Map<String, dynamic> payload,
@@ -159,7 +228,7 @@ class PetService {
     final response = await http.patch(
       Uri.parse('$baseUrl/animal/$id'),
       headers: await _getHeaders(),
-      body: jsonEncode(payload),
+      body: jsonEncode(await withVeterinaryRecord(id, payload)),
     );
 
     if (response.statusCode != 200 && response.statusCode != 201) {
@@ -200,7 +269,7 @@ class PetService {
     final response = await http.patch(
       Uri.parse('$baseUrl/animal/$id'),
       headers: await _getHeaders(),
-      body: jsonEncode(body),
+      body: jsonEncode(await withVeterinaryRecord(id, body)),
     );
 
     if (response.statusCode != 200 && response.statusCode != 204) {
