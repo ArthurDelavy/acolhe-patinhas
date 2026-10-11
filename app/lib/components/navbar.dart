@@ -27,32 +27,53 @@ class _NavbarComponentState extends State<NavbarComponent> {
 
   bool _isAdmin = false;
   bool _isLoading = true;
+  bool _showIndicator = true; // Controla se a setinha aparece
+
+  final ScrollController _scrollController = ScrollController();
 
   // Definição centralizada de Ícones e Rotas
   final List<NavItem> _allItems = const [
     NavItem(icon: Icons.home_outlined, route: '/feed'),
-
     NavItem(icon: Icons.pets_outlined, route: '/user_pets'),
-
     NavItem(icon: Icons.feedback_outlined, route: '/feedback'),
-
     NavItem(
       icon: Icons.admin_panel_settings_outlined,
       route: '/admin_pets',
       adminOnly: true,
     ),
-
     NavItem(icon: Icons.info_outline, route: '/info'),
-
     NavItem(icon: Icons.settings_outlined, route: '/configuracoes'),
-
-    NavItem(icon: Icons.badge_outlined, route: '/about'),
+    NavItem(icon: Icons.badge_outlined, route: '/about-profile'),
   ];
 
   @override
   void initState() {
     super.initState();
     _checkPermission();
+
+    // Ouve o scroll para esconder o indicativo quando chegar no fim
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 10) {
+        if (_showIndicator) setState(() => _showIndicator = false);
+      } else {
+        if (!_showIndicator) setState(() => _showIndicator = true);
+      }
+    });
+
+    // Verifica após renderizar a tela se há necessidade de scroll
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent <= 0) {
+        setState(() => _showIndicator = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkPermission() async {
@@ -94,37 +115,78 @@ class _NavbarComponentState extends State<NavbarComponent> {
       ),
       child: SafeArea(
         child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          // O height fixo foi removido para acomodar o texto em cima sem amassar os botões
+          padding: const EdgeInsets.only(top: 6, bottom: 8, left: 8, right: 8),
           child: _isLoading
-              ? const SizedBox()
-              : SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: Row(
-                    children: visibleItems.map((item) {
-                      final originalIndex = _allItems.indexOf(item);
-                      final isSelected = widget.currentIndex == originalIndex;
-
-                      return InkWell(
-                        onTap: () => _navigate(item.route),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 22,
-                            vertical: 12,
-                          ),
-                          child: Icon(
-                            item.icon,
-                            size: 28,
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.6),
-                          ),
+              ? const SizedBox(height: 56) // Altura temporária no loading
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Indicativo de Deslize (Fica em cima, à direita)
+                    Visibility(
+                      visible: _showIndicator,
+                      maintainSize:
+                          true, // Mantém o espaço para a barra não pular
+                      maintainAnimation: true,
+                      maintainState: true,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12, bottom: 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Deslize',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(
+                              Icons.arrow_forward,
+                              color: Colors.white.withOpacity(0.9),
+                              size: 12,
+                            ),
+                          ],
                         ),
-                      );
-                    }).toList(),
-                  ),
+                      ),
+                    ),
+
+                    // Lista rolável de botões
+                    SingleChildScrollView(
+                      controller: _scrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: visibleItems.map((item) {
+                          final originalIndex = _allItems.indexOf(item);
+                          final isSelected =
+                              widget.currentIndex == originalIndex;
+
+                          return InkWell(
+                            onTap: () => _navigate(item.route),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 22,
+                                vertical:
+                                    10, // Levemente reduzido para equilibrar a altura
+                              ),
+                              child: Icon(
+                                item.icon,
+                                size: 28,
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.6),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
                 ),
         ),
       ),
