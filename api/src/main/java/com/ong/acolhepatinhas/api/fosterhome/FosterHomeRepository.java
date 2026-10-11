@@ -17,5 +17,5 @@ public interface FosterHomeRepository extends JpaRepository<FosterHome, Integer>
     List<FosterHome> findAll();
 
     @EntityGraph(attributePaths = {"user", "owner"})
-    Optional<FosterHome> findById();
+    Optional<FosterHome> findById(int id);
 }

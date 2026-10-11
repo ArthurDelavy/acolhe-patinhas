@@ -6,6 +6,7 @@ import org.locationtech.jts.geom.Point;
 
 import com.ong.acolhepatinhas.api.user.User;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -40,6 +41,8 @@ public class FosterHome {
     private String name;
     private String phoneNumber;
     private String email;
+
+    @Column(columnDefinition = "geography(Point, 4326)")
     private Point location;
     private int capacity;
 }
