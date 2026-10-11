@@ -43,6 +43,30 @@ class AuthService {
     throw Exception('Erro ao realizar login. Código: ${response.statusCode}');
   }
 
+  //anonymous login
+  Future<Map<String, dynamic>> loginAnonymous() async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/anonymous'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      await TokenStorage.saveTokens(
+        authToken: data['accessToken'] as String,
+        // Trata o null usando 'as String?' e fornece uma string vazia '' como padrão
+        refreshToken: data['refreshToken'] as String? ?? '',
+      );
+
+      return data;
+    }
+
+    throw Exception(
+      'Erro ao entrar como anônimo. Código: ${response.statusCode}',
+    );
+  }
+
   // Mantivemos o register original
   Future<Map<String, dynamic>> register({
     required String name,

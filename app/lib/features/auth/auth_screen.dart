@@ -359,21 +359,39 @@ class _AuthScreenState extends State<AuthScreen> {
                         onPressed: _isLoggingIn
                             ? null
                             : () async {
-                                // Transforme a função em async
                                 if (anonymousEntry) {
                                   if (_formKey.currentState!.validate()) {
-                                    // 1. Limpa qualquer token residual de Admin ou User
-                                    await TokenStorage.clear();
+                                    setState(() => _isLoggingIn = true);
 
-                                    // 2. Navega para o feed limpo
-                                    if (!mounted) return;
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      '/feed',
-                                    );
+                                    try {
+                                      await TokenStorage.clear();
+                                      await _authService.loginAnonymous();
+
+                                      if (!mounted) return;
+                                      Navigator.pushReplacementNamed(
+                                        context,
+                                        '/feed',
+                                      );
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Erro ao entrar como anônimo. Tente novamente.',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() => _isLoggingIn = false);
+                                      }
+                                    }
                                   }
                                 } else {
-                                  _login();
+                                  _login(); // Login normal
                                 }
                               },
                         style:
