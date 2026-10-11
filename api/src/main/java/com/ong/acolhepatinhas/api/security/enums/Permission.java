@@ -15,12 +15,24 @@ public enum Permission {
     VETERINARY_READ("veterinary:read"),
     VETERINARY_ASSIGN("veterinary:assign"),
     VETERINARY_MANAGE("veterinary:manage"),
+<<<<<<< HEAD
 
     POST_READ("post:read"),
     POST_CREATE("post:create"),
     POST_EDIT("post:edit"),
     POST_REMOVE("post:remove");
+=======
+>>>>>>> origin/main
 
+    POST_READ("post:read"),
+    POST_CREATE("post:create"),
+    POST_EDIT("post:edit"),
+    POST_REMOVE("post:remove"),
+
+    FOSTERHOME_READ("fosterhome:read"),
+    FOSTERHOME_EDIT("fosterhome:edit"),
+    FOSTERHOME_CREATE("fosterhome:create"),
+    FOSTERHOME_REMOVE("fosterhome:remove");
 
 
     private final String permission;
