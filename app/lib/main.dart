@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:acolhe_patinhas/features/home/feed.dart';
 import 'package:acolhe_patinhas/features/register/register_pets.dart';
 import 'package:acolhe_patinhas/features/listPets/list_pets.dart';
+import 'package:acolhe_patinhas/features/about-profile/about_screen.dart';
+import 'package:acolhe_patinhas/features/about-profile/profile_screen.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -25,18 +28,14 @@ class MyApp extends StatelessWidget {
       routes: {
         '/feed': (context) => const FeedScreen(),
         '/registerPets': (context) => const RegisterPetsScreen(),
-
-        // Listagem para Usuários e Anônimos (Somente leitura e pets disponíveis)
         '/user_pets': (context) =>
             const ListPetsScreen(isAdminMode: false, navIndex: 1),
-
-        // Listagem para Administradores (Edição, Cadastro e Baixa)
         '/admin_pets': (context) =>
             const ListPetsScreen(isAdminMode: true, navIndex: 3),
-
-        // Rota de compatibilidade caso ainda exista alguma chamada antiga
         '/list_pets': (context) =>
             const ListPetsScreen(isAdminMode: false, navIndex: 1),
+        '/about': (context) => const AboutScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
