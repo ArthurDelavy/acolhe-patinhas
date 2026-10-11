@@ -22,47 +22,28 @@ public enum Role {
         Permission.POST_READ,
         Permission.POST_CREATE,
         Permission.POST_EDIT,
-        Permission.POST_REMOVE
+        Permission.POST_REMOVE,
+
+        Permission.FOSTERHOME_READ,
+        Permission.FOSTERHOME_CREATE,
+        Permission.FOSTERHOME_EDIT,
+        Permission.FOSTERHOME_REMOVE
     )),
 
-    
     USER(Set.of(
-<<<<<<< HEAD
-<<<<<<< HEAD
-        Permission.ANIMAL_READ
-=======
-        Permission.ANIMAL_READ,
-        Permission.VETERINARY_READ
->>>>>>> e6346cc (feat(user): adicionada permissao de leitura de dados veterinarios para users comuns e anonimos)
-    )),
-    
-    ANONYMOUS(Set.of(
-        Permission.ANIMAL_READ,
-        Permission.VETERINARY_READ
-      
-    )),
-  
-    VERIFIED(Set.of(
-        Permission.ANIMAL_READ,
-        Permission.ANIMAL_CREATE,
-        Permission.ANIMAL_EDIT,
-        Permission.VETERINARY_READ,
-        Permission.VETERINARY_ASSIGN
-=======
-        Permission.ANIMAL_READ,
-        Permission.POST_READ
->>>>>>> 072e49c (feat(post): adicionado sistema de postagens)
+        Permission.VETERINARY_ASSIGN,
+        Permission.POST_READ,
+        Permission.FOSTERHOME_READ,
+        Permission.FOSTERHOME_CREATE,
+        Permission.FOSTERHOME_EDIT,
+        Permission.FOSTERHOME_REMOVE
     ));
-
-
 
     private final Set<Permission> permissions;
 
     Role(Set<Permission> permissions) {
         this.permissions = permissions;
     }
-
-
 
     public List<SimpleGrantedAuthority> getAuthorities() {
         
