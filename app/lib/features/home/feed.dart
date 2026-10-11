@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../components/navbar.dart';
-import '../about-profile/profile_screen.dart';
+import '../../components/navbar.dart'; // Ajuste o caminho de importação da sua NavbarComponent
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
