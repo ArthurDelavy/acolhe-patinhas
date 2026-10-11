@@ -22,7 +22,12 @@ public enum Role {
         Permission.POST_READ,
         Permission.POST_CREATE,
         Permission.POST_EDIT,
-        Permission.POST_REMOVE
+        Permission.POST_REMOVE,
+
+        Permission.FOSTERHOME_READ,
+        Permission.FOSTERHOME_CREATE,
+        Permission.FOSTERHOME_EDIT,
+        Permission.FOSTERHOME_REMOVE
     )),
 
     USER(Set.of(
@@ -42,7 +47,11 @@ public enum Role {
         Permission.ANIMAL_EDIT,
         Permission.VETERINARY_READ,
         Permission.VETERINARY_ASSIGN,
-        Permission.POST_READ
+        Permission.POST_READ,
+        Permission.FOSTERHOME_READ,
+        Permission.FOSTERHOME_CREATE,
+        Permission.FOSTERHOME_EDIT,
+        Permission.FOSTERHOME_REMOVE
     ));
 
     private final Set<Permission> permissions;
