@@ -28,6 +28,7 @@ import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCode;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCodeService;
 import com.ong.acolhepatinhas.api.security.enums.Role;
 import com.ong.acolhepatinhas.api.services.emailService.EmailService;
+import com.ong.acolhepatinhas.api.term.TermService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 
@@ -54,6 +55,9 @@ public class UserService implements UserDetailsService {
     @Autowired
     private EmailVerificationCodeService evcSvc;
 
+    @Autowired
+    private TermService trmSvc;
+
     
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -72,7 +76,8 @@ public class UserService implements UserDetailsService {
 
 
     @Transactional
-    public UserResponse newUser(@Valid RegisterRequest data) {
+    public UserResponse newUser(@Valid RegisterRequest data, String clientIp) {
+        if (!data.doAcceptTerms()) throw new BusinessRuleException("Os termos de uso devem ser aceitos.");
         if (usrRep.existsByEmail(data.email())) throw new DuplicatedValueException("E-mail já cadastrado.");
 
         User user = User.builder()
@@ -85,6 +90,8 @@ public class UserService implements UserDetailsService {
             .build();
 
         user = usrRep.save(user);
+
+        trmSvc.acceptCurrentTerms(user, clientIp);
 
         String code = evcSvc.newCode(user);
         emlSvc.verificationEmail(user.getEmail(), code);

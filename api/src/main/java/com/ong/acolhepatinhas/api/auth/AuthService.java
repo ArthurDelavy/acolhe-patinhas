@@ -33,6 +33,8 @@ public class AuthService {
 
     @Autowired
     private RefreshTokenService rftSvc;
+    
+    
 
     public TokenResponse issueTokens(User user) {
         String authToken = tknSvc.generateToken(user);
@@ -48,9 +50,8 @@ public class AuthService {
         Authentication auth = authMgr.authenticate(usrPswTkn);
 
         User user = (User) auth.getPrincipal();
+
         String authToken = tknSvc.generateToken(user);
-
-
         UUID refreshToken = rftSvc.newToken(user);
 
 
