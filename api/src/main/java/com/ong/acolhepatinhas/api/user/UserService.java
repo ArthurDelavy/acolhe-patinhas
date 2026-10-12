@@ -170,4 +170,12 @@ public class UserService implements UserDetailsService {
             case ANONYMOUS -> throw new BusinessRuleException("Acessos anônimos não podem ser verificados.");
         }
     }
+
+
+    @Transactional
+    public void acceptTerm(LoggedUserPayload requester, String clientIp) {
+        
+        User user = (User) this.loadUserByUsername(requester.email());
+        trmSvc.acceptCurrentTerms(user, clientIp);
+    }
 }
