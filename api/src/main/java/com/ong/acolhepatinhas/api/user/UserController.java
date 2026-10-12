@@ -73,7 +73,7 @@ public class UserController {
 
 
     @PatchMapping("/accept-term") @PreAuthorize("hasAuthority('ROLE_TERMS_PENDING')")
-    @Operation(summary = "Aceitar termo corrente. Necessário novo login")
+    @Operation(summary = "Aceitar novo termo corrente", description = "Necessário novo login")
         @ApiResponse(responseCode = "204", description = "Termo aceito com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
