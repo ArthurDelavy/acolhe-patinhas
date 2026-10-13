@@ -11,7 +11,7 @@ public enum Permission {
     ANIMAL_REMOVE("animal:remove"),
 
     ANIMAL_REFERENCE_MANAGE("animalReference:manage"),
-    
+
     VETERINARY_READ("veterinary:read"),
     VETERINARY_ASSIGN("veterinary:assign"),
     VETERINARY_MANAGE("veterinary:manage"),
@@ -25,7 +25,6 @@ public enum Permission {
     FOSTERHOME_EDIT("fosterhome:edit"),
     FOSTERHOME_CREATE("fosterhome:create"),
     FOSTERHOME_REMOVE("fosterhome:remove");
-
 
     private final String permission;
 

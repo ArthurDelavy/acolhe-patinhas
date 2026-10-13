@@ -7,67 +7,63 @@ import java.util.stream.Collectors;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public enum Role {
-    ADMIN(Set.of(
-        Permission.USER_READ,
-        Permission.USER_VERIFY,
-        Permission.ANIMAL_READ,
-        Permission.ANIMAL_CREATE,
-        Permission.ANIMAL_EDIT,
-        Permission.ANIMAL_REMOVE,
-        Permission.ANIMAL_REFERENCE_MANAGE,
-        Permission.VETERINARY_READ,
-        Permission.VETERINARY_ASSIGN,
-        Permission.VETERINARY_MANAGE,
+        ADMIN(Set.of(
+                        Permission.USER_READ,
+                        Permission.USER_VERIFY,
+                        Permission.ANIMAL_READ,
+                        Permission.ANIMAL_CREATE,
+                        Permission.ANIMAL_EDIT,
+                        Permission.ANIMAL_REMOVE,
+                        Permission.ANIMAL_REFERENCE_MANAGE,
+                        Permission.VETERINARY_READ,
+                        Permission.VETERINARY_ASSIGN,
+                        Permission.VETERINARY_MANAGE,
 
-        Permission.POST_READ,
-        Permission.POST_CREATE,
-        Permission.POST_EDIT,
-        Permission.POST_REMOVE,
+                        Permission.POST_READ,
+                        Permission.POST_CREATE,
+                        Permission.POST_EDIT,
+                        Permission.POST_REMOVE,
 
-        Permission.FOSTERHOME_READ,
-        Permission.FOSTERHOME_CREATE,
-        Permission.FOSTERHOME_EDIT,
-        Permission.FOSTERHOME_REMOVE
-    )),
+                        Permission.FOSTERHOME_READ,
+                        Permission.FOSTERHOME_CREATE,
+                        Permission.FOSTERHOME_EDIT,
+                        Permission.FOSTERHOME_REMOVE)),
 
-    USER(Set.of(
-        Permission.ANIMAL_READ,
-        Permission.VETERINARY_READ,
-        Permission.POST_READ
-    )),
+        USER(Set.of(
+                        Permission.ANIMAL_READ,
+                        Permission.VETERINARY_READ,
+                        Permission.POST_READ)),
 
-    ANONYMOUS(Set.of(
-        Permission.ANIMAL_READ,
-        Permission.VETERINARY_READ
-    )),
+        ANONYMOUS(Set.of(
+                        Permission.ANIMAL_READ,
+                        Permission.VETERINARY_READ)),
 
-    VERIFIED(Set.of(
-        Permission.ANIMAL_READ,
-        Permission.ANIMAL_CREATE,
-        Permission.ANIMAL_EDIT,
-        Permission.VETERINARY_READ,
-        Permission.VETERINARY_ASSIGN,
-        Permission.POST_READ,
-        Permission.FOSTERHOME_READ,
-        Permission.FOSTERHOME_CREATE,
-        Permission.FOSTERHOME_EDIT,
-        Permission.FOSTERHOME_REMOVE
-    ));
+        VERIFIED(Set.of(
+                        Permission.ANIMAL_READ,
+                        Permission.ANIMAL_CREATE,
+                        Permission.ANIMAL_EDIT,
+                        Permission.VETERINARY_READ,
+                        Permission.VETERINARY_ASSIGN,
+                        Permission.POST_READ,
+                        Permission.FOSTERHOME_READ,
+                        Permission.FOSTERHOME_CREATE,
+                        Permission.FOSTERHOME_EDIT,
+                        Permission.FOSTERHOME_REMOVE));
 
-    private final Set<Permission> permissions;
+        private final Set<Permission> permissions;
 
-    Role(Set<Permission> permissions) {
-        this.permissions = permissions;
-    }
+        Role(Set<Permission> permissions) {
+                this.permissions = permissions;
+        }
 
-    public List<SimpleGrantedAuthority> getAuthorities() {
+        public List<SimpleGrantedAuthority> getAuthorities() {
 
-        List<SimpleGrantedAuthority> authorities = permissions.stream()
-            .map(permission -> new SimpleGrantedAuthority(permission.getPermission()))
-            .collect(Collectors.toList());
+                List<SimpleGrantedAuthority> authorities = permissions.stream()
+                                .map(permission -> new SimpleGrantedAuthority(permission.getPermission()))
+                                .collect(Collectors.toList());
 
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + this.name()));
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + this.name()));
 
-        return authorities;
-    }
+                return authorities;
+        }
 }
