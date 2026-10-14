@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/terms")
+@RequestMapping("/term")
 @Tag(name = "Termos", description = "Termos de Uso e Privacidade")
 public class TermController {
     
