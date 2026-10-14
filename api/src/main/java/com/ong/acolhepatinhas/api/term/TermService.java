@@ -24,6 +24,10 @@ public class TermService {
     private final TermVersionRepository tvsRep;
 
 
+    public String getCurrentTermURL() {
+        return tvsRep.findByIsCurrentTrue().orElseThrow(() -> new IllegalStateException("Nenhum termo ativo encontrado.")).getFilePath();
+    }
+
     public boolean hasAcceptedCurrentTerms(int userId) {
         TermVersion currentTerm = tvsRep.findByIsCurrentTrue().orElseThrow(() -> new IllegalStateException("Nenhum termo ativo encontrado."));
 
