@@ -51,11 +51,7 @@ public class AuthService {
 
         User user = (User) auth.getPrincipal();
 
-        String authToken = tknSvc.generateToken(user);
-        UUID refreshToken = rftSvc.newToken(user);
-
-
-        return new TokenResponse(authToken, refreshToken);
+        return issueTokens(user);
     }
 
 
