@@ -17,6 +17,7 @@ import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +32,7 @@ public class UserController {
 
     @GetMapping @PreAuthorize("hasAuthority('user:read')")
     @Operation(summary = "Lista todos os usuários")
+        @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
@@ -46,6 +48,7 @@ public class UserController {
 
     @GetMapping("/{userId}") @PreAuthorize("hasAuthority('user:read')")
     @Operation(summary = "Lista os dados de um usuário específico")
+        @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
@@ -58,6 +61,7 @@ public class UserController {
 
     @PatchMapping("/{userId}/toggle-verified") @PreAuthorize("hasAuthority('user:verify')")
     @Operation(summary = "Verificação de usuário")
+        @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Verificação alterada com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)

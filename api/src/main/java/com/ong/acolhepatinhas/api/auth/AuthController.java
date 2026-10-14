@@ -30,6 +30,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 
@@ -82,8 +83,11 @@ public class AuthController {
         @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso! Um código de verificação foi enviado por e-mail; a conta só poderá logar após a verificação.")
         @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
         @ApiResponse(responseCode = "409", description = "E-mail já cadastrado", content = @Content)
-    public ResponseEntity<NewUserResponse> registerUser(@RequestBody @Valid RegisterRequest data) {
-        UserResponse userData = usrSvc.newUser(data);
+        @ApiResponse(responseCode = "422", description = "Termos de uso não aceitos", content = @Content)
+    public ResponseEntity<NewUserResponse> registerUser(@RequestBody @Valid RegisterRequest data, HttpServletRequest request) {
+        String clientIp = request.getRemoteAddr();
+
+        UserResponse userData = usrSvc.newUser(data, clientIp);
         NewUserResponse response = new NewUserResponse(null, null, userData);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
