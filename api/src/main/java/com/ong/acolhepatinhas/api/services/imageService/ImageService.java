@@ -78,23 +78,21 @@ public class ImageService {
 
 
     private byte[] optimizeImage(MultipartFile image, StorageFileType fileType) {
-        
-        if (image.getSize() < minCompressionKb * 1024) {
-            try { return image.getBytes(); }
-            catch (IOException e) { throw new ImageProcessingException("Erro ao ler imagem."); }
-        }
 
         int maxEdge = switch (fileType) {
             case ANIMAL_REGISTER_PHOTO -> 80;
             case POST_PHOTO -> 1080;
         };
 
-       try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        boolean isLowSize = image.getSize() < (minCompressionKb * 1024);
+        double compression = isLowSize ? 1.0 : qualityCompression;
+
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
             Thumbnails.of(image.getInputStream())
                 .size(maxEdge, maxEdge)
                 .outputFormat("jpg")
-                .outputQuality(qualityCompression)
+                .outputQuality(compression)
                 .toOutputStream(outputStream);
 
             return outputStream.toByteArray();

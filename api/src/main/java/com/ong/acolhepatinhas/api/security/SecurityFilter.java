@@ -39,7 +39,12 @@ public class SecurityFilter extends OncePerRequestFilter {
 
                 List<String> roles = decodedJwt.getClaim("roles").asList(String.class);
                 List<SimpleGrantedAuthority> authorities = roles.stream().map(SimpleGrantedAuthority::new).toList();
-                
+
+
+                boolean mustAcceptTerms = decodedJwt.getClaim("mustAcceptTerms").asBoolean();
+                if (mustAcceptTerms) authorities = List.of(new SimpleGrantedAuthority("ROLE_TERMS_PENDING"));
+
+                                
                 var authentication = new UsernamePasswordAuthenticationToken(user, null, authorities); 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
