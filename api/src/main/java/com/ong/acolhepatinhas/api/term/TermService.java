@@ -11,6 +11,8 @@ import com.ong.acolhepatinhas.api.term.agreement.TermAgreementRepository;
 import com.ong.acolhepatinhas.api.term.version.TermVersion;
 import com.ong.acolhepatinhas.api.term.version.TermVersionRepository;
 import com.ong.acolhepatinhas.api.user.User;
+import com.ong.acolhepatinhas.api.user.UserService;
+import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +24,8 @@ public class TermService {
     
     private final TermAgreementRepository tagRep;
     private final TermVersionRepository tvsRep;
+
+    private final UserService usrSvc;
 
 
     public String getCurrentTermURL() {
@@ -36,10 +40,11 @@ public class TermService {
 
 
     @Transactional
-    public void acceptCurrentTerms(User user, String ipAddress) {
+    public void acceptCurrentTerms(LoggedUserPayload requester, String ipAddress) {
      
         TermVersion currentTerm = tvsRep.findByIsCurrentTrue().orElseThrow(() -> new IllegalStateException("Nenhum termo ativo encontrado."));
 
+        User user = (User) usrSvc.loadUserByUsername(requester.email());
         if (tagRep.existsByUserIdAndTermVersionId(user.getId(), currentTerm.getId())) return;
 
         TermAgreement agreement = TermAgreement.builder()
