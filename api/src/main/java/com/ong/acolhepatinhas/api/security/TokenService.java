@@ -32,7 +32,8 @@ public class TokenService {
 
     public String generateToken(User user) {
 
-        boolean hasPendingTerms = !trmSvc.hasAcceptedCurrentTerms(user.getId());
+        boolean hasPendingTerms = !user.getUsername().startsWith("guest_") 
+            && !trmSvc.hasAcceptedCurrentTerms(user.getId());
 
         try {
             Algorithm signature = Algorithm.HMAC256(SECRET);
