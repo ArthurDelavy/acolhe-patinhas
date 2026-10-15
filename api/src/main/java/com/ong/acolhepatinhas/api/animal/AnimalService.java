@@ -168,6 +168,8 @@ public class AnimalService {
     public void deleteAnimal(int animalId) {
 
         Animal animal = this.getById(animalId);
+        if (animal.getImageUrl() != null) imgSvc.deleteImage(animal.getImageUrl(), StorageFileType.ANIMAL_REGISTER_PHOTO);
+        
         anmRep.delete(animal);
     }
 }

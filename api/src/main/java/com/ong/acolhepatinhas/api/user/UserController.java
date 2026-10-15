@@ -135,6 +135,7 @@ public class UserController {
 
     @GetMapping @PreAuthorize("hasAuthority('user:read')")
     @Operation(summary = "Lista todos os usuários")
+        @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
@@ -150,6 +151,7 @@ public class UserController {
 
     @GetMapping("/{userId}") @PreAuthorize("hasAuthority('user:read')")
     @Operation(summary = "Lista os dados de um usuário específico")
+        @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
@@ -162,6 +164,7 @@ public class UserController {
 
     @PatchMapping("/{userId}/toggle-verified") @PreAuthorize("hasAuthority('user:verify')")
     @Operation(summary = "Verificação de usuário")
+        @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Verificação alterada com sucesso!")
         @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
         @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
