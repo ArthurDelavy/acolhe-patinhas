@@ -1,4 +1,4 @@
-package com.ong.acolhepatinhas.api.security.enums;
+rpackage com.ong.acolhepatinhas.api.security.enums;
 
 public enum Permission {
 

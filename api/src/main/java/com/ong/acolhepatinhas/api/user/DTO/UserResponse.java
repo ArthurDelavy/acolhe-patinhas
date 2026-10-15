@@ -18,6 +18,9 @@ public record UserResponse(
     @Schema(example = "email@dominio.com")
     String email,
 
+    @Schema(example = "https://storage.example/user/avatar/1_uuid.jpg")
+    String profileImageUrl,
+
     @Schema(example = "USER")
     Role role,
 
@@ -38,6 +41,7 @@ public record UserResponse(
             user.getId(),
             user.getName(),
             user.getEmail(),
+            user.getProfileImageUrl(),
             user.getRole(),
             user.getCreatedAt(),
             user.getDeletedAt(),

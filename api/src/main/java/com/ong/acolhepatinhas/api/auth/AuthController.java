@@ -117,7 +117,8 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
         @ApiResponse(responseCode = "401", description = "Senha incorreta", content = @Content)
         @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content)
-        @ApiResponse(responseCode = "409", description = "Senha igual à antiga", content = @Content)        
+        @ApiResponse(responseCode = "409", description = "Senha igual à antiga", content = @Content)    
+        @ApiResponse(responseCode = "422", description = "Acessos anônimos não possuem perfil", content = @Content)    
     public ResponseEntity<TokenResponse> changePassword(@AuthenticationPrincipal LoggedUserPayload user, @RequestBody @Valid PasswordChangeRequest data) {
         usrSvc.changePassword(user, data);
         TokenResponse tokens = authSvc.authUser(new LoginRequest(user.email(), data.newPassword()));

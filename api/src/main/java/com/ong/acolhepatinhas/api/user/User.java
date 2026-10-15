@@ -42,6 +42,8 @@ public class User implements UserDetails {
 
     private String password;
 
+    private String profileImageUrl;
+
     @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.VARCHAR)
     private Role role;
 

@@ -18,6 +18,9 @@ public record ResumedUserResponse(
     @Schema(example = "email@dominio.com")
     String email,
 
+    @Schema(example = "https://storage.example/user/avatar/1_uuid.jpg")
+    String profileImageUrl,
+
     @Schema(example = "USER")
     Role role,
 
@@ -30,6 +33,7 @@ public record ResumedUserResponse(
             data.getId(), 
             data.getName(), 
             data.getEmail(), 
+            data.getProfileImageUrl(),
             data.getRole(), 
             data.getCreatedAt()
         );
