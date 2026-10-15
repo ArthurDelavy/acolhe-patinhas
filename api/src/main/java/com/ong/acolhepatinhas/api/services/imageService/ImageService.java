@@ -85,6 +85,7 @@ public class ImageService {
         int maxEdge = switch (fileType) {
             case ANIMAL_REGISTER_PHOTO -> 80;
             case POST_PHOTO -> 1080;
+            case USER_PROFILE_PHOTO -> 512;
         };
 
         boolean isLowSize = image.getSize() < (minCompressionKb * 1024);

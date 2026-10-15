@@ -19,6 +19,8 @@ import com.ong.acolhepatinhas.api.auth.DTO.PasswordChangeRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.RegisterRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.ResendVerificationRequest;
 import com.ong.acolhepatinhas.api.auth.DTO.VerifyEmailRequest;
+import com.ong.acolhepatinhas.api.emailchange.EmailChangeCode;
+import com.ong.acolhepatinhas.api.emailchange.EmailChangeCodeService;
 import com.ong.acolhepatinhas.api.emailverification.EmailVerificationCode;
 import com.ong.acolhepatinhas.api.emailverification.EmailVerificationCodeService;
 import com.ong.acolhepatinhas.api.exceptions.custom.BusinessRuleException;
@@ -29,7 +31,14 @@ import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCodeService;
 import com.ong.acolhepatinhas.api.security.enums.Role;
 import com.ong.acolhepatinhas.api.services.emailService.EmailService;
 import com.ong.acolhepatinhas.api.term.TermService;
+import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
+import com.ong.acolhepatinhas.api.services.imageService.ImageService;
+import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
+import com.ong.acolhepatinhas.api.user.DTO.ChangeEmailRequest;
+import com.ong.acolhepatinhas.api.user.DTO.ConfirmEmailChangeRequest;
+import com.ong.acolhepatinhas.api.user.DTO.EditNameRequest;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
+import com.ong.acolhepatinhas.api.user.DTO.ProfileResponse;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 
 import jakarta.validation.Valid;
@@ -58,6 +67,12 @@ public class UserService implements UserDetailsService {
     @Autowired
     private TermService trmSvc;
 
+    @Autowired
+    private EmailChangeCodeService eccSvc;
+
+    @Autowired
+    private ImageService imgSvc;
+
     
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -72,6 +87,70 @@ public class UserService implements UserDetailsService {
 
     public List<User> listAll() {
         return usrRep.findAll();
+    }
+
+
+    public ProfileResponse getProfile(LoggedUserPayload requester) {
+        return ProfileResponse.from(requireAccount(requester));
+    }
+
+
+    @Transactional
+    public ProfileResponse changeName(LoggedUserPayload requester, @Valid EditNameRequest data) {
+        User user = requireAccount(requester);
+        user.setName(data.name());
+        return ProfileResponse.from(user);
+    }
+
+
+    @Transactional
+    public void requestEmailChange(LoggedUserPayload requester, @Valid ChangeEmailRequest data) {
+        User user = requireAccount(requester);
+
+        if (!user.isEmailVerified()) throw new BusinessRuleException("Verifique o e-mail atual antes de trocá-lo.");
+        if (user.getEmail().equalsIgnoreCase(data.newEmail())) throw new BusinessRuleException("O novo e-mail não pode ser igual ao atual.");
+        if (usrRep.existsByEmail(data.newEmail())) throw new DuplicatedValueException("E-mail já cadastrado.");
+
+        String code = eccSvc.newCode(user, data.newEmail());
+        emlSvc.verificationEmail(data.newEmail(), code);
+    }
+
+
+    @Transactional
+    public User confirmEmailChange(LoggedUserPayload requester, @Valid ConfirmEmailChangeRequest data) {
+        User user = requireAccount(requester);
+        EmailChangeCode code = eccSvc.getByUser(user);
+
+        if (!pswEcd.matches(data.code(), code.getCode())) throw new BadCredentialsException("Código inválido.");
+        if (usrRep.existsByEmail(code.getNewEmail())) throw new DuplicatedValueException("E-mail já cadastrado.");
+
+        user.setEmail(code.getNewEmail());
+        user.setEmailVerified(true);
+        eccSvc.deleteCode(code);
+
+        return user;
+    }
+
+
+    @Transactional
+    public ProfileResponse setProfileImage(LoggedUserPayload requester, @Valid ImageRequest image) {
+        User user = requireAccount(requester);
+
+        if (user.getProfileImageUrl() != null) imgSvc.deleteImage(user.getProfileImageUrl(), StorageFileType.USER_PROFILE_PHOTO);
+
+        String url = imgSvc.saveImage(image, String.valueOf(user.getId()), StorageFileType.USER_PROFILE_PHOTO);
+        user.setProfileImageUrl(url);
+
+        return ProfileResponse.from(user);
+    }
+
+
+    private User requireAccount(LoggedUserPayload requester) {
+        if (requester == null || requester.email() == null || requester.email().endsWith("@anonymous.local")) {
+            throw new BusinessRuleException("Acessos anônimos não possuem perfil.");
+        }
+
+        return usrRep.findByEmail(requester.email()).orElseThrow(() -> new ValueNotFoundException("Usuário não cadastrado."));
     }
 
 
@@ -102,7 +181,7 @@ public class UserService implements UserDetailsService {
     @Transactional
     public void changePassword(LoggedUserPayload requester, @Valid PasswordChangeRequest data) {
         
-        User user = usrRep.findByEmail(requester.email()).orElseThrow(() -> new UsernameNotFoundException("Usuário não cadastrado."));
+        User user = requireAccount(requester);
 
         if (!pswEcd.matches(data.oldPassword(), user.getPassword())) throw new BadCredentialsException("Senha incorreta.");
         if (pswEcd.matches(data.newPassword(), user.getPassword())) throw new DuplicatedValueException("A nova senha não pode ser igual à antiga.");
