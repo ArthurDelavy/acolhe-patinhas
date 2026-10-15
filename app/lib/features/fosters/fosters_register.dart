@@ -4,7 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../../services/foster_service.dart';
 import '../../utils/validators.dart';
 
-const Color _primaryColor = Color(0xFFE27B1D);
+const Color _secondaryColor = Color(0xFFE27B1D);
 const LatLng _defaultCenter = LatLng(-29.2361, -51.8697);
 
 List<Widget> _mapLayers(LatLng? point) => [
@@ -27,7 +27,9 @@ List<Widget> _mapLayers(LatLng? point) => [
 ];
 
 class FosterRegister extends StatefulWidget {
-  const FosterRegister({super.key});
+  final FosterHome? foster;
+
+  const FosterRegister({super.key, this.foster});
 
   @override
   State<FosterRegister> createState() => _FosterRegisterState();
@@ -48,6 +50,28 @@ class _FosterRegisterState extends State<FosterRegister> {
   LatLng? _selected;
   bool _isLoading = false;
 
+  bool get _isEditing => widget.foster != null;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final f = widget.foster;
+    if (f == null) return;
+
+    _nameController.text = f.name;
+    _ownerEmailController.text = f.ownerEmail ?? '';
+    _phoneController.text = f.phoneNumber ?? '';
+    _emailController.text = f.email ?? '';
+    _capacityController.text = f.capacity?.toString() ?? '';
+
+    if (f.hasLocation) {
+      _selected = LatLng(f.latitude!, f.longitude!);
+      _latitudeController.text = f.latitude!.toStringAsFixed(6);
+      _longitudeController.text = f.longitude!.toStringAsFixed(6);
+    }
+  }
+
   Future<void> _openMap() async {
     final point = await Navigator.push<LatLng>(
       context,
@@ -65,13 +89,14 @@ class _FosterRegisterState extends State<FosterRegister> {
     _longitudeController.text = rounded.longitude.toStringAsFixed(6);
   }
 
-  Future<void> _registerFoster() async {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await _service.createFosterHome(
+      await _service.saveFosterHome(
+        id: widget.foster?.id,
         ownerEmail: _ownerEmailController.text.trim(),
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.replaceAll(RegExp(r'\D'), ''),
@@ -83,7 +108,12 @@ class _FosterRegisterState extends State<FosterRegister> {
 
       if (!mounted) return;
 
-      _showMessage('Lar temporário cadastrado com sucesso!', Colors.green);
+      _showMessage(
+        _isEditing
+            ? 'Lar atualizado com sucesso!'
+            : 'Lar temporário cadastrado com sucesso!',
+        Colors.green,
+      );
       Navigator.pop(context, true); // avisa a listagem para recarregar
     } catch (e) {
       if (!mounted) return;
@@ -120,11 +150,11 @@ class _FosterRegisterState extends State<FosterRegister> {
         decoration: InputDecoration(
           labelText: label,
           isDense: true,
-          prefixIcon: Icon(icon, color: _primaryColor, size: 20),
+          prefixIcon: Icon(icon, color: _secondaryColor, size: 20),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: _primaryColor, width: 1.5),
+            borderSide: const BorderSide(color: _secondaryColor, width: 1.5),
           ),
         ),
       ),
@@ -220,8 +250,11 @@ class _FosterRegisterState extends State<FosterRegister> {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 48,
-        title: const Text('Cadastrar lar', style: TextStyle(fontSize: 16)),
-        backgroundColor: _primaryColor,
+        title: Text(
+          _isEditing ? 'Editar lar' : 'Cadastrar lar',
+          style: const TextStyle(fontSize: 16),
+        ),
+        backgroundColor: _secondaryColor,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -241,8 +274,10 @@ class _FosterRegisterState extends State<FosterRegister> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Cadastrar lar temporário',
+                      Text(
+                        _isEditing
+                            ? 'Editar lar temporário'
+                            : 'Cadastrar lar temporário',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -342,9 +377,9 @@ class _FosterRegisterState extends State<FosterRegister> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _registerFoster,
+                          onPressed: _isLoading ? null : _save,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _primaryColor,
+                            backgroundColor: _secondaryColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -362,7 +397,9 @@ class _FosterRegisterState extends State<FosterRegister> {
                               : const Icon(Icons.save_outlined),
                           label: Text(
                             _isLoading
-                                ? 'Cadastrando...'
+                                ? 'Salvando...'
+                                : _isEditing
+                                ? 'Salvar alterações'
                                 : 'Cadastrar lar temporário',
                           ),
                         ),
@@ -379,6 +416,7 @@ class _FosterRegisterState extends State<FosterRegister> {
   }
 }
 
+/// Mapa em tela cheia: o pino fica fixo no centro e a pessoa arrasta o mapa.
 class _MapPickerScreen extends StatefulWidget {
   final LatLng? selected;
 
@@ -390,7 +428,6 @@ class _MapPickerScreen extends StatefulWidget {
 
 class _MapPickerScreenState extends State<_MapPickerScreen> {
   final _controller = MapController();
-  late LatLng? _point = widget.selected;
   bool _isLocating = false;
 
   Future<void> _goToMyLocation() async {
@@ -400,9 +437,7 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
       final position = await FosterService().getCurrentPosition();
       if (!mounted) return;
 
-      final point = LatLng(position.latitude, position.longitude);
-      setState(() => _point = point);
-      _controller.move(point, 16);
+      _controller.move(LatLng(position.latitude, position.longitude), 16);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -424,14 +459,16 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final initial = widget.selected;
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 48,
         title: const Text(
-          'Toque no mapa para marcar o local',
+          'Arraste o mapa até o local',
           style: TextStyle(fontSize: 16),
         ),
-        backgroundColor: _primaryColor,
+        backgroundColor: _secondaryColor,
         foregroundColor: Colors.white,
       ),
       body: Stack(
@@ -439,11 +476,20 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
           FlutterMap(
             mapController: _controller,
             options: MapOptions(
-              initialCenter: _point ?? _defaultCenter,
-              initialZoom: _point == null ? 13 : 16,
-              onTap: (_, point) => setState(() => _point = point),
+              initialCenter: initial ?? _defaultCenter,
+              initialZoom: initial == null ? 13 : 16,
+              onTap: (_, point) =>
+                  _controller.move(point, _controller.camera.zoom),
             ),
-            children: _mapLayers(_point),
+            children: _mapLayers(null), // sem marcador: o pino fica no centro
+          ),
+          const IgnorePointer(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 40),
+                child: Icon(Icons.location_on, color: Colors.red, size: 40),
+              ),
+            ),
           ),
           Positioned(
             top: 12,
@@ -451,7 +497,7 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
             child: FloatingActionButton.small(
               heroTag: 'my-location',
               backgroundColor: Colors.white,
-              foregroundColor: _primaryColor,
+              foregroundColor: _secondaryColor,
               tooltip: 'Usar minha localização atual',
               onPressed: _isLocating ? null : _goToMyLocation,
               child: _isLocating
@@ -471,11 +517,10 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
               child: SizedBox(
                 height: 50,
                 child: ElevatedButton.icon(
-                  onPressed: _point == null
-                      ? null
-                      : () => Navigator.pop(context, _point),
+                  onPressed: () =>
+                      Navigator.pop(context, _controller.camera.center),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryColor,
+                    backgroundColor: _secondaryColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
