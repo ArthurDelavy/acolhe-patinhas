@@ -20,6 +20,7 @@ import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.coobird.thumbnailator.Thumbnails;
+import net.coobird.thumbnailator.geometry.Positions;
 
 @Service
 @RequiredArgsConstructor
@@ -91,6 +92,7 @@ public class ImageService {
 
             Thumbnails.of(image.getInputStream())
                 .size(maxEdge, maxEdge)
+                .crop(Positions.CENTER)
                 .outputFormat("jpg")
                 .outputQuality(compression)
                 .toOutputStream(outputStream);
