@@ -11,6 +11,7 @@ import javax.imageio.ImageIO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ImageProcessingException;
@@ -23,6 +24,7 @@ import net.coobird.thumbnailator.Thumbnails;
 import net.coobird.thumbnailator.geometry.Positions;
 
 @Service
+@Validated
 @RequiredArgsConstructor
 public class ImageService {
     
