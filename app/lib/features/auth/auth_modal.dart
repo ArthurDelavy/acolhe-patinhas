@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../utils/validators.dart';
 import '../../services/auth_service.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // new import for Markdown rendering
 
 class AuthRegisterModal extends StatefulWidget {
   final bool startInVerificationMode;
@@ -34,6 +35,8 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
   late bool _isVerifyingCode = widget.startInVerificationMode;
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _aceitouTermos = false; // NOVO: Controle da caixinha de termos
+
   String? _error;
   String? _info;
 
@@ -48,9 +51,142 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     super.dispose();
   }
 
-  // --------------------------- Lógica ---------------------------
+  void _showFullTextOfTerm() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.8,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Termos de Compromisso',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D3142),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-  /// Liga o loading, executa a ação e guarda a mensagem se der erro.
+                  Expanded(
+                    child: FutureBuilder<String>(
+                      future: _authService.fetchTermContent(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: secondaryColor,
+                            ),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Text(
+                              'Erro ao carregar o termo:\n${snapshot.error}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 13,
+                              ),
+                            ),
+                          );
+                        }
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text('Nenhum texto encontrado no termo.'),
+                          );
+                        }
+
+                        // RENDERIZADOR MARKDOWN PERSONALIZADO
+                        return SingleChildScrollView(
+                          controller: scrollController,
+                          physics: const BouncingScrollPhysics(),
+                          child: MarkdownBody(
+                            data: snapshot.data!,
+                            styleSheet: MarkdownStyleSheet(
+                              h1: const TextStyle(
+                                color: secondaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                              h2: const TextStyle(
+                                color: Color(0xFF2D3142),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              p: const TextStyle(
+                                color: Color(0xFF2D3142),
+                                fontSize: 14,
+                                height: 1.5,
+                              ),
+                              strong: const TextStyle(
+                                color: secondaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              listBullet: const TextStyle(
+                                color: secondaryColor,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: secondaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Fechar',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _run(Future<void> Function() action) async {
     setState(() {
       _isLoading = true;
@@ -67,12 +203,15 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_aceitouTermos) return; // Segurança extra
 
     await _run(() async {
       await _authService.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        acceptTerms:
+            _aceitouTermos, // Enviando a flag (precisa atualizar o AuthService)
       );
       _isVerifyingCode = true;
     });
@@ -84,10 +223,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
         .join()
         .trim()
         .toUpperCase();
-
-    if (code.length < 6) {
-      throw Exception('Digite os 6 caracteres do código.');
-    }
+    if (code.length < 6) throw Exception('Digite os 6 caracteres do código.');
 
     await _authService.verifyCode(
       email: _emailController.text.trim(),
@@ -125,8 +261,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
       });
     }
   }
-
-  // ----------------------------- UI -----------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -174,9 +308,8 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
             keyboardType: TextInputType.emailAddress,
             validator: (v) {
               if (v == null || v.trim().isEmpty) return 'Digite seu e-mail';
-              if (!Validators.isValidEmail(v.trim())) {
+              if (!Validators.isValidEmail(v.trim()))
                 return 'Digite um e-mail válido';
-              }
               return null;
             },
           ),
@@ -200,15 +333,78 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
             ),
             validator: (v) {
               if (v == null || v.isEmpty) return 'Digite uma senha';
-              if (!Validators.isValidPassword(v)) {
+              if (!Validators.isValidPassword(v))
                 return 'Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial';
-              }
               return null;
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // --- CHECKBOX E AVISO EM VERMELHO DE PENDÊNCIA ---
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: _aceitouTermos ? Colors.transparent : Colors.red.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: _aceitouTermos
+                  ? null
+                  : Border.all(color: Colors.red.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _aceitouTermos,
+                      activeColor: secondaryColor,
+                      onChanged: (val) =>
+                          setState(() => _aceitouTermos = val ?? false),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _showFullTextOfTerm,
+                        child: const Text(
+                          'Li e concordo com os Termos',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: secondaryColor,
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (!_aceitouTermos)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12, bottom: 6),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, size: 14, color: Colors.red),
+                        SizedBox(width: 4),
+                        Text(
+                          'Atenção: Você precisa aceitar os termos para se cadastrar.',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
           _message(),
-          _button('Cadastrar', _isLoading ? null : _register),
+          _button(
+            'Cadastrar',
+            (_isLoading || !_aceitouTermos) ? null : _register,
+          ),
         ],
       ),
     );
@@ -260,7 +456,6 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     );
   }
 
-  /// Barrinha + título (+ subtítulo opcional), comum aos dois passos.
   Widget _header(String title, [String? subtitle]) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -298,11 +493,9 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     );
   }
 
-  /// Erro (vermelho) ou aviso (verde) dentro do próprio modal.
   Widget _message() {
     final text = _error ?? _info;
     if (text == null) return const SizedBox.shrink();
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(

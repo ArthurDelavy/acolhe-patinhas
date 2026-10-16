@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/token_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart'; //new import for shared_preferences, which is used for storing tokens and other data locally
 
 class AuthService {
   final String baseUrl;
@@ -55,7 +56,6 @@ class AuthService {
 
       await TokenStorage.saveTokens(
         authToken: data['accessToken'] as String,
-        // Trata o null usando 'as String?' e fornece uma string vazia '' como padrão
         refreshToken: data['refreshToken'] as String? ?? '',
       );
 
@@ -67,35 +67,41 @@ class AuthService {
     );
   }
 
-  // Mantivemos o register original
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
     required String password,
+    required bool acceptTerms,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name, 'email': email, 'password': password}),
+      body: jsonEncode({
+        'name': name,
+        'email': email,
+        'password': password,
+        'acceptTerms': acceptTerms,
+      }),
     );
 
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.body.isNotEmpty) {
+        return jsonDecode(response.body);
+      } else {
+        return {};
+      }
+    } else {
+      final errorBody = jsonDecode(response.body);
+      throw Exception(
+        errorBody['message'] ??
+            'Erro ao criar conta. Verifique os dados e tente novamente.',
+      );
     }
-    if (response.statusCode == 409) {
-      throw Exception('E-mail já cadastrado');
-    }
-    throw Exception(
-      'Erro ao cadastrar usuário. Código: ${response.statusCode}',
-    );
   }
 
-  // NOVO: Rota para validar o código de 6 dígitos
   Future<void> verifyCode({required String email, required String code}) async {
     final response = await http.post(
-      Uri.parse(
-        '$baseUrl/auth/verify-email',
-      ), // Ajuste para a rota real do seu backend
+      Uri.parse('$baseUrl/auth/verify-email'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'code': code}),
     );
@@ -107,9 +113,7 @@ class AuthService {
 
   Future<void> resendCode({required String email}) async {
     final response = await http.post(
-      Uri.parse(
-        '$baseUrl/auth/resend-verification', // CORRIGIDO AQUI!
-      ), // Ajuste para a rota real do seu backend
+      Uri.parse('$baseUrl/auth/resend-verification'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email}),
     );
@@ -119,7 +123,6 @@ class AuthService {
     }
   }
 
-  // New methods for forgot password and reset password
   Future<void> forgotPassword({required String email}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/forgot-password'),
@@ -147,10 +150,6 @@ class AuthService {
       }),
     );
 
-    // 200 = senha alterada.
-    // 403 = senha alterada, mas a conta não está verificada e não pode
-    //       entrar ainda. Para o reset isso conta como sucesso; o login
-    //       cuida da verificação depois.
     if (response.statusCode == 200 ||
         response.statusCode == 204 ||
         response.statusCode == 403) {
@@ -171,5 +170,53 @@ class AuthService {
     throw Exception(
       'Erro ao redefinir a senha. Código: ${response.statusCode}',
     );
+  }
+
+  Future<String> fetchTermContent() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // 1. Busca primeiro a URL atual do termo no backend
+    final response = await http.get(Uri.parse('$baseUrl/term'));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final String url = data['url'] ?? '';
+
+      if (url.isNotEmpty) {
+        final String cacheKey = 'cached_term_${url.hashCode}';
+        final cachedContent = prefs.getString(cacheKey);
+
+        if (cachedContent != null && cachedContent.isNotEmpty) {
+          return cachedContent;
+        }
+
+        final fileResponse = await http.get(Uri.parse(url));
+        if (fileResponse.statusCode == 200) {
+          final decodedContent = utf8.decode(fileResponse.bodyBytes);
+
+          await prefs.setString(cacheKey, decodedContent);
+
+          return decodedContent;
+        }
+      }
+    }
+
+    throw Exception('Não foi possível carregar o termo de compromisso.');
+  }
+
+  Future<void> acceptTerms() async {
+    final token = await TokenStorage.getAuthToken();
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/term/accept'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Erro ao aceitar os termos.');
+    }
   }
 }
