@@ -26,6 +26,7 @@ public enum Permission {
     FOSTERHOME_CREATE("fosterhome:create"),
     FOSTERHOME_REMOVE("fosterhome:remove"),
 
+    REPORT_READ("report:read"),
     REPORT_CREATE("report:create"),
     REPORT_EDIT("report:edit");
 
