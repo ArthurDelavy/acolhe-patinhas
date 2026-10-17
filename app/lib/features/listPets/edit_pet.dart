@@ -9,7 +9,6 @@ import '../../services/veterinary_service.dart';
 import '../../utils/validators.dart';
 import '../../features/register/register_modal.dart';
 
-// Cache em memória de nível de sessão para listas estáticas
 List<Map<String, dynamic>>? _globalSpeciesCache;
 List<Map<String, dynamic>>? _globalBreedsCache;
 List<Map<String, dynamic>>? _globalColorsCache;
@@ -142,33 +141,35 @@ class _EditPetScreenState extends State<EditPetScreen> {
       _vetNeutered = vetRecord?['neutered'] == true;
 
       final String? specieName = detail['specie']?.toString();
-      final String? breedName = detail['breed']?.toString();
       final String? colorName = detail['color']?.toString();
 
       _selectedSpeciesId = _findIdByName(species, specieName);
       _selectedColorId = _findIdByName(colors, colorName);
 
       if (_selectedSpeciesId != null) {
-        _filteredBreedsList = breeds
-            .where((b) => b['specieId'] == _selectedSpeciesId)
-            .toList();
+        _filteredBreedsList = breeds.where((breed) {
+          final specieObj = breed['specie'] ?? breed['species'];
+          int? speciesIdFromObject;
+          if (specieObj is Map) speciesIdFromObject = specieObj['id'];
+
+          final dynamic rawDirect =
+              breed['specieId'] ??
+              breed['specie_id'] ??
+              breed['speciesId'] ??
+              breed['species_id'] ??
+              breed['idSpecie'];
+
+          final int? speciesIdDirect = rawDirect is int
+              ? rawDirect
+              : int.tryParse(rawDirect?.toString() ?? '');
+
+          final int? breedSpeciesId = speciesIdFromObject ?? speciesIdDirect;
+          return breedSpeciesId == _selectedSpeciesId;
+        }).toList();
       } else {
         _filteredBreedsList = [];
       }
-      _selectedBreedId = _findIdByName(breeds, breedName);
 
-      if (detail['birthDate'] != null) {
-        try {
-          _selectedBirthDate = DateTime.parse(detail['birthDate'].toString());
-          final age = _calculateAge(_selectedBirthDate!);
-          final formattedDate =
-              "${_selectedBirthDate!.day.toString().padLeft(2, '0')}/${_selectedBirthDate!.month.toString().padLeft(2, '0')}/${_selectedBirthDate!.year}";
-          _birthDateController.text =
-              "$formattedDate ($age ${age == 1 ? 'ano' : 'anos'})";
-        } catch (_) {}
-      }
-
-      // EXIBE A TELA IMEDIATAMENTE (NÃO BLOQUEIA ESPERANDO HISTÓRICO VETERINÁRIO)
       setState(() {
         _speciesList = species;
         _allBreedsList = breeds;
@@ -377,9 +378,28 @@ class _EditPetScreenState extends State<EditPetScreen> {
         return;
       }
 
-      _filteredBreedsList = _allBreedsList
-          .where((breed) => breed['specieId'] == speciesId)
-          .toList();
+      _filteredBreedsList = _allBreedsList.where((breed) {
+        final specieObj = breed['specie'] ?? breed['species'];
+        int? speciesIdFromObject;
+
+        if (specieObj is Map) {
+          speciesIdFromObject = specieObj['id'];
+        }
+
+        final dynamic rawDirect =
+            breed['specieId'] ??
+            breed['specie_id'] ??
+            breed['speciesId'] ??
+            breed['species_id'] ??
+            breed['idSpecie'];
+
+        final int? speciesIdDirect = rawDirect is int
+            ? rawDirect
+            : int.tryParse(rawDirect?.toString() ?? '');
+
+        final int? breedSpeciesId = speciesIdFromObject ?? speciesIdDirect;
+        return breedSpeciesId == speciesId;
+      }).toList();
     });
   }
 

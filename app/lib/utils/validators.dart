@@ -51,4 +51,27 @@ class Validators {
   static bool isValidGender(String? gender) {
     return gender == 'M' || gender == 'F';
   }
+
+  static bool isValidLength(String? value, int min, int max) {
+    final length = (value ?? '').trim().length;
+    return length >= min && length <= max;
+  }
+
+  static bool isValidCellPhone(String? phone) {
+    final digits = (phone ?? '').replaceAll(RegExp(r'\D'), '');
+    return RegExp(r'^[1-9]{2}9[0-9]{8}$').hasMatch(digits);
+  }
+
+  static double? parseNumber(String? value) =>
+      double.tryParse((value ?? '').trim().replaceAll(',', '.'));
+
+  static bool isValidCoordinate(String? value, double limit) {
+    final number = parseNumber(value);
+    return number != null && number >= -limit && number <= limit;
+  }
+
+  static bool isValidPositiveInt(String? value) {
+    final number = int.tryParse((value ?? '').trim());
+    return number != null && number > 0;
+  }
 }
