@@ -1,13 +1,10 @@
 package com.ong.acolhepatinhas.api.report.DTO;
 
-import javax.imageio.spi.ImageReaderWriterSpi;
-
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ong.acolhepatinhas.api.report.enums.ReportType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.mail.Multipart;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
