@@ -1,6 +1,7 @@
 package com.ong.acolhepatinhas.api.report;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -41,6 +42,10 @@ public class AnimalReportService {
 
     public AnimalReport getById(int id) {
         return arpRep.findById(id).orElseThrow(() -> new ValueNotFoundException("Reporte não encontrado"));
+    }
+
+    public List<AnimalReport> listAll() {
+        return arpRep.findAll();
     }
 
 

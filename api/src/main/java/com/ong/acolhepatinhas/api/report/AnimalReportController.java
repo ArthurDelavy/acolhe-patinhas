@@ -1,12 +1,16 @@
 package com.ong.acolhepatinhas.api.report;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,6 +38,35 @@ public class AnimalReportController {
     
     private final AnimalReportService arpSvc;
 
+
+    @GetMapping @PreAuthorize("hasAuthority('report:read')")
+    @Operation(summary = "Lista todos os reportes")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
+    public ResponseEntity<List<ReportResponse>> listAll() {
+        List<ReportResponse> responseData = arpSvc.listAll()
+            .stream()
+            .map(ReportResponse::new)
+            .toList();
+
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
+
+
+
+    @GetMapping("/{reportId}") @PreAuthorize("hasAuthority('report:read')")
+    @Operation(summary = "Lista todos os dados de um reporte específico")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "200", description = "Listado com sucesso!")
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para acessar o conteúdo", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Reporte não encontrado", content = @Content)
+    public ResponseEntity<ReportResponse> getById(@PathVariable int reportId) {
+        ReportResponse responseData = new ReportResponse(arpSvc.getById(reportId));
+        return ResponseEntity.status(HttpStatus.OK).body(responseData);
+    }
 
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE) @PreAuthorize("hasAuthority('report:create')")
