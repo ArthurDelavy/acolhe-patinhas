@@ -6,8 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public record ResumedFosterHomeResponse(
 
-        @Schema(example = "1") int id,
-
         @Schema(example = "Fulano de Tal") String ownerName,
 
         @Schema(example = "Nome do Lar") String name,
@@ -18,7 +16,6 @@ public record ResumedFosterHomeResponse(
 
     public ResumedFosterHomeResponse(FosterHome data) {
         this(
-                data.getId(),
                 data.getOwner().getName(),
                 data.getName(),
                 data.getCapacity());
