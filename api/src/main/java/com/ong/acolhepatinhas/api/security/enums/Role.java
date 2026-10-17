@@ -31,7 +31,7 @@ public enum Role {
 
                         Permission.REPORT_READ,
                         Permission.REPORT_CREATE,
-                        Permission.ANIMAL_EDIT)),
+                        Permission.REPORT_EDIT)),
 
         USER(Set.of(
                         Permission.ANIMAL_READ,
@@ -62,7 +62,8 @@ public enum Role {
                         Permission.FOSTERHOME_REMOVE,
                         
                         Permission.REPORT_READ,
-                        Permission.REPORT_CREATE));
+                        Permission.REPORT_CREATE,
+                        Permission.REPORT_EDIT));
 
         private final Set<Permission> permissions;
 
