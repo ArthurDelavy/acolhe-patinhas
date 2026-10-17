@@ -86,6 +86,7 @@ public class ImageService {
             case ANIMAL_REGISTER_PHOTO -> 80;
             case POST_PHOTO -> 1080;
             case USER_PROFILE_PHOTO -> 512;
+            case REPORT_PHOTO -> 1080;
         };
 
         boolean isLowSize = image.getSize() < (minCompressionKb * 1024);

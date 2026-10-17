@@ -27,28 +27,42 @@ public enum Role {
                         Permission.FOSTERHOME_READ,
                         Permission.FOSTERHOME_CREATE,
                         Permission.FOSTERHOME_EDIT,
-                        Permission.FOSTERHOME_REMOVE)),
+                        Permission.FOSTERHOME_REMOVE,
+
+                        Permission.REPORT_READ,
+                        Permission.REPORT_CREATE,
+                        Permission.ANIMAL_EDIT)),
 
         USER(Set.of(
                         Permission.ANIMAL_READ,
                         Permission.VETERINARY_READ,
-                        Permission.POST_READ)),
+                        Permission.POST_READ,
+                        Permission.REPORT_READ,
+                        Permission.REPORT_CREATE)),
 
         ANONYMOUS(Set.of(
                         Permission.ANIMAL_READ,
-                        Permission.VETERINARY_READ)),
+                        Permission.VETERINARY_READ,
+                        Permission.REPORT_READ,
+                        Permission.REPORT_CREATE)),
 
         VERIFIED(Set.of(
                         Permission.ANIMAL_READ,
                         Permission.ANIMAL_CREATE,
                         Permission.ANIMAL_EDIT,
+
                         Permission.VETERINARY_READ,
                         Permission.VETERINARY_ASSIGN,
+
                         Permission.POST_READ,
+
                         Permission.FOSTERHOME_READ,
                         Permission.FOSTERHOME_CREATE,
                         Permission.FOSTERHOME_EDIT,
-                        Permission.FOSTERHOME_REMOVE));
+                        Permission.FOSTERHOME_REMOVE,
+                        
+                        Permission.REPORT_READ,
+                        Permission.REPORT_CREATE));
 
         private final Set<Permission> permissions;
 

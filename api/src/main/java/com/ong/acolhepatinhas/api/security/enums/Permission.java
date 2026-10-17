@@ -24,7 +24,11 @@ public enum Permission {
     FOSTERHOME_READ("fosterhome:read"),
     FOSTERHOME_EDIT("fosterhome:edit"),
     FOSTERHOME_CREATE("fosterhome:create"),
-    FOSTERHOME_REMOVE("fosterhome:remove");
+    FOSTERHOME_REMOVE("fosterhome:remove"),
+
+    REPORT_READ("report:read"),
+    REPORT_CREATE("report:create"),
+    REPORT_EDIT("report:edit");
 
     private final String permission;
 
