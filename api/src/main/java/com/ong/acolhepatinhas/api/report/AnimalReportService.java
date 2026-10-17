@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.report.DTO.NewReportRequest;
+import com.ong.acolhepatinhas.api.report.DTO.ReportStatusUpdateRequest;
 import com.ong.acolhepatinhas.api.report.enums.ReportStatus;
 import com.ong.acolhepatinhas.api.services.imageService.ImageService;
 import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
@@ -34,6 +36,12 @@ public class AnimalReportService {
     private final ImageService imgSvc;
     
     private static final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+
+
+
+    public AnimalReport getById(int id) {
+        return arpRep.findById(id).orElseThrow(() -> new ValueNotFoundException("Reporte não encontrado"));
+    }
 
 
     @Transactional
@@ -66,5 +74,17 @@ public class AnimalReportService {
         }
 
         return report;
+    }
+
+
+    @Transactional
+    public AnimalReport updateStatus(int reportId, @Valid ReportStatusUpdateRequest data) {
+
+        AnimalReport report = this.getById(reportId);
+
+        report.setStatus(data.status());
+        report.setUpdatedAt(Instant.now());
+
+        return arpRep.save(report);
     }
 }
