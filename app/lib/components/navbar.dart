@@ -31,7 +31,6 @@ class _NavbarComponentState extends State<NavbarComponent> {
 
   final ScrollController _scrollController = ScrollController();
 
-  // Definição centralizada de Ícones e Rotas
   final List<NavItem> _allItems = const [
     NavItem(icon: Icons.home_outlined, route: '/feed'),
     NavItem(icon: Icons.pets_outlined, route: '/user_pets'),
@@ -41,8 +40,14 @@ class _NavbarComponentState extends State<NavbarComponent> {
       route: '/admin_pets',
       adminOnly: true,
     ),
+
     NavItem(icon: Icons.info_outline, route: '/info'),
     NavItem(icon: Icons.settings_outlined, route: '/configuracoes'),
+    NavItem(
+      icon: Icons.volunteer_activism_outlined,
+      route: '/fosters',
+      adminOnly: true,
+    ),
     NavItem(icon: Icons.badge_outlined, route: '/about-profile'),
   ];
 
@@ -50,8 +55,6 @@ class _NavbarComponentState extends State<NavbarComponent> {
   void initState() {
     super.initState();
     _checkPermission();
-
-    // Ouve o scroll para esconder o indicativo quando chegar no fim
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 10) {
@@ -171,8 +174,7 @@ class _NavbarComponentState extends State<NavbarComponent> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 22,
-                                vertical:
-                                    10, // Levemente reduzido para equilibrar a altura
+                                vertical: 10,
                               ),
                               child: Icon(
                                 item.icon,

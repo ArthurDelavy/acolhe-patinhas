@@ -152,10 +152,21 @@ class _CatalogDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool empty = items.isEmpty;
+    // Remove elementos duplicados por ID para não quebrar o Flutter
+    final Map<int, Map<String, dynamic>> uniqueMap = {};
+    for (var item in items) {
+      if (item['id'] != null) {
+        uniqueMap[item['id'] as int] = item;
+      }
+    }
+    final uniqueItems = uniqueMap.values.toList();
+    final bool empty = uniqueItems.isEmpty;
+
+    // Garante que o valor selecionado realmente exista na lista única
+    final safeValue = uniqueItems.any((i) => i['id'] == value) ? value : null;
 
     final dropdown = DropdownButtonFormField<int>(
-      value: value,
+      value: safeValue,
       isExpanded: true,
       borderRadius: BorderRadius.circular(16),
       decoration: compactInput(label),
@@ -171,7 +182,7 @@ class _CatalogDropdown extends StatelessWidget {
       items: [
         if (allowNone)
           const DropdownMenuItem<int>(value: null, child: Text('Nenhum')),
-        ...items.map(
+        ...uniqueItems.map(
           (i) => DropdownMenuItem<int>(
             value: i['id'] as int,
             child: Text(i['name'].toString(), overflow: TextOverflow.ellipsis),
@@ -214,10 +225,6 @@ class _CatalogDropdown extends StatelessWidget {
     );
   }
 }
-
-// ============================================================================
-// REGISTROS SIMPLES (RAÇA/COR, ESPÉCIE, MOTIVO BAIXA)
-// ============================================================================
 
 class RegisterBreedColor extends StatefulWidget {
   final int? speciesId;
@@ -521,10 +528,6 @@ class _RegisterDischargeReasonState extends State<RegisterDischargeReason> {
   }
 }
 
-// ============================================================================
-// CATALOG DIALOG
-// ============================================================================
-
 class VetCatalogDialog extends StatefulWidget {
   final String title;
   final String label;
@@ -689,10 +692,6 @@ class _VetCatalogDialogState extends State<VetCatalogDialog> {
     );
   }
 }
-
-// ============================================================================
-// VACINA
-// ============================================================================
 
 class VaccinationDialog extends StatefulWidget {
   final List<Map<String, dynamic>> vaccines;
@@ -930,10 +929,6 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
   }
 }
 
-// ============================================================================
-// CIRURGIA
-// ============================================================================
-
 class SurgeryDialog extends StatefulWidget {
   final List<Map<String, dynamic>> procedures;
 
@@ -1080,10 +1075,6 @@ class _SurgeryDialogState extends State<SurgeryDialog> {
     );
   }
 }
-
-// ============================================================================
-// CUIDADO PREVENTIVO
-// ============================================================================
 
 class PreventiveDialog extends StatefulWidget {
   final List<Map<String, dynamic>> procedures;
@@ -1328,10 +1319,6 @@ class _PreventiveDialogState extends State<PreventiveDialog> {
   }
 }
 
-// ============================================================================
-// MEDICAMENTO (CADASTRO RÁPIDO) & EXAME
-// ============================================================================
-
 Future<Map<String, dynamic>?> _createMedicineDialog(BuildContext context) {
   return showDialog<Map<String, dynamic>>(
     context: context,
@@ -1515,10 +1502,6 @@ class _LabTestDialogState extends State<LabTestDialog> {
   }
 }
 
-// ============================================================================
-// DIAGNÓSTICO
-// ============================================================================
-
 class DiagnosisDialog extends StatefulWidget {
   final List<Map<String, dynamic>> diseases;
   final int localId;
@@ -1691,10 +1674,6 @@ class _DiagnosisDialogState extends State<DiagnosisDialog> {
   }
 }
 
-// ============================================================================
-// POSOLOGIA & TRATAMENTO
-// ============================================================================
-
 class PosologyDialog extends StatefulWidget {
   final List<Map<String, dynamic>> medicines;
   final DateTime? defaultStart;
@@ -1775,7 +1754,6 @@ class _PosologyDialogState extends State<PosologyDialog> {
           'dosage': dosage,
           'frequency': frequency,
           'durationDays': days,
-          // ⚠️ "starDate" (sem o "t") é mantido do NewPosologyRequest do backend
           'starDate': _iso(_date),
         },
       ),

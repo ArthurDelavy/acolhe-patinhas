@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jwt_decoder/jwt_decoder.dart'; //decoding JWT to check if the user must accept the terms
 import 'auth_modal.dart';
 import '../../utils/validators.dart';
 import '../../services/auth_service.dart';
@@ -16,13 +17,10 @@ class _AuthScreenState extends State<AuthScreen> {
   bool anonymousEntry = false;
   bool obscurePassword = true;
 
-  // Form key
   final _formKey = GlobalKey<FormState>();
-
   late AuthService _authService;
   bool _isLoggingIn = false;
 
-  //palet of colors
   static const Color primaryColor = Color(0xFFFFA94D);
   static const Color secondaryColor = Color(0xFFFF8C42);
 
@@ -33,7 +31,6 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
-
     _authService = AuthService(baseUrl: 'http://localhost:8080');
   }
 
@@ -45,24 +42,339 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
+  void _showFullTextOfTerm() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.8,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Termos de Compromisso',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D3142),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // =========================================================
+                  // Chamada dinâmica da API (Substitui o Text fixo antigo)
+                  // =========================================================
+                  Expanded(
+                    child: FutureBuilder<String>(
+                      future: _authService.fetchTermContent(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: secondaryColor,
+                            ),
+                          );
+                        }
+
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                'Erro ao carregar o termo:\n${snapshot.error}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text('Nenhum texto encontrado no termo.'),
+                          );
+                        }
+
+                        return SingleChildScrollView(
+                          controller: scrollController,
+                          physics: const BouncingScrollPhysics(),
+                          child: Text(
+                            snapshot.data!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF2D3142),
+                              height: 1.5,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // =========================================================
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: secondaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Fechar',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showTermsDialog() async {
+    bool aceitou = false;
+    bool carregando = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Column(
+                children: [
+                  Icon(
+                    Icons.assignment_late_outlined,
+                    size: 48,
+                    color: secondaryColor,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Termos Atualizados',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D3142),
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Para continuar utilizando o AcolhePatinhas, é necessário concordar com a nova versão do termo de compromisso.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Color(0xFF6C757D)),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // AVISO VERMELHO E CHECKBOX ESTILIZADO
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: aceitou ? Colors.transparent : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: aceitou
+                          ? null
+                          : Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: aceitou,
+                              activeColor: secondaryColor,
+                              onChanged: (valor) =>
+                                  setState(() => aceitou = valor ?? false),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: _showFullTextOfTerm,
+                                child: const Text(
+                                  'Li e concordo com os Termos',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: secondaryColor,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (!aceitou)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 12, bottom: 6),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 14,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Pendente: Marque a caixa para liberar o acesso.',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: carregando
+                      ? null
+                      : () {
+                          TokenStorage.clear();
+                          Navigator.pop(context, false);
+                        },
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: (aceitou && !carregando)
+                      ? () async {
+                          setState(() => carregando = true);
+                          try {
+                            await _authService.acceptTerms();
+                            await _authService.login(
+                              email: _emailController.text.trim(),
+                              password: _passwordController.text,
+                            );
+                            if (!mounted) return;
+                            Navigator.pop(context, true);
+                          } catch (e) {
+                            setState(() => carregando = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Erro ao aceitar termos.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: secondaryColor,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: carregando
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Continuar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((sucesso) {
+      if (sucesso == true) {
+        Navigator.pushReplacementNamed(context, '/feed');
+      }
+    });
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoggingIn = true);
 
     try {
-      await _authService.login(
+      final authData = await _authService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/feed');
+
+      final token = authData['accessToken'] as String;
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+
+      bool mustAcceptTerms = decodedToken['mustAcceptTerms'] ?? false;
+
+      if (mustAcceptTerms) {
+        _showTermsDialog();
+      } else {
+        Navigator.pushReplacementNamed(context, '/feed');
+      }
     } catch (e) {
       if (!mounted) return;
 
       if (e.toString().contains('CONTA_NAO_VERIFICADA')) {
-        // 1. Avisa o usuário
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Conta não verificada. Enviando novo código...'),
@@ -73,8 +385,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
         try {
           await _authService.resendCode(email: _emailController.text.trim());
-
           if (!mounted) return;
+
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -99,19 +411,15 @@ class _AuthScreenState extends State<AuthScreen> {
         } else if (e.toString().contains('Dados inválidos')) {
           message = 'Verifique os dados informados';
         }
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: Colors.red),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoggingIn = false);
-      }
+      if (mounted) setState(() => _isLoggingIn = false);
     }
   }
 
-  //reused inputs
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -140,7 +448,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
               child: Form(
@@ -149,7 +456,6 @@ class _AuthScreenState extends State<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      //section title
                       'AcolhePatinhas',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -159,11 +465,8 @@ class _AuthScreenState extends State<AuthScreen> {
                         letterSpacing: -0.5,
                       ),
                     ),
-
                     const SizedBox(height: 4),
-
                     Text(
-                      //section subtitle
                       'Em parceria, Associação Acolher',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -172,15 +475,12 @@ class _AuthScreenState extends State<AuthScreen> {
                         color: Colors.grey[500],
                       ),
                     ),
-
                     const SizedBox(height: 32),
-
                     AnimatedCrossFade(
                       duration: const Duration(milliseconds: 200),
                       crossFadeState: anonymousEntry
                           ? CrossFadeState.showSecond
                           : CrossFadeState.showFirst,
-
                       firstChild: Column(
                         children: [
                           _buildInput(
@@ -192,23 +492,15 @@ class _AuthScreenState extends State<AuthScreen> {
                             textInputAction: TextInputAction.next,
                             autofillHints: const [AutofillHints.email],
                             validator: (value) {
-                              // Ignora a validação de email se estiver entrando como anônimo
                               if (anonymousEntry) return null;
-
-                              if (value == null || value.isEmpty) {
+                              if (value == null || value.isEmpty)
                                 return 'Digite seu e-mail';
-                              }
-
-                              if (!Validators.isValidEmail(value)) {
+                              if (!Validators.isValidEmail(value))
                                 return 'Digite um e-mail válido';
-                              }
-
                               return null;
                             },
                           ),
-
                           const SizedBox(height: 14),
-
                           _buildInput(
                             label: 'Senha',
                             hint: 'Digite sua senha',
@@ -229,23 +521,15 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                             ),
                             validator: (value) {
-                              // Ignora a validação de senha se estiver entrando como anônimo
                               if (anonymousEntry) return null;
-
-                              if (value == null || value.isEmpty) {
+                              if (value == null || value.isEmpty)
                                 return 'Digite sua senha';
-                              }
-
-                              if (!Validators.isValidPassword(value)) {
+                              if (!Validators.isValidPassword(value))
                                 return 'A senha deve ter pelo menos 6 caracteres, um número e um caractere especial';
-                              }
-
                               return null;
                             },
                           ),
-
                           const SizedBox(height: 8),
-
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -253,8 +537,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 onPressed: () {
                                   showModalBottomSheet(
                                     context: context,
-                                    isScrollControlled:
-                                        true, // Permite que o modal suba com o teclado
+                                    isScrollControlled: true,
                                     shape: const RoundedRectangleBorder(
                                       borderRadius: BorderRadius.vertical(
                                         top: Radius.circular(24),
@@ -280,11 +563,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                 ),
                               ),
-
                               TextButton(
                                 onPressed: () async {
                                   final email = _emailController.text.trim();
-
                                   final resetDone =
                                       await showModalBottomSheet<bool>(
                                         context: context,
@@ -303,8 +584,6 @@ class _AuthScreenState extends State<AuthScreen> {
                                                   : null,
                                             ),
                                       );
-
-                                  // Limpa a senha digitada (agora está desatualizada)
                                   if (resetDone == true)
                                     _passwordController.clear();
                                 },
@@ -327,7 +606,6 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ],
                       ),
-
                       secondChild: Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: _buildInput(
@@ -337,22 +615,15 @@ class _AuthScreenState extends State<AuthScreen> {
                           controller: _nameController,
                           textInputAction: TextInputAction.done,
                           validator: (value) {
-                            // Só exige o nome se for entrada anônima
                             if (!anonymousEntry) return null;
-
-                            if (value == null || value.trim().isEmpty) {
+                            if (value == null || value.trim().isEmpty)
                               return 'Digite seu nome';
-                            }
-
                             return null;
                           },
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
-                    //button to submit the form
                     SizedBox(
                       height: 50,
                       child: ElevatedButton(
@@ -362,11 +633,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                 if (anonymousEntry) {
                                   if (_formKey.currentState!.validate()) {
                                     setState(() => _isLoggingIn = true);
-
                                     try {
                                       await TokenStorage.clear();
                                       await _authService.loginAnonymous();
-
                                       if (!mounted) return;
                                       Navigator.pushReplacementNamed(
                                         context,
@@ -377,21 +646,20 @@ class _AuthScreenState extends State<AuthScreen> {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        SnackBar(
+                                        const SnackBar(
                                           content: Text(
-                                            'Erro ao entrar como anônimo. Tente novamente.',
+                                            'Erro ao entrar como anônimo.',
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
                                     } finally {
-                                      if (mounted) {
+                                      if (mounted)
                                         setState(() => _isLoggingIn = false);
-                                      }
                                     }
                                   }
                                 } else {
-                                  _login(); // Login normal
+                                  _login();
                                 }
                               },
                         style:
@@ -439,10 +707,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    //divider with "OU" text
                     Row(
                       children: [
                         Expanded(
@@ -451,7 +716,6 @@ class _AuthScreenState extends State<AuthScreen> {
                             thickness: 1,
                           ),
                         ),
-
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
@@ -463,7 +727,6 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ),
                         ),
-
                         Expanded(
                           child: Divider(
                             color: Colors.grey.shade300,
@@ -472,16 +735,10 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 20),
-
-                    //button to toggle anonymous entry
                     OutlinedButton.icon(
                       onPressed: () {
-                        setState(() {
-                          anonymousEntry = !anonymousEntry;
-                        });
-
+                        setState(() => anonymousEntry = !anonymousEntry);
                         _formKey.currentState?.reset();
                       },
                       icon: Icon(
@@ -521,7 +778,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  //input constructor
   Widget _buildInput({
     required String label,
     required String hint,
@@ -543,13 +799,11 @@ class _AuthScreenState extends State<AuthScreen> {
       validator: validator,
       style: const TextStyle(fontSize: 15, color: Color(0xFF2D3142)),
       decoration: InputDecoration(
-        //color of the label when the field is open!! !!
         floatingLabelStyle: const TextStyle(
           color: secondaryColor,
           fontWeight: FontWeight.bold,
           fontSize: 14,
         ),
-
         labelText: label,
         hintText: hint,
         prefixIcon: Icon(icon, color: secondaryColor, size: 20),
@@ -580,7 +834,6 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-//class to create a custom clipper for the header image
 class _HeaderClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {

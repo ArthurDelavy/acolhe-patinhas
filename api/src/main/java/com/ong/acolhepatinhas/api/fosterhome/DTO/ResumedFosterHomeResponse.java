@@ -12,11 +12,9 @@ public record ResumedFosterHomeResponse(
     @Schema(example = "Fulano de Tal")
     String ownerName,
 
-    @Schema(example = "Nome do Lar")
-    String name,
+        @Schema(example = "Nome do Lar") String name,
 
-    @Schema(example = "15")
-    int capacity
+        @Schema(example = "15") int capacity
 
 ) {
 
