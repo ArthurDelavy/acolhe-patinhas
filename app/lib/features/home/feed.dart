@@ -80,6 +80,7 @@ class _FeedScreenState extends State<FeedScreen> {
                                 width: 36,
                                 height: 36,
                                 fit: BoxFit.cover,
+                                filterQuality: FilterQuality.high,
                                 errorBuilder: (context, error, stackTrace) =>
                                     const Icon(
                                       Icons.person,

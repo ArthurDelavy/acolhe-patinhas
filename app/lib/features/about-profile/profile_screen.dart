@@ -508,7 +508,13 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             child: ClipOval(
               child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(imageUrl, fit: BoxFit.cover)
+                  ? Image.network(
+                      imageUrl,
+                      width: 108,
+                      height: 108,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.high,
+                    )
                   : Container(
                       color: _primary.withOpacity(0.18),
                       child: const Icon(
