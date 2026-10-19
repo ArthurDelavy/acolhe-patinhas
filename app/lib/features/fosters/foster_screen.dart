@@ -38,27 +38,31 @@ class _FostersScreenState extends State<FostersScreen> {
   }
 
   Future<void> _reload() async {
-    final future = _service.listFosterHomes();
-    setState(() => _fosters = future);
-    await future.catchError((_) => <FosterHome>[]);
+    setState(() {
+      _fosters = _service.listFosterHomes();
+    });
   }
 
   Future<void> _openRegister() async {
-    await Navigator.push(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const FosterRegister()),
     );
 
-    if (mounted) _reload();
+    if (result == true && mounted) {
+      _reload();
+    }
   }
 
   Future<void> _openDetails(FosterHome foster) async {
-    await Navigator.push(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => FosterDetailsScreen(foster: foster)),
     );
 
-    if (mounted) _reload();
+    if (result == true && mounted) {
+      _reload();
+    }
   }
 
   @override

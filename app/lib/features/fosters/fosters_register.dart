@@ -298,6 +298,18 @@ class _FosterRegisterState extends State<FosterRegister> {
                           'Use entre 3 e 50 caracteres',
                         ),
                       ),
+
+                      if (_isEditing && widget.foster?.ownerName != null) ...[
+                        _buildField(
+                          label: 'Responsável atual',
+                          controller: TextEditingController(
+                            text: widget.foster!.ownerName,
+                          ),
+                          icon: Icons.person_outline,
+                          readOnly: true,
+                          validator: (_) => null,
+                        ),
+                      ],
                       _buildField(
                         label: 'E-mail do responsável',
                         controller: _ownerEmailController,
