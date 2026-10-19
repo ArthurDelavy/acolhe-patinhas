@@ -73,7 +73,7 @@ public class AnimalReportService {
 
         if (data.image() != null) {
             String url = imgSvc.saveImage(
-                new ImageRequest(data.image()), String.valueOf(report.getId()), StorageFileType.REPORT_PHOTO);
+                new ImageRequest(data.image()), "rep" + String.valueOf(report.getId()), StorageFileType.REPORT_PHOTO);
         
             report.setImageUrl(url);
         }

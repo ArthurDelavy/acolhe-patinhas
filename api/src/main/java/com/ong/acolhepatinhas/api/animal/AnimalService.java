@@ -156,7 +156,7 @@ public class AnimalService {
         
         if (animal.getImageUrl() != null) imgSvc.deleteImage(animal.getImageUrl(), StorageFileType.ANIMAL_REGISTER_PHOTO);
 
-        String url = imgSvc.saveImage(image, String.valueOf(animalId), StorageFileType.ANIMAL_REGISTER_PHOTO);
+        String url = imgSvc.saveImage(image, "anm" + String.valueOf(animalId), StorageFileType.ANIMAL_REGISTER_PHOTO);
         
         animal.setImageUrl(url);
         animal.setUser(requester);
