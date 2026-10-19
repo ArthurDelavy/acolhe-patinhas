@@ -36,6 +36,7 @@ import com.ong.acolhepatinhas.api.services.imageService.ImageService;
 import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
 import com.ong.acolhepatinhas.api.user.DTO.ChangeEmailRequest;
 import com.ong.acolhepatinhas.api.user.DTO.ConfirmEmailChangeRequest;
+import com.ong.acolhepatinhas.api.user.DTO.EditDescriptionRequest;
 import com.ong.acolhepatinhas.api.user.DTO.EditNameRequest;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 import com.ong.acolhepatinhas.api.user.DTO.ProfileResponse;
@@ -99,6 +100,13 @@ public class UserService implements UserDetailsService {
     public ProfileResponse changeName(LoggedUserPayload requester, @Valid EditNameRequest data) {
         User user = requireAccount(requester);
         user.setName(data.name());
+        return ProfileResponse.from(user);
+    }
+
+    @Transactional
+    public ProfileResponse changeDescription(LoggedUserPayload requester, @Valid EditDescriptionRequest data) {
+        User user = requireAccount(requester);
+        user.setDescription(data.description());
         return ProfileResponse.from(user);
     }
 
