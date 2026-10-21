@@ -86,6 +86,7 @@ public class SupabaseStorageAdapter implements ImageGateway {
             case ANIMAL_REGISTER_PHOTO -> "animal/avatar";
             case POST_PHOTO -> "post/photo";
             case USER_PROFILE_PHOTO -> "user/avatar";
+            case REPORT_PHOTO -> "animal/report";
         };
     }
 }

@@ -31,7 +31,7 @@ public class FosterHomeService {
 
     private final UserService usrSvc;
     
-    private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+    private static final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
 
 

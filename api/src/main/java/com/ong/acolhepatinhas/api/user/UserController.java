@@ -23,6 +23,7 @@ import com.ong.acolhepatinhas.api.auth.DTO.TokenResponse;
 import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.user.DTO.ChangeEmailRequest;
 import com.ong.acolhepatinhas.api.user.DTO.ConfirmEmailChangeRequest;
+import com.ong.acolhepatinhas.api.user.DTO.EditDescriptionRequest;
 import com.ong.acolhepatinhas.api.user.DTO.EditNameRequest;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 import com.ong.acolhepatinhas.api.user.DTO.ProfileResponse;
@@ -70,6 +71,18 @@ public class UserController {
         @ApiResponse(responseCode = "422", description = "Acessos anônimos não possuem perfil", content = @Content)
     public ResponseEntity<ProfileResponse> changeName(@AuthenticationPrincipal LoggedUserPayload user, @RequestBody @Valid EditNameRequest data) {
         return ResponseEntity.status(HttpStatus.OK).body(usrSvc.changeName(user, data));
+    }
+
+    @PatchMapping("/me/description")
+    @Operation(summary = "Alteração da descrição do usuário autenticado")
+        @SecurityRequirement(name = "BearerToken")
+        @ApiResponse(responseCode = "200", description = "Descrição alterada com sucesso!")
+        @ApiResponse(responseCode = "400", description = "Um ou mais campos estão com valores inválidos", content = @Content)
+        @ApiResponse(responseCode = "401", description = "Token ausente ou inválido", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content)
+        @ApiResponse(responseCode = "422", description = "Acessos anônimos não possuem perfil", content = @Content)
+    public ResponseEntity<ProfileResponse> changeDescription(@AuthenticationPrincipal LoggedUserPayload user, @RequestBody @Valid EditDescriptionRequest data) {
+        return ResponseEntity.status(HttpStatus.OK).body(usrSvc.changeDescription(user, data));
     }
 
 
