@@ -27,22 +27,19 @@ class _NavbarComponentState extends State<NavbarComponent> {
 
   bool _isAdmin = false;
   bool _isLoading = true;
-  bool _showIndicator = true; // Controla se a setinha aparece
+  bool _showIndicator = true;
 
   final ScrollController _scrollController = ScrollController();
 
   final List<NavItem> _allItems = const [
     NavItem(icon: Icons.home_outlined, route: '/feed'),
+    NavItem(icon: Icons.campaign_outlined, route: '/report'),
     NavItem(icon: Icons.pets_outlined, route: '/user_pets'),
-    NavItem(icon: Icons.feedback_outlined, route: '/feedback'),
     NavItem(
       icon: Icons.admin_panel_settings_outlined,
       route: '/admin_pets',
       adminOnly: true,
     ),
-
-    NavItem(icon: Icons.info_outline, route: '/info'),
-    NavItem(icon: Icons.settings_outlined, route: '/configuracoes'),
     NavItem(
       icon: Icons.volunteer_activism_outlined,
       route: '/fosters',
@@ -64,7 +61,6 @@ class _NavbarComponentState extends State<NavbarComponent> {
       }
     });
 
-    // Verifica após renderizar a tela se há necessidade de scroll
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients &&
           _scrollController.position.maxScrollExtent <= 0) {
@@ -92,14 +88,13 @@ class _NavbarComponentState extends State<NavbarComponent> {
 
   void _navigate(String route) {
     final currentRoute = ModalRoute.of(context)?.settings.name;
-    if (currentRoute == route) return; // Evita recarregar a tela atual
+    if (currentRoute == route) return;
 
     Navigator.pushReplacementNamed(context, route);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Filtra os itens removendo os exclusivos de admin se o usuário for anônimo/USER
     final visibleItems = _allItems
         .where((item) => !item.adminOnly || _isAdmin)
         .toList();
@@ -118,19 +113,16 @@ class _NavbarComponentState extends State<NavbarComponent> {
       ),
       child: SafeArea(
         child: Container(
-          // O height fixo foi removido para acomodar o texto em cima sem amassar os botões
           padding: const EdgeInsets.only(top: 6, bottom: 8, left: 8, right: 8),
           child: _isLoading
-              ? const SizedBox(height: 56) // Altura temporária no loading
+              ? const SizedBox(height: 56)
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Indicativo de Deslize (Fica em cima, à direita)
                     Visibility(
                       visible: _showIndicator,
-                      maintainSize:
-                          true, // Mantém o espaço para a barra não pular
+                      maintainSize: true,
                       maintainAnimation: true,
                       maintainState: true,
                       child: Padding(
@@ -156,8 +148,6 @@ class _NavbarComponentState extends State<NavbarComponent> {
                         ),
                       ),
                     ),
-
-                    // Lista rolável de botões
                     SingleChildScrollView(
                       controller: _scrollController,
                       scrollDirection: Axis.horizontal,
