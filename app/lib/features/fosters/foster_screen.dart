@@ -170,7 +170,6 @@ class _FosterCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Ícone principal (com cantos arredondados em vez de círculo)
                 Container(
                   width: 56,
                   height: 56,
@@ -264,7 +263,6 @@ class _FosterCard extends StatelessWidget {
                   ),
                 ),
 
-                // Seta de navegação destacada
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: const BoxDecoration(

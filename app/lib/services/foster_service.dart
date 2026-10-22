@@ -326,4 +326,33 @@ class FosterService {
         return Exception('Erro ao $action. Código: $status');
     }
   }
+
+  Future<List<UserOption>> listUserOptions() async {
+    const action = 'listar usuários';
+    final headers = await _authHeaders(action);
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/user'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(utf8.decode(response.bodyBytes));
+      return data.map((e) => UserOption.fromJson(e)).toList();
+    }
+
+    return [];
+  }
+}
+
+class UserOption {
+  final String name;
+  final String email;
+
+  const UserOption({required this.name, required this.email});
+
+  factory UserOption.fromJson(Map<String, dynamic> json) => UserOption(
+    name: json['name'] ?? json['userName'] ?? '',
+    email: json['email'] ?? '',
+  );
 }
