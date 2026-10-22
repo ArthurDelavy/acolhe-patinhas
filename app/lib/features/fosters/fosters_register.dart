@@ -47,6 +47,10 @@ class _FosterRegisterState extends State<FosterRegister> {
   final _longitudeController = TextEditingController();
   final _capacityController = TextEditingController();
 
+  List<UserOption> _userOptions = [];
+  UserOption? _selectedUser;
+  bool _isLoadingUsers = false;
+
   LatLng? _selected;
   bool _isLoading = false;
 
@@ -57,18 +61,35 @@ class _FosterRegisterState extends State<FosterRegister> {
     super.initState();
 
     final f = widget.foster;
-    if (f == null) return;
+    if (f != null) {
+      _nameController.text = f.name;
+      _ownerEmailController.text = f.ownerEmail ?? '';
+      _phoneController.text = f.phoneNumber ?? '';
+      _emailController.text = f.email ?? '';
+      _capacityController.text = f.capacity?.toString() ?? '';
 
-    _nameController.text = f.name;
-    _ownerEmailController.text = f.ownerEmail ?? '';
-    _phoneController.text = f.phoneNumber ?? '';
-    _emailController.text = f.email ?? '';
-    _capacityController.text = f.capacity?.toString() ?? '';
+      if (f.hasLocation) {
+        _selected = LatLng(f.latitude!, f.longitude!);
+        _latitudeController.text = f.latitude!.toStringAsFixed(6);
+        _longitudeController.text = f.longitude!.toStringAsFixed(6);
+      }
+    } else {
+      _fetchUsers();
+    }
+  }
 
-    if (f.hasLocation) {
-      _selected = LatLng(f.latitude!, f.longitude!);
-      _latitudeController.text = f.latitude!.toStringAsFixed(6);
-      _longitudeController.text = f.longitude!.toStringAsFixed(6);
+  Future<void> _fetchUsers() async {
+    setState(() => _isLoadingUsers = true);
+    try {
+      final users = await _service.listUserOptions();
+      if (mounted) {
+        setState(() {
+          _userOptions = users;
+          _isLoadingUsers = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingUsers = false);
     }
   }
 
@@ -95,9 +116,13 @@ class _FosterRegisterState extends State<FosterRegister> {
     setState(() => _isLoading = true);
 
     try {
+      final ownerEmailToSubmit = !_isEditing
+          ? _ownerEmailController.text.trim()
+          : (widget.foster?.email ?? _emailController.text.trim());
+
       await _service.saveFosterHome(
         id: widget.foster?.id,
-        ownerEmail: _ownerEmailController.text.trim(),
+        ownerEmail: ownerEmailToSubmit,
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.replaceAll(RegExp(r'\D'), ''),
         email: _emailController.text.trim(),
@@ -114,7 +139,7 @@ class _FosterRegisterState extends State<FosterRegister> {
             : 'Lar temporário cadastrado com sucesso!',
         Colors.green,
       );
-      Navigator.pop(context, true); // avisa a listagem para recarregar
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
       _showMessage(e.toString().replaceFirst('Exception: ', ''), Colors.red);
@@ -178,7 +203,7 @@ class _FosterRegisterState extends State<FosterRegister> {
           children: [
             IgnorePointer(
               child: FlutterMap(
-                key: ValueKey(center), // recentra quando o ponto muda
+                key: ValueKey(center),
                 options: MapOptions(
                   initialCenter: center,
                   initialZoom: _selected == null ? 13 : 16,
@@ -278,7 +303,7 @@ class _FosterRegisterState extends State<FosterRegister> {
                         _isEditing
                             ? 'Editar lar temporário'
                             : 'Cadastrar lar temporário',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
@@ -298,13 +323,78 @@ class _FosterRegisterState extends State<FosterRegister> {
                           'Use entre 3 e 50 caracteres',
                         ),
                       ),
-                      _buildField(
-                        label: 'E-mail do responsável',
-                        controller: _ownerEmailController,
-                        icon: Icons.person_outline,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: emailRule,
-                      ),
+
+                      if (!_isEditing) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _isLoadingUsers
+                              ? const LinearProgressIndicator(
+                                  color: _secondaryColor,
+                                )
+                              : DropdownButtonFormField<UserOption>(
+                                  value: _selectedUser,
+                                  decoration: InputDecoration(
+                                    labelText: 'Selecione o responsável *',
+                                    isDense: true,
+                                    prefixIcon: const Icon(
+                                      Icons.person_outline,
+                                      color: _secondaryColor,
+                                      size: 20,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: _secondaryColor,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                  items: _userOptions.map((user) {
+                                    return DropdownMenuItem<UserOption>(
+                                      value: user,
+                                      child: Text(
+                                        user.name,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (selected) {
+                                    setState(() {
+                                      _selectedUser = selected;
+                                      if (selected != null) {
+                                        _ownerEmailController.text =
+                                            selected.email;
+                                      }
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null &&
+                                        _ownerEmailController.text
+                                            .trim()
+                                            .isEmpty) {
+                                      return 'Selecione o responsável pelo lar';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                        ),
+                      ],
+
+                      if (_isEditing && widget.foster?.ownerName != null) ...[
+                        _buildField(
+                          label: 'Responsável',
+                          controller: TextEditingController(
+                            text: widget.foster!.ownerName,
+                          ),
+                          icon: Icons.badge_outlined,
+                          readOnly: true,
+                          validator: (_) => null,
+                        ),
+                      ],
+
                       _buildField(
                         label: 'Telefone celular',
                         controller: _phoneController,
@@ -416,7 +506,6 @@ class _FosterRegisterState extends State<FosterRegister> {
   }
 }
 
-/// Mapa em tela cheia: o pino fica fixo no centro e a pessoa arrasta o mapa.
 class _MapPickerScreen extends StatefulWidget {
   final LatLng? selected;
 
@@ -481,7 +570,7 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
               onTap: (_, point) =>
                   _controller.move(point, _controller.camera.zoom),
             ),
-            children: _mapLayers(null), // sem marcador: o pino fica no centro
+            children: _mapLayers(null),
           ),
           const IgnorePointer(
             child: Center(

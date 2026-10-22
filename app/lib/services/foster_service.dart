@@ -207,18 +207,26 @@ class FosterService {
         return [city, a['state']].whereType<String>().join(' - ');
       });
 
-  /// "Rua Fulano, 123 - Bairro"
-  Future<String> streetFromCoordinates(double lat, double lon) =>
-      _reverse(lat, lon, 18, 'Endereço indisponível', (a) {
-        final road = a['road'] ?? a['pedestrian'] ?? a['footway'] ?? a['path'];
-        final number = a['house_number'];
-        final district = a['suburb'] ?? a['neighbourhood'] ?? a['quarter'];
+  Future<String> streetFromCoordinates(double lat, double lon) => _reverse(
+    lat,
+    lon,
+    16,
+    'Endereço indisponível',
+    (a) {
+      // Prioritizes the main street before considering other routes
+      final road = a['road'] ?? a['pedestrian'] ?? a['street'] ?? a['highway'];
+      final number = a['house_number'];
+      final district =
+          a['suburb'] ?? a['neighbourhood'] ?? a['quarter'] ?? a['residential'];
 
-        return [
-          if (road is String) (number is String ? '$road, $number' : road),
-          if (district is String) district,
-        ].join(' - ');
-      });
+      if (road == null) return '';
+
+      return [
+        if (road is String) (number is String ? '$road, $number' : road),
+        if (district is String) district,
+      ].join(' - ');
+    },
+  );
 
   Future<String> _reverse(
     double lat,
@@ -249,6 +257,7 @@ class FosterService {
           'lat': '$lat',
           'lon': '$lon',
           'zoom': '$zoom',
+          'addressdetails': '1', // Ensures the complete address structure
           'accept-language': 'pt-BR',
         });
 
@@ -264,7 +273,7 @@ class FosterService {
           if (text.isNotEmpty) {
             label = text;
             _geoCache[key] = label;
-            await prefs.setString(key, label); // só guarda sucesso
+            await prefs.setString(key, label);
           }
         }
       } catch (_) {}
@@ -317,4 +326,33 @@ class FosterService {
         return Exception('Erro ao $action. Código: $status');
     }
   }
+
+  Future<List<UserOption>> listUserOptions() async {
+    const action = 'listar usuários';
+    final headers = await _authHeaders(action);
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/user'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(utf8.decode(response.bodyBytes));
+      return data.map((e) => UserOption.fromJson(e)).toList();
+    }
+
+    return [];
+  }
+}
+
+class UserOption {
+  final String name;
+  final String email;
+
+  const UserOption({required this.name, required this.email});
+
+  factory UserOption.fromJson(Map<String, dynamic> json) => UserOption(
+    name: json['name'] ?? json['userName'] ?? '',
+    email: json['email'] ?? '',
+  );
 }
