@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import com.ong.acolhepatinhas.api.security.enums.Role;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -43,6 +44,9 @@ public class User implements UserDetails {
     private String password;
 
     private String profileImageUrl;
+
+    @Column(length = 500)
+    private String description;
 
     @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.VARCHAR)
     private Role role;

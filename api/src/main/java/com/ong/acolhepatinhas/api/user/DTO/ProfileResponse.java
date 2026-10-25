@@ -28,7 +28,10 @@ public record ProfileResponse(
     boolean isEmailVerified,
 
     @Schema(example = "https://storage.example/user/avatar/1_uuid.jpg")
-    String profileImageUrl
+    String profileImageUrl,
+
+    @Schema (example = "Voluntário na Acolhe Patinhas")
+    String description
 ) {
 
     public static ProfileResponse from(User user) {
@@ -41,7 +44,8 @@ public record ProfileResponse(
             user.getRole(),
             user.getCreatedAt(),
             user.isEmailVerified(),
-            user.getProfileImageUrl()
+            user.getProfileImageUrl(),
+            user.getDescription()
         );
     }
 }

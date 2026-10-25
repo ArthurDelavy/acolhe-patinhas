@@ -81,6 +81,7 @@ class AuthService {
         'email': email,
         'password': password,
         'acceptTerms': acceptTerms,
+        'doAcceptTerms': acceptTerms,
       }),
     );
 

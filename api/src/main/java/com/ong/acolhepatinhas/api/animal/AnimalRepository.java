@@ -18,12 +18,12 @@ public interface AnimalRepository extends JpaRepository<Animal, Integer> {
     boolean existsByDischargeReason(AnimalDischargeReason dischargeReason);
     boolean existsByMicrochipNumber(String microchipNumber);
 
-    @EntityGraph(attributePaths = {"vetRecord", "color", "breed.specie"})
+    @EntityGraph(attributePaths = {"vetRecord", "color", "breed", "breed.specie"})
     List<Animal> findAll();
 
-    @EntityGraph(attributePaths = {"vetRecord", "color", "breed.specie"})
+    @EntityGraph(attributePaths = {"vetRecord", "color", "breed", "breed.specie"})
     List<Animal> findAllByToAdoption(Boolean toAdoption);
 
-    @EntityGraph(attributePaths = {"user", "vetRecord", "breed.specie", "color", "gender", "dischargeReason"})
+    @EntityGraph(attributePaths = {"user", "vetRecord", "breed", "breed.specie", "color", "dischargeReason"})
     Optional<Animal> findById(int id);
 }

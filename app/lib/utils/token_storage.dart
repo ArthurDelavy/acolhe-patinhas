@@ -5,6 +5,11 @@ class TokenStorage {
   static const _authKey = 'auth_token';
   static const _refreshKey = 'refresh_token';
 
+  static Future<void> saveAuthToken(String authToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_authKey, authToken);
+  }
+
   static Future<void> saveTokens({
     required String authToken,
     required String refreshToken,
@@ -35,7 +40,6 @@ class TokenStorage {
     return token != null && token.isNotEmpty;
   }
 
-  /// Verifica se o usuário possui determinada permissão dentro da claim 'roles'
   static Future<bool> hasPermission(String permission) async {
     final token = await getAuthToken();
     if (token == null || token.isEmpty) return false;
@@ -49,7 +53,6 @@ class TokenStorage {
       if (currentTime >= exp) return false; // Token expirado
     }
 
-    // O backend Spring Boot salva as permissões na claim "roles"
     final rolesAndPermissions = payload['roles'];
     if (rolesAndPermissions is List) {
       return rolesAndPermissions.contains(permission);
