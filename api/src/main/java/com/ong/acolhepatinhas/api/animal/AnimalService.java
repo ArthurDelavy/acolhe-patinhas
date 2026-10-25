@@ -199,13 +199,13 @@ public class AnimalService {
             "ANIMAL_EDITED",
             "Animal/%d".formatted(animal.getId()),
             """
-                {
-                    "changes": {
-                        "image": {
-                            "action": "%s"
-                        }
+            {
+                "changes": {
+                    "image": {
+                        "action": "%s"
                     }
                 }
+            }
             """.formatted(hadPreviousImage ? "UPDATED" : "ADDED")
         ));
 
@@ -226,14 +226,14 @@ public class AnimalService {
             "ANIMAL_DELETED",
             "Animal/%d".formatted(animal.getId()),
             """
-                {
-                    "deletedRecord": {
-                        "name": "%s",
-                        "microchipNumber": %s,
-                        "specie": "%s"
-                        "breed": "%s"
-                    }
+            {
+                "deletedRecord": {
+                    "name": "%s",
+                    "microchipNumber": %s,
+                    "specie": "%s"
+                    "breed": "%s"
                 }
+            }
             """.formatted(animal.getName(), animal.getMicrochipNumber(), animal.getBreed().getSpecie(), animal.getBreed())
         ));
     }
