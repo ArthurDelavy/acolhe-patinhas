@@ -174,7 +174,7 @@ public class ReferencesService {
 
 
         evtPbs.publishEvent(new AuditLogEvent(
-            "ANIMAL_DISCHARGEREASON_CREATED",
+            "ANIMAL_DISCHARGE_REASON_CREATED",
             "DischargeReason/%d".formatted(newReason.getId()),
             null
         ));
@@ -271,7 +271,7 @@ public class ReferencesService {
         drsRep.delete(reason);
 
         evtPbs.publishEvent(new AuditLogEvent(
-            "ANIMAL_DISCHARGEREASON_DELETED",
+            "ANIMAL_DISCHARGE_REASON_DELETED",
             "DischargeReason/%d".formatted(reason.getId()),
             """
             {
