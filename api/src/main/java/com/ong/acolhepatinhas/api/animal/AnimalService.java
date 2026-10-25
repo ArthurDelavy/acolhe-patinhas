@@ -225,7 +225,16 @@ public class AnimalService {
         evtPbs.publishEvent(new AuditLogEvent(
             "ANIMAL_DELETED",
             "Animal/%d".formatted(animal.getId()),
-            null
+            """
+                {
+                    "deletedRecord": {
+                        "name": "%s",
+                        "microchipNumber": %s,
+                        "specie": "%s"
+                        "breed": "%s"
+                    }
+                }
+            """.formatted(animal.getName(), animal.getMicrochipNumber(), animal.getBreed().getSpecie(), animal.getBreed())
         ));
     }
 }
