@@ -1,5 +1,7 @@
 package com.ong.acolhepatinhas.api.utils;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -8,6 +10,18 @@ import jakarta.servlet.http.HttpServletRequest;
 public class RequestInfo {
     
     private RequestInfo() {}
+
+
+    public static String getAuthenticatedUserEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            return auth.getName();
+        }
+        
+        return "SYSTEM";
+    }
+
 
     public static String getClientIp() {
 

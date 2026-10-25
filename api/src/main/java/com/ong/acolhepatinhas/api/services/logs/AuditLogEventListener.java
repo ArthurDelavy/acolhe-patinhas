@@ -25,7 +25,7 @@ public class AuditLogEventListener {
     public void saveUserActionLog(@Valid AuditLogEvent event) {
         
         logSvc.newLog(new NewLogEventDTO(
-            event.actor(),
+            RequestInfo.getAuthenticatedUserEmail(),
             event.action(),
             event.resource(),
             event.details(),    
