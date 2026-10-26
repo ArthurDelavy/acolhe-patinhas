@@ -133,7 +133,7 @@ public class FosterHomeService {
             {
                 "deletedRecord": {
                     "name": "%s",
-                    "phoneNumber": %s,
+                    "phoneNumber": "%s",
                     "email": "%s"
                 }
             }
