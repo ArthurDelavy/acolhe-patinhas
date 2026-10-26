@@ -2,8 +2,6 @@ package com.ong.acolhepatinhas.api.post;
 
 import java.nio.file.AccessDeniedException;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,14 +20,14 @@ import com.ong.acolhepatinhas.api.post.DTO.EditPostRequest;
 import com.ong.acolhepatinhas.api.post.DTO.NewPostRequest;
 import com.ong.acolhepatinhas.api.post.DTO.UpdatablePostData;
 import com.ong.acolhepatinhas.api.security.enums.Role;
-import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.services.imageService.ImageService;
+import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
 import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
-import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
-import com.ong.acolhepatinhas.api.utils.ObjectComparator;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
+import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
+import com.ong.acolhepatinhas.api.utils.ObjectComparator;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
