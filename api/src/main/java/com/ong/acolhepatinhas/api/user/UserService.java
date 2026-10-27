@@ -3,7 +3,7 @@ package com.ong.acolhepatinhas.api.user;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -30,10 +30,11 @@ import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCode;
 import com.ong.acolhepatinhas.api.passwordcode.PasswordChangeCodeService;
 import com.ong.acolhepatinhas.api.security.enums.Role;
 import com.ong.acolhepatinhas.api.services.emailService.EmailService;
-import com.ong.acolhepatinhas.api.term.TermService;
-import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.services.imageService.ImageService;
+import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
+import com.ong.acolhepatinhas.api.term.TermService;
 import com.ong.acolhepatinhas.api.user.DTO.ChangeEmailRequest;
 import com.ong.acolhepatinhas.api.user.DTO.ConfirmEmailChangeRequest;
 import com.ong.acolhepatinhas.api.user.DTO.EditDescriptionRequest;
@@ -41,6 +42,7 @@ import com.ong.acolhepatinhas.api.user.DTO.EditNameRequest;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 import com.ong.acolhepatinhas.api.user.DTO.ProfileResponse;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
+import com.ong.acolhepatinhas.api.utils.ObjectComparator;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +65,8 @@ public class UserService implements UserDetailsService {
     private final EmailChangeCodeService eccSvc;
     private final ImageService imgSvc;
 
+    private final ApplicationEventPublisher evtPbs;
+    private final ObjectComparator objCpr;
 
     
     @Override
@@ -89,14 +93,32 @@ public class UserService implements UserDetailsService {
     @Transactional
     public ProfileResponse changeName(LoggedUserPayload requester, @Valid EditNameRequest data) {
         User user = requireAccount(requester);
+        EditNameRequest oldData = new EditNameRequest(user.getName());
+
         user.setName(data.name());
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_EDITED",
+            "User/%d".formatted(user.getId()),
+            objCpr.getDifferentAttributes(oldData, data)
+        ));
+
         return ProfileResponse.from(user);
     }
 
     @Transactional
     public ProfileResponse changeDescription(LoggedUserPayload requester, @Valid EditDescriptionRequest data) {
         User user = requireAccount(requester);
+        EditDescriptionRequest oldData = new EditDescriptionRequest(user.getDescription());
+
         user.setDescription(data.description());
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_EDITED",
+            "User/%d".formatted(user.getId()),
+            objCpr.getDifferentAttributes(oldData, data)
+        ));
+
         return ProfileResponse.from(user);
     }
 
@@ -122,9 +144,27 @@ public class UserService implements UserDetailsService {
         if (!pswEcd.matches(data.code(), code.getCode())) throw new BadCredentialsException("Código inválido.");
         if (usrRep.existsByEmail(code.getNewEmail())) throw new DuplicatedValueException("E-mail já cadastrado.");
 
+        String oldEmail = user.getEmail();
+
         user.setEmail(code.getNewEmail());
         user.setEmailVerified(true);
         eccSvc.deleteCode(code);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_EMAIL_CHANGED",
+            "User/%d".formatted(user.getId()),
+            """
+            {
+                "changes": {
+                    "email": {
+                        "old": "%s",
+                        "new": "%s"
+                    }
+                }
+            }
+            """.formatted(oldEmail, user.getEmail())
+        ));
 
         return user;
     }
@@ -134,10 +174,27 @@ public class UserService implements UserDetailsService {
     public ProfileResponse setProfileImage(LoggedUserPayload requester, @Valid ImageRequest image) {
         User user = requireAccount(requester);
 
+        boolean hadPreviousImage = (user.getProfileImageUrl() != null);
+
         if (user.getProfileImageUrl() != null) imgSvc.deleteImage(user.getProfileImageUrl(), StorageFileType.USER_PROFILE_PHOTO);
 
         String url = imgSvc.saveImage(image, String.valueOf(user.getId()), StorageFileType.USER_PROFILE_PHOTO);
         user.setProfileImageUrl(url);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_EDITED",
+            "User/%d".formatted(user.getId()),
+            """
+            {
+                "changes": {
+                    "profileImage": {
+                        "action": "%s"
+                    }
+                }
+            }
+            """.formatted(hadPreviousImage ? "UPDATED" : "ADDED")
+        ));
 
         return ProfileResponse.from(user);
     }
@@ -173,6 +230,13 @@ public class UserService implements UserDetailsService {
         String code = evcSvc.newCode(user);
         emlSvc.verificationEmail(user.getEmail(), code);
 
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_CREATED",
+            "User/%d".formatted(user.getId()),
+            null
+        ));
+
         return UserResponse.from(user);
     }
 
@@ -185,6 +249,16 @@ public class UserService implements UserDetailsService {
         if (pswEcd.matches(data.newPassword(), user.getPassword())) throw new DuplicatedValueException("A nova senha não pode ser igual à antiga.");
 
         user.setPassword(pswEcd.encode(data.newPassword()));
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_PASSWORD_CHANGED",
+            "User/%d".formatted(user.getId()),
+            """
+            {
+                "method": "CHANGE"
+            }
+            """
+        ));
     }
 
     @Transactional
@@ -206,6 +280,17 @@ public class UserService implements UserDetailsService {
 
         user.setPassword(pswEcd.encode(data.newPassword()));
         pswSvc.deleteCode(code);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_PASSWORD_CHANGED",
+            "User/%d".formatted(user.getId()),
+            """
+            {
+                "method": "RESET"
+            }
+            """
+        ));
     }
 
     @Transactional
@@ -232,6 +317,13 @@ public class UserService implements UserDetailsService {
         user.setEmailVerified(true);
         evcSvc.deleteCode(code);
 
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_EMAIL_VERIFICATION",
+            "User/%d".formatted(user.getId()),
+            null
+        ));
+
         return user;
     }
 
@@ -246,5 +338,12 @@ public class UserService implements UserDetailsService {
             case VERIFIED -> user.setRole(Role.USER);
             case ANONYMOUS -> throw new BusinessRuleException("Acessos anônimos não podem ser verificados.");
         }
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "USER_VERIFICATION_TOGGLED",
+            "User/%d".formatted(user.getId()),
+            null
+        ));
     }
 }
