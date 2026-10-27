@@ -43,36 +43,26 @@ import com.ong.acolhepatinhas.api.user.DTO.ProfileResponse;
 import com.ong.acolhepatinhas.api.user.DTO.UserResponse;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 
 @Service
+@RequiredArgsConstructor 
 @Transactional(readOnly = true)
 @Validated
 public class UserService implements UserDetailsService {
     
-    @Autowired
-    private UserRepository usrRep;
+    private final UserRepository usrRep;
 
-    @Autowired
-    private PasswordEncoder pswEcd;
+    private final PasswordEncoder pswEcd;
 
-    @Autowired
-    private PasswordChangeCodeService pswSvc;
+    private final PasswordChangeCodeService pswSvc;
+    private final EmailService emlSvc;
+    private final EmailVerificationCodeService evcSvc;
+    private final TermService trmSvc;
+    private final EmailChangeCodeService eccSvc;
+    private final ImageService imgSvc;
 
-    @Autowired
-    private EmailService emlSvc;
-
-    @Autowired
-    private EmailVerificationCodeService evcSvc;
-
-    @Autowired
-    private TermService trmSvc;
-
-    @Autowired
-    private EmailChangeCodeService eccSvc;
-
-    @Autowired
-    private ImageService imgSvc;
 
     
     @Override
