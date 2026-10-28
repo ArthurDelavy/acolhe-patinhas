@@ -102,20 +102,10 @@ class _ReportScreenState extends State<ReportScreen> {
   Future<void> _submitReport() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecione uma foto do animal.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
     if (_selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Escolha o local no mapa.'),
+          content: Text('Escolha a localização no mapa.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -131,7 +121,7 @@ class _ReportScreenState extends State<ReportScreen> {
         type: _selectedType,
         latitude: _selectedLocation!.latitude,
         longitude: _selectedLocation!.longitude,
-        imageFile: File(_selectedImage!.path),
+        imageFile: _selectedImage,
       );
 
       if (!mounted) return;
@@ -140,12 +130,14 @@ class _ReportScreenState extends State<ReportScreen> {
         const SnackBar(
           content: Text('Reporte publicado com sucesso!'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
 
-      Navigator.pushReplacementNamed(context, '/feed');
+      Navigator.pushNamedAndRemoveUntil(context, '/feed', (route) => false);
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceFirst('Exception: ', '')),

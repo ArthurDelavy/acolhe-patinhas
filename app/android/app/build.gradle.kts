@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.acolhepatinhas.acolhe_patinhas"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

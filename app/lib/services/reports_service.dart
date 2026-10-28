@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
 
 enum ReportType { LOST, FOUND, ABANDONED }
@@ -17,7 +17,7 @@ extension ReportTypeExtension on ReportType {
     }
   }
 
-  String get nameValue => name; // "LOST", "FOUND", "ABANDONED"
+  String get nameValue => name;
 }
 
 enum ReportStatus { OPEN, RESOLVED, CANCELLED }
@@ -48,6 +48,55 @@ class AnimalReport {
     this.userPhotoUrl,
     this.createdAt,
   });
+
+  /// Busca o endereço completo (Rua, Bairro e Cidade) via OpenStreetMap Nominatim
+  Future<String> fetchAddress() async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$latitude&lon=$longitude&zoom=18&addressdetails=1',
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'User-Agent': 'AcolhePatinhasApp/1.0',
+          'Accept-Language': 'pt-BR',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final address = data['address'];
+
+        if (address != null && address is Map) {
+          final road =
+              address['road'] ??
+              address['pedestrian'] ??
+              address['suburb'] ??
+              '';
+          final neighbourhood =
+              address['neighbourhood'] ?? address['suburb'] ?? '';
+          final city =
+              address['city'] ??
+              address['town'] ??
+              address['municipality'] ??
+              '';
+
+          List<String> parts = [];
+          if (road.toString().isNotEmpty) parts.add(road.toString());
+          if (neighbourhood.toString().isNotEmpty && neighbourhood != road)
+            parts.add(neighbourhood.toString());
+          if (city.toString().isNotEmpty) parts.add(city.toString());
+
+          if (parts.isNotEmpty) {
+            return parts.join(', ');
+          }
+        }
+      }
+    } catch (_) {}
+
+    return '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
+  }
 
   factory AnimalReport.fromJson(Map<String, dynamic> json) {
     return AnimalReport(
@@ -83,40 +132,66 @@ class AnimalReport {
 class ReportService {
   final String baseUrl = 'http://localhost:8080';
 
+  Future<List<AnimalReport>> listAll() async {
+    final token = await TokenStorage.getAuthToken();
+    final uri = Uri.parse('$baseUrl/report');
+
+    final headers = <String, String>{'Content-Type': 'application/json'};
+
+    // Apenas adiciona se o token for válido e não-vazio
+    if (token != null && token.trim().isNotEmpty && token != 'null') {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(
+        utf8.decode(response.bodyBytes),
+      );
+      return jsonList.map((json) => AnimalReport.fromJson(json)).toList();
+    }
+
+    throw Exception(
+      'Erro ao carregar reportes. Código: ${response.statusCode}',
+    );
+  }
+
   Future<AnimalReport> createReport({
     required String title,
     required String description,
     required ReportType type,
     required double latitude,
     required double longitude,
-    File? imageFile,
+    XFile? imageFile,
   }) async {
     final token = await TokenStorage.getAuthToken();
-    if (token == null || token.isEmpty) {
-      throw Exception(
-        'Você precisa estar autenticado para realizar um reporte.',
-      );
-    }
-
     final uri = Uri.parse('$baseUrl/report');
     final request = http.MultipartRequest('POST', uri);
 
-    request.headers['Authorization'] = 'Bearer $token';
+    // Se houver token, envia a autenticação do usuário logado
+    if (token != null && token.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
 
-    // Campos do DTO NewReportRequest
     request.fields['title'] = title;
     request.fields['description'] = description;
     request.fields['type'] = type.nameValue;
     request.fields['latitude'] = latitude.toStringAsFixed(6);
     request.fields['longitude'] = longitude.toStringAsFixed(6);
 
-    // Imagem do animal (opcional)
     if (imageFile != null) {
-      final multipartFile = await http.MultipartFile.fromPath(
-        'image',
-        imageFile.path,
-      );
-      request.files.add(multipartFile);
+      final bytes = await imageFile.readAsBytes();
+      if (bytes.isNotEmpty) {
+        final multipartFile = http.MultipartFile.fromBytes(
+          'image',
+          bytes,
+          filename: imageFile.name.isNotEmpty
+              ? imageFile.name
+              : 'report_pet.jpg',
+        );
+        request.files.add(multipartFile);
+      }
     }
 
     final streamedResponse = await request.send();
