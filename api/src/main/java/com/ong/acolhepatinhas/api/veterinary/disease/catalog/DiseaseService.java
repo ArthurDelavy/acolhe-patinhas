@@ -57,7 +57,7 @@ public class DiseaseService {
         Disease newDisease = dseRep.save(disease);
 
         evtPbs.publishEvent(new AuditLogEvent(
-            "ANIMAL_DISEASE_CREATED",
+            "DISEASE_CREATED",
             "Disease/%d".formatted(newDisease.getId()),
             null
         ));
@@ -79,7 +79,7 @@ public class DiseaseService {
 
 
         evtPbs.publishEvent(new AuditLogEvent(
-            "ANIMAL_DISEASE_DELETED",
+            "DISEASE_DELETED",
             "Disease/%d".formatted(disease.getId()),
             """
             {

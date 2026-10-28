@@ -74,7 +74,7 @@ public class DiagnosisService {
 
 
         evtPbs.publishEvent(new AuditLogEvent(
-            "ANIMAL_DIAGNOSIS_CREATED",
+            "DIAGNOSIS_CREATED",
             "Diagnosis/%d".formatted(newDiagnosis.getId()),
             null
         ));
@@ -110,7 +110,7 @@ public class DiagnosisService {
 
 
         evtPbs.publishEvent(new AuditLogEvent(
-            "ANIMAL_DIAGNOSIS_DELETED",
+            "DIAGNOSIS_DELETED",
             "Diagnosis/%d".formatted(diagnosis.getId()),
             """
             {
