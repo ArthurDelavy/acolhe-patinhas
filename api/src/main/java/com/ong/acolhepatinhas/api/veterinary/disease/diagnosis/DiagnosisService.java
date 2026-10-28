@@ -115,7 +115,7 @@ public class DiagnosisService {
             """
             {
                 "deletedRecord": {
-                    "animalId": %d
+                    "animalId": %d,
                     "disease": "%s"
                 }
             }
