@@ -1,5 +1,6 @@
 package com.ong.acolhepatinhas.api.veterinary.disease.diagnosis.DTO;
 
+import com.ong.acolhepatinhas.api.veterinary.disease.diagnosis.Diagnosis;
 import com.ong.acolhepatinhas.api.veterinary.disease.diagnosis.enums.DiseaseStatus;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,4 +13,7 @@ public record UpdateDiagnosisStatusRequest(
     DiseaseStatus status
 ){
     
+    public static UpdateDiagnosisStatusRequest fromDiagnosis(Diagnosis data) {
+        return new UpdateDiagnosisStatusRequest(data.getStatus());
+    }
 }
