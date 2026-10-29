@@ -5,6 +5,8 @@ import java.time.Instant;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
 
 import com.ong.acolhepatinhas.api.report.enums.ReportStatus;
@@ -43,10 +45,10 @@ public class AnimalReport {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "user_id")
     private User user;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ReportType type;
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ReportStatus status;
 
     private String title;

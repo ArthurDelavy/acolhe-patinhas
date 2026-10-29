@@ -3,12 +3,15 @@ package com.ong.acolhepatinhas.api.veterinary.disease.diagnosis;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
+import com.ong.acolhepatinhas.api.utils.ObjectComparator;
 import com.ong.acolhepatinhas.api.veterinary.disease.catalog.Disease;
 import com.ong.acolhepatinhas.api.veterinary.disease.catalog.DiseaseService;
 import com.ong.acolhepatinhas.api.veterinary.disease.diagnosis.DTO.NewDiagnosisRequest;
@@ -31,6 +34,10 @@ public class DiagnosisService {
 
     @Autowired @Lazy
     private DiseaseService dseSvc;
+
+
+    private final ApplicationEventPublisher evtPbs;
+    private final ObjectComparator objCpr;
 
 
     public boolean existsByDisease(Disease disease) {
@@ -63,7 +70,16 @@ public class DiagnosisService {
             .status(data.status())
             .build();
 
-        return dgnRep.save(diagnosis);
+        Diagnosis newDiagnosis = dgnRep.save(diagnosis);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "DIAGNOSIS_CREATED",
+            "Diagnosis/%d".formatted(newDiagnosis.getId()),
+            null
+        ));
+
+        return newDiagnosis;
     }
 
     
@@ -71,9 +87,18 @@ public class DiagnosisService {
     public Diagnosis changeStatus(int diagnosisId, @Valid UpdateDiagnosisStatusRequest data) {
 
         Diagnosis diagnosis = this.getById(diagnosisId);
+        UpdateDiagnosisStatusRequest oldData = UpdateDiagnosisStatusRequest.fromDiagnosis(diagnosis);
 
         diagnosis.setStatus(data.status());
-        return dgnRep.save(diagnosis);
+        Diagnosis newDiagnosis = dgnRep.save(diagnosis);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "DIAGNOSIS_EDITED",
+            "Diagnosis/%d".formatted(diagnosis.getId()),
+            objCpr.getDifferentAttributes(oldData, data)
+        ));
+
+        return newDiagnosis;
     }
 
 
@@ -82,5 +107,19 @@ public class DiagnosisService {
 
         Diagnosis diagnosis = this.getById(diagnosisId);
         dgnRep.delete(diagnosis);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "DIAGNOSIS_DELETED",
+            "Diagnosis/%d".formatted(diagnosis.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "animalId": %d,
+                    "disease": "%s"
+                }
+            }
+            """.formatted(diagnosis.getVetRecord().getId(), diagnosis.getDisease().getName())
+        ));
     }
 }

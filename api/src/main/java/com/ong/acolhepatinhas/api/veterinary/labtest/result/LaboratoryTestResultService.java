@@ -2,11 +2,13 @@ package com.ong.acolhepatinhas.api.veterinary.labtest.result;
 
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.labtest.catalog.LaboratoryTest;
 import com.ong.acolhepatinhas.api.veterinary.labtest.catalog.LaboratoryTestService;
 import com.ong.acolhepatinhas.api.veterinary.labtest.result.DTO.NewLaboratoryTestResultRequest;
@@ -26,6 +28,10 @@ public class LaboratoryTestResultService {
 
     private final VeterinaryRecordService vtrSvc;
     private final LaboratoryTestService lbtSvc;
+
+    private final ApplicationEventPublisher evtPbs;
+
+
 
     public boolean existsByLabTest(LaboratoryTest labTest) {
         return ltrRep.existsByLabTest(labTest);
@@ -59,7 +65,15 @@ public class LaboratoryTestResultService {
             .observations(data.observations())
             .build();
 
-        return ltrRep.save(testResult);
+        LaboratoryTestResult newResult = ltrRep.save(testResult);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "LAB_TEST_RESULT_CREATED",
+            "Result/%d".formatted(newResult.getId()),
+            null
+        ));
+
+        return newResult;
     }
 
     @Transactional
@@ -67,5 +81,20 @@ public class LaboratoryTestResultService {
 
         LaboratoryTestResult testResult = this.getById(labTestId);
         ltrRep.delete(testResult);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "LAB_TEST_RESULT_DELETED",
+            "Result/%d".formatted(testResult.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "animalId": %d,
+                    "testType": "%s",
+                    "result": "%s"
+                }
+            }
+            """.formatted(testResult.getVetRecord().getId(), testResult.getLabTest().getName(), testResult.getResults())
+        ));
     }
 }

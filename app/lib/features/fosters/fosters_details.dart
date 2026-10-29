@@ -264,7 +264,6 @@ class _FosterDetailsScreenState extends State<FosterDetailsScreen> {
                   text: f.userName!,
                 ),
 
-              // Ações (o backend valida a permissão)
               const SizedBox(height: 8),
               Row(
                 children: [

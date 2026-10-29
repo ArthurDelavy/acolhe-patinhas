@@ -3,6 +3,7 @@ package com.ong.acolhepatinhas.api.animal;
 import java.util.List;
 import java.util.Objects;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -19,9 +20,11 @@ import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.services.imageService.ImageService;
 import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
+import com.ong.acolhepatinhas.api.utils.ObjectComparator;
 import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecord;
 import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecordService;
 import com.ong.acolhepatinhas.api.veterinary.record.DTO.NewVetRecordRequest;
@@ -41,6 +44,9 @@ public class AnimalService {
     private final VeterinaryRecordService vrcSvc;
 
     private final ImageService imgSvc;
+
+    private final ApplicationEventPublisher evtPbs;
+    private final ObjectComparator objCpr;
 
 
     public List<Animal> listAll(Boolean toAdoption) {
@@ -103,6 +109,15 @@ public class AnimalService {
         );
 
         savedAnimal.setVetRecord(vetRecord);
+
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_CREATED",
+            "Animal/%d".formatted(savedAnimal.getId()),
+            null
+        ));
+
         return savedAnimal;
     }
 
@@ -111,6 +126,8 @@ public class AnimalService {
     public Animal editAnimal(LoggedUserPayload user, int animalId, @Valid EditAnimalRequest data) {
 
         Animal animal = this.getById(animalId);
+        EditAnimalRequest oldAnimal = EditAnimalRequest.fromAnimal(animal);
+
         User requester = (User) usrSvc.loadUserByUsername(user.email());
         
         if (
@@ -144,7 +161,17 @@ public class AnimalService {
             )
         );
 
-        return anmRep.save(animal);
+
+        Animal savedAnimal = anmRep.save(animal);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_EDITED",
+            "Animal/%d".formatted(animal.getId()),
+            objCpr.getDifferentAttributes(oldAnimal, data)
+        ));
+
+
+        return savedAnimal;
     }
 
 
@@ -154,13 +181,35 @@ public class AnimalService {
         User requester = (User) usrSvc.loadUserByUsername(user.email());
         Animal animal = this.getById(animalId);
         
-        if (animal.getImageUrl() != null) imgSvc.deleteImage(animal.getImageUrl(), StorageFileType.ANIMAL_REGISTER_PHOTO);
 
-        String url = imgSvc.saveImage(image, String.valueOf(animalId), StorageFileType.ANIMAL_REGISTER_PHOTO);
+        boolean hadPreviousImage = (animal.getImageUrl() != null);
+
+        if (hadPreviousImage) imgSvc.deleteImage(animal.getImageUrl(), StorageFileType.ANIMAL_REGISTER_PHOTO);
+
+
+        String url = imgSvc.saveImage(image, "anm" + String.valueOf(animalId), StorageFileType.ANIMAL_REGISTER_PHOTO);
         
         animal.setImageUrl(url);
         animal.setUser(requester);
-        return anmRep.save(animal);
+
+        Animal savedAnimal = anmRep.save(animal);
+
+        
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_EDITED",
+            "Animal/%d".formatted(animal.getId()),
+            """
+            {
+                "changes": {
+                    "image": {
+                        "action": "%s"
+                    }
+                }
+            }
+            """.formatted(hadPreviousImage ? "UPDATED" : "ADDED")
+        ));
+
+        return savedAnimal;
     }
 
 
@@ -171,5 +220,21 @@ public class AnimalService {
         if (animal.getImageUrl() != null) imgSvc.deleteImage(animal.getImageUrl(), StorageFileType.ANIMAL_REGISTER_PHOTO);
         
         anmRep.delete(animal);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_DELETED",
+            "Animal/%d".formatted(animal.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s",
+                    "microchipNumber": "%s",
+                    "specie": "%s"
+                    "breed": "%s"
+                }
+            }
+            """.formatted(animal.getName(), animal.getMicrochipNumber(), animal.getBreed().getSpecie(), animal.getBreed())
+        ));
     }
 }

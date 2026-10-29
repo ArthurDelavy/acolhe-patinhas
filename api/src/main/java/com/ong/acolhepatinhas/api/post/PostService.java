@@ -4,6 +4,7 @@ import java.nio.file.AccessDeniedException;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -17,13 +18,16 @@ import org.springframework.web.multipart.MultipartFile;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
 import com.ong.acolhepatinhas.api.post.DTO.EditPostRequest;
 import com.ong.acolhepatinhas.api.post.DTO.NewPostRequest;
+import com.ong.acolhepatinhas.api.post.DTO.UpdatablePostData;
 import com.ong.acolhepatinhas.api.security.enums.Role;
-import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.services.imageService.ImageService;
+import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
-import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
+import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
+import com.ong.acolhepatinhas.api.utils.ObjectComparator;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +42,10 @@ public class PostService {
     private final UserService usrSvc;
 
     private final ImageService imgSvc;
+
+    private final ApplicationEventPublisher evtPbs;
+    private final ObjectComparator objCpr;
+
 
     // Listagem de postagens com paginação e ordenação
     public Page<Post> listAll(String order, int page, int size) {
@@ -76,7 +84,17 @@ public class PostService {
             .createdAt(OffsetDateTime.now())
             .build();
 
-        return pstRep.save(post);
+
+        Post newPost = pstRep.save(post);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "POST_CREATED",
+            "Post/%d".formatted(newPost.getId()),
+            null
+        ));
+
+
+        return newPost;
     }
 
     // Edição de postagem existente
@@ -88,6 +106,10 @@ public class PostService {
 
         this.assertCanManage(requester, post);
 
+
+        UpdatablePostData oldData = UpdatablePostData.fromPost(post);
+
+
         String previousUrl = post.getImageUrl();
         post.setDescription(data.description());
         this.replaceImage(post, data.image());
@@ -96,6 +118,16 @@ public class PostService {
         if (!Objects.equals(previousUrl, saved.getImageUrl())) {
             this.deleteImageAfterCommit(previousUrl);
         }
+
+
+        UpdatablePostData newData = UpdatablePostData.fromPost(saved);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "POST_EDITED",
+            "Post/%d".formatted(saved.getId()),
+            objCpr.getDifferentAttributes(oldData, newData)
+        ));
+
 
         return saved;
     }
@@ -112,6 +144,21 @@ public class PostService {
         String imageUrl = post.getImageUrl();
         pstRep.delete(post);
         this.deleteImageAfterCommit(imageUrl);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "POST_DELETED",
+            "Post/%d".formatted(post.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "username": "%s"
+                    "description": "%s",
+                    "imgUrl": "%s",
+                }
+            }
+            """.formatted(post.getUser().getUsername(), post.getDescription(), post.getImageUrl())
+        ));
     }
 
     // Salva a imagem da postagem e registra a exclusão em caso de rollback
