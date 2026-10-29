@@ -2,10 +2,13 @@ package com.ong.acolhepatinhas.api.veterinary.treatment.record;
 
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
+import com.ong.acolhepatinhas.api.utils.ObjectComparator;
 import com.ong.acolhepatinhas.api.veterinary.disease.diagnosis.Diagnosis;
 import com.ong.acolhepatinhas.api.veterinary.disease.diagnosis.DiagnosisService;
 import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecord;
@@ -25,6 +28,9 @@ public class TreatmentService {
 
     private final VeterinaryRecordService vrcSvc;
     private final DiagnosisService dgnSvc;
+
+    private final ApplicationEventPublisher evtPbs;
+    private final ObjectComparator objCpr;
     
 
     public List<Treatment> listAllByAnimal(int animalId) {
@@ -55,7 +61,15 @@ public class TreatmentService {
             .observations(data.observations())
             .build();
 
-        return ttmRep.save(treatment);
+        Treatment newTreatment = ttmRep.save(treatment);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "TREATMENT_CREATED",
+            "Treatment/%d".formatted(newTreatment.getId()),
+            null
+        ));
+
+        return newTreatment;
     }
 
 
@@ -65,13 +79,23 @@ public class TreatmentService {
         Treatment treatment = this.getById(treatmentId);
         Diagnosis diagnosis = data.diagnosisId() != null ? dgnSvc.getById(data.diagnosisId()) : null;
 
+        EditTreatmentRequest oldData = EditTreatmentRequest.fromTreatment(treatment);
+
         treatment.setDiagnosis(diagnosis);
         treatment.setStartDate(data.startDate());
         treatment.setEndDate(data.endDate());
         treatment.setStatus(data.status());
         treatment.setObservations(data.observations());
 
-        return ttmRep.save(treatment);
+        Treatment newTreatment = ttmRep.save(treatment);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "TREATMENT_EDITED",
+            "Treatment/%d".formatted(newTreatment.getId()),
+            objCpr.getDifferentAttributes(oldData, data)
+        ));
+
+        return newTreatment;
     }
 
 
@@ -80,5 +104,19 @@ public class TreatmentService {
 
         Treatment treatment = this.getById(treatmentId);
         ttmRep.delete(treatment);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "TREATMENT_DELETED",
+            "Treatment/%d".formatted(treatment.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "animalId": %d,
+                    "diagnosisId": %d,
+                    "disease": "%s"
+                }
+            }
+            """.formatted(treatment.getVetRecord().getId(), treatment.getDiagnosis().getId(), treatment.getDiagnosis().getDisease().getName())
+        ));
     }
 }

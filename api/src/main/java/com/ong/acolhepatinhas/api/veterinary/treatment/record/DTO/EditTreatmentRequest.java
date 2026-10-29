@@ -2,6 +2,7 @@ package com.ong.acolhepatinhas.api.veterinary.treatment.record.DTO;
 
 import java.time.LocalDate;
 
+import com.ong.acolhepatinhas.api.veterinary.treatment.record.Treatment;
 import com.ong.acolhepatinhas.api.veterinary.treatment.record.enums.TreatmentStatus;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,4 +30,14 @@ public record EditTreatmentRequest(
     @Schema(example = "[...]")
     String observations
 ) {
+
+    public static EditTreatmentRequest fromTreatment(Treatment data) {
+        return new EditTreatmentRequest(
+            data.getDiagnosis().getId(), 
+            data.getStartDate(), 
+            data.getEndDate(), 
+            data.getStatus(), 
+            data.getObservations()
+        );
+    }
 }
