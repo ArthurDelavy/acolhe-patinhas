@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.labtest.catalog.DTO.NewLaboratoryTestRequest;
 import com.ong.acolhepatinhas.api.veterinary.labtest.result.LaboratoryTestResultService;
 
@@ -31,6 +33,8 @@ public class LaboratoryTestService {
 
     @Autowired @Lazy
     private LaboratoryTestResultService ltrSvc;
+
+    private ApplicationEventPublisher evtPbs;
 
 
     public boolean existsByName(String name) {
@@ -58,7 +62,16 @@ public class LaboratoryTestService {
             .name(data.name())
             .build();
 
-        return lbtRep.save(test);
+        LaboratoryTest newLabTest = lbtRep.save(test);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "LAB_TEST_CREATED",
+            "Test/%d".formatted(newLabTest.getId()),
+            null
+        ));
+
+        return newLabTest;
     }
 
 
@@ -74,5 +87,17 @@ public class LaboratoryTestService {
         if (ltrSvc.existsByLabTest(test)) throw new ResourceInUseException("O tipo de teste não pôde ser deletado pois está vinculado a um resultado.");
     
         lbtRep.delete(test);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "LAB_TEST_DELETED",
+            "Test/%d".formatted(test.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(test.getName())
+        ));
     }
 }

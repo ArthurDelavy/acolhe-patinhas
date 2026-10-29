@@ -3,12 +3,14 @@ package com.ong.acolhepatinhas.api.veterinary.vaccine.vaccination;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecordService;
 import com.ong.acolhepatinhas.api.veterinary.vaccine.catalog.Vaccine;
 import com.ong.acolhepatinhas.api.veterinary.vaccine.catalog.VaccineService;
@@ -28,6 +30,9 @@ public class VaccinationService {
     private final VeterinaryRecordService vrcSvc;
     @Autowired @Lazy
     private VaccineService vccSvc;
+
+
+    private final ApplicationEventPublisher evtPbs;
 
 
 
@@ -64,7 +69,15 @@ public class VaccinationService {
             .nextDoseDate(data.nextDoseDate())
             .build();
 
-        return vctRep.save(vaccination);
+        Vaccination newVaccination = vctRep.save(vaccination);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "VACCINATION_CREATED",
+            "Vaccination/%d".formatted(vaccination.getId()),
+            null
+        ));
+
+        return newVaccination;
     }
 
     @Transactional
@@ -72,5 +85,21 @@ public class VaccinationService {
 
         Vaccination vaccination = getById(vaccinationId);
         vctRep.delete(vaccination);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "VACCINATION_DELETED",
+            "Vaccination/%d".formatted(vaccination.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "animalId": %d,
+                    "vaccine": "%s",
+                    "dose": "%s",
+                    "manufacturer": "%s",
+                    "batchNumber": "%s",
+                }
+            }
+            """.formatted(vaccination.getVetRecord().getId(), vaccination.getVaccine().getName(), vaccination.getDose(), vaccination.getManufacturer(), vaccination.getBatchNumber())
+        ));
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.medicine.DTO.NewMedicineRequest;
 import com.ong.acolhepatinhas.api.veterinary.preventive.procedure.PreventiveCareService;
 import com.ong.acolhepatinhas.api.veterinary.treatment.posology.TreatmentMedicineService;
@@ -32,6 +34,9 @@ public class MedicineService {
     @Autowired @Lazy
     private TreatmentMedicineService tmcSvc;
     private final PreventiveCareService pvcSvc;
+
+
+    private final ApplicationEventPublisher evtPbs;
 
 
     @Cacheable(value = "medicines")
@@ -55,7 +60,16 @@ public class MedicineService {
             .name(data.name())
             .build();
 
-        return mdcRep.save(medicine);
+        Medicine newMedicine = mdcRep.save(medicine); 
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "MEDICINE_CREATED",
+            "Medicine/%d".formatted(newMedicine.getId()),
+            null
+        ));
+
+        return newMedicine;
     }
 
 
@@ -72,5 +86,18 @@ public class MedicineService {
         if (pvcSvc.existsByMedicine(medicine)) throw new ResourceInUseException("O medicamento não pôde ser deletado pois está vinculado a um cuidado preventivo.");
 
         mdcRep.delete(medicine);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "MEDICINE_DELETED",
+            "Medicine/%d".formatted(medicine.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(medicine.getName())
+        ));
     }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -12,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.disease.catalog.DTO.NewDiseaseRequest;
 import com.ong.acolhepatinhas.api.veterinary.disease.diagnosis.DiagnosisService;
 
@@ -27,6 +29,8 @@ public class DiseaseService {
     private final DiseaseRepository dseRep;
 
     private final DiagnosisService dgnSvc;
+
+    private final ApplicationEventPublisher evtPbs;
 
 
     @Cacheable(value = "diseases")
@@ -50,7 +54,15 @@ public class DiseaseService {
             .name(data.name())
             .build();
 
-        return dseRep.save(disease);
+        Disease newDisease = dseRep.save(disease);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "DISEASE_CREATED",
+            "Disease/%d".formatted(newDisease.getId()),
+            null
+        ));
+        
+        return newDisease;
     }
 
 
@@ -64,5 +76,18 @@ public class DiseaseService {
         if (dgnSvc.existsByDisease(disease)) throw new ResourceInUseException("A doença não pôde ser deletada pois está vinculada a um diagnóstico.");
 
         dseRep.delete(disease);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "DISEASE_DELETED",
+            "Disease/%d".formatted(disease.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(disease.getName())
+        ));
     }
 }

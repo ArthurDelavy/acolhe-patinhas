@@ -2,11 +2,13 @@ package com.ong.acolhepatinhas.api.veterinary.treatment.posology;
 
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.medicine.Medicine;
 import com.ong.acolhepatinhas.api.veterinary.medicine.MedicineService;
 import com.ong.acolhepatinhas.api.veterinary.treatment.posology.DTO.NewPosologyRequest;
@@ -25,6 +27,8 @@ public class TreatmentMedicineService {
 
     private final TreatmentService ttmSvc;
     private final MedicineService mdcSvc;
+
+    private final ApplicationEventPublisher evtPbs;
     
 
 
@@ -61,7 +65,15 @@ public class TreatmentMedicineService {
             .startDate(data.starDate())
             .build();
 
-        return tmdRep.save(posology);
+        TreatmentMedicine newPosology = tmdRep.save(posology);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "POSOLOGY_CREATED",
+            "Posology/%d".formatted(newPosology.getId()),
+            null
+        ));
+
+        return newPosology;
     }
     
 
@@ -70,5 +82,20 @@ public class TreatmentMedicineService {
 
         TreatmentMedicine posology = this.getById(treatmentMedicineId);
         tmdRep.delete(posology);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "POSOLOGY_DELETED",
+            "Posology/%d".formatted(posology.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "animalId": "%d",
+                    "treatmentId": "%d",
+                    "disease": "%s",
+                    "medicine": "%s"
+                }
+            }
+            """.formatted(posology.getTreatment().getVetRecord().getId(), posology.getTreatment().getId(), posology.getTreatment().getDiagnosis().getDisease().getName(), posology.getMedicine().getName())
+        ));
     }
 }   
