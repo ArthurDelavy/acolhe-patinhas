@@ -55,6 +55,9 @@ public enum Role {
                         Permission.VETERINARY_ASSIGN,
 
                         Permission.POST_READ,
+                        Permission.POST_CREATE,
+                        Permission.POST_EDIT,
+                        Permission.POST_REMOVE,
 
                         Permission.FOSTERHOME_READ,
                         Permission.FOSTERHOME_CREATE,
