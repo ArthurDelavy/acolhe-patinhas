@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ObjectComparator {
 
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public <T> String getDifferentAttributes(T oldObject, T newObject) {
         if (oldObject == null || newObject == null) {
