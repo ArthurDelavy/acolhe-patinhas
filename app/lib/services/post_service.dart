@@ -5,7 +5,7 @@ import '../utils/token_storage.dart';
 
 class SocialPost {
   final int id;
-  final int userId;
+  final int? userId;
   final String userName;
   final String description;
   final String? imageUrl;
@@ -13,7 +13,7 @@ class SocialPost {
 
   SocialPost({
     required this.id,
-    required this.userId,
+    this.userId,
     required this.userName,
     required this.description,
     this.imageUrl,
@@ -21,14 +21,32 @@ class SocialPost {
   });
 
   factory SocialPost.fromJson(Map<String, dynamic> json) {
+    // Extrai o nome do utilizador (suporta tanto 'userName' quanto 'user.name')
+    String extractedUserName = 'Usuário';
+    if (json['user'] != null && json['user']['name'] != null) {
+      extractedUserName = json['user']['name'];
+    } else if (json['userName'] != null) {
+      extractedUserName = json['userName'];
+    }
+
+    // Extrai o ID do utilizador
+    int? extractedUserId;
+    if (json['userId'] != null) {
+      extractedUserId = (json['userId'] as num).toInt();
+    } else if (json['user'] != null && json['user']['id'] != null) {
+      extractedUserId = (json['user']['id'] as num).toInt();
+    }
+
     return SocialPost(
       id: (json['id'] as num).toInt(),
-      userId: (json['userId'] as num).toInt(),
-      userName: json['userName'] ?? 'Usuário',
+      userId: extractedUserId,
+      userName: extractedUserName,
       description: json['description'] ?? '',
-      imageUrl: json['imageUrl'] as String?,
-      createdAt:
-          DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now(),
+      // Suporta 'imageUrl' ou 'image'
+      imageUrl: json['imageUrl'] as String? ?? json['image'] as String?,
+      createdAt: json['createdAt'] != null
+          ? (DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 }
@@ -49,8 +67,12 @@ class PostService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(utf8.decode(response.bodyBytes));
-      // Trata a paginação devolvida pelo PostPageResponse
-      final List<dynamic> jsonList = data['content'] ?? data['items'] ?? data;
+
+      // Trata a paginação do Spring (content), listas genéricas (items) ou lista direta
+      final List<dynamic> jsonList = data is List
+          ? data
+          : (data['content'] ?? data['items'] ?? []);
+
       return jsonList.map((json) => SocialPost.fromJson(json)).toList();
     }
     return [];
