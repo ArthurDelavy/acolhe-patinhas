@@ -198,7 +198,7 @@ public class PostService {
     }
 
 
-    // Admin pode gerenciar qualquer postagem; usuário comum só a própria.
+    // Admin gerencia qualquer postagem, usuário verificado só as próprias postagens
     private void assertCanManage(User requester, Post post) throws AccessDeniedException {
         boolean isOwner = Objects.equals(requester.getId(), post.getUser().getId());
         boolean isAdmin = requester.getRole() == Role.ADMIN;

@@ -14,6 +14,9 @@ public record ResumedPostResponse(
     @Schema(example = "Fulano")
     String userName,
 
+    @Schema(example = "https://storage.example/user/avatar/1_uuid.jpg")
+    String userProfileImageUrl,
+
     @Schema(example = "...")
     String description,
 
@@ -29,6 +32,7 @@ public record ResumedPostResponse(
         this(
             data.getId(),
             data.getUser().getName(),
+            data.getUser().getProfileImageUrl(),
             data.getDescription(),
             data.getImageUrl(),
             data.getCreatedAt()
