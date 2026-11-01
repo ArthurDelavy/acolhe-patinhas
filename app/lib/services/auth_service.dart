@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../utils/token_storage.dart';
+import '../utils/validators.dart';
 import 'package:shared_preferences/shared_preferences.dart'; //new import for shared_preferences, which is used for storing tokens and other data locally
 
 class AuthService {
   final String baseUrl;
+  final ApiClient _client = ApiClient();
 
   AuthService({required this.baseUrl});
 
@@ -12,7 +13,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
@@ -46,7 +47,7 @@ class AuthService {
 
   //anonymous login
   Future<Map<String, dynamic>> loginAnonymous() async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/auth/anonymous'),
       headers: {'Content-Type': 'application/json'},
     );
@@ -73,7 +74,7 @@ class AuthService {
     required String password,
     required bool acceptTerms,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
@@ -101,7 +102,7 @@ class AuthService {
   }
 
   Future<void> verifyCode({required String email, required String code}) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/auth/verify-email'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'code': code}),
@@ -113,7 +114,7 @@ class AuthService {
   }
 
   Future<void> resendCode({required String email}) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/auth/resend-verification'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email}),
@@ -125,7 +126,7 @@ class AuthService {
   }
 
   Future<void> forgotPassword({required String email}) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/auth/forgot-password'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email}),
@@ -141,7 +142,7 @@ class AuthService {
     required String code,
     required String newPassword,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/auth/reset-password'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
@@ -177,7 +178,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
 
     // 1. Busca primeiro a URL atual do termo no backend
-    final response = await http.get(Uri.parse('$baseUrl/term'));
+    final response = await _client.get(Uri.parse('$baseUrl/term'));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -191,7 +192,7 @@ class AuthService {
           return cachedContent;
         }
 
-        final fileResponse = await http.get(Uri.parse(url));
+        final fileResponse = await _client.get(Uri.parse(url));
         if (fileResponse.statusCode == 200) {
           final decodedContent = utf8.decode(fileResponse.bodyBytes);
 
@@ -208,7 +209,7 @@ class AuthService {
   Future<void> acceptTerms() async {
     final token = await TokenStorage.getAuthToken();
 
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/term/accept'),
       headers: {
         'Content-Type': 'application/json',

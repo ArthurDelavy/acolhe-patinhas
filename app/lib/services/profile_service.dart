@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import '../utils/token_storage.dart';
+import '../utils/validators.dart';
 
 class UserProfile {
   final int id;
@@ -37,13 +38,14 @@ class UserProfile {
 
 class ProfileService {
   final String baseUrl;
+  final ApiClient _client = ApiClient();
 
   ProfileService({required this.baseUrl});
 
   Future<UserProfile> getProfile() async {
     final token = await TokenStorage.getAuthToken();
 
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('$baseUrl/user/me'),
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +67,7 @@ class ProfileService {
   Future<UserProfile> updateName(String newName) async {
     final token = await TokenStorage.getAuthToken();
 
-    final response = await http.patch(
+    final response = await _client.patch(
       Uri.parse('$baseUrl/user/me/name'),
       headers: {
         'Content-Type': 'application/json',
@@ -84,7 +86,7 @@ class ProfileService {
   Future<void> requestEmailChange(String newEmail) async {
     final token = await TokenStorage.getAuthToken();
 
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/user/me/email'),
       headers: {
         'Content-Type': 'application/json',
@@ -105,7 +107,7 @@ class ProfileService {
     final token = await TokenStorage.getAuthToken();
     final currentRefreshToken = await TokenStorage.getRefreshToken();
 
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/user/me/email/confirm'),
       headers: {
         'Content-Type': 'application/json',
@@ -138,6 +140,7 @@ class ProfileService {
     final uri = Uri.parse('$baseUrl/user/me/photo');
 
     final request = http.MultipartRequest('PATCH', uri);
+    request.headers['User-Agent'] = AppUserAgent.getUserAgent();
     request.headers['Authorization'] = 'Bearer $token';
 
     final extension = filename.split('.').last.toLowerCase();

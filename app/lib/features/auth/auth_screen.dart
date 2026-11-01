@@ -31,7 +31,9 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
-    _authService = AuthService(baseUrl: 'http://localhost:8080');
+    _authService = AuthService(
+      baseUrl: 'https://acolhe-patinhas.duckdns.org/api',
+    );
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:acolhe_patinhas/features/listPets/list_pets.dart';
 import 'package:acolhe_patinhas/features/about-profile/about_screen.dart';
 import 'package:acolhe_patinhas/features/about-profile/profile_screen.dart';
 import 'package:acolhe_patinhas/features/fosters/foster_screen.dart';
+import 'package:acolhe_patinhas/features/reports/reports_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
       home: const AuthScreen(),
       routes: {
         '/feed': (context) => const FeedScreen(),
+        '/report': (context) => const ReportScreen(),
         '/registerPets': (context) => const RegisterPetsScreen(),
         '/user_pets': (context) =>
             const ListPetsScreen(isAdminMode: false, navIndex: 1),

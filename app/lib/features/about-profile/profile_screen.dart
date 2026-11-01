@@ -43,7 +43,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _profileService = ProfileService(baseUrl: 'http://localhost:8080');
+    _profileService = ProfileService(
+      baseUrl: 'https://acolhe-patinhas.duckdns.org/api',
+    );
 
     _controller = AnimationController(
       vsync: this,
