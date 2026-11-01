@@ -228,6 +228,7 @@ public class UserService implements UserDetailsService {
         trmSvc.acceptCurrentTerms(new LoggedUserPayload(user.getEmail()), clientIp);
 
         String code = evcSvc.newCode(user);
+        emlSvc.newUserEmail(user.getName(), user.getEmail());
         emlSvc.verificationEmail(user.getEmail(), code);
 
 
