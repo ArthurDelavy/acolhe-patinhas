@@ -2,8 +2,11 @@ package com.ong.acolhepatinhas.api.utils;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -13,14 +16,26 @@ public class RequestInfo {
 
 
     public static String getAuthenticatedUserEmail() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            return auth.getName();
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+    if (auth != null && auth.isAuthenticated()) {
+        Object principal = auth.getPrincipal();
+
+        if (principal instanceof LoggedUserPayload user) {
+            return user.email();
         }
-        
-        return "SYSTEM";
+
+        if (principal instanceof UserDetails userDetails) {
+            return userDetails.getUsername();
+        }
+
+        if (principal instanceof String identifier && !"anonymousUser".equals(identifier)) {
+            return identifier;
+        }
     }
+
+    return "system@local.com";
+}
 
 
     public static String getClientIp() {
