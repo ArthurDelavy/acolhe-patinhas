@@ -3,11 +3,11 @@ package com.ong.acolhepatinhas.api.report.DTO;
 import com.ong.acolhepatinhas.api.report.AnimalReport;
 import com.ong.acolhepatinhas.api.report.enums.ReportStatus;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record ReportStatusUpdateRequest(
 
-    @NotBlank
+    @NotNull
     ReportStatus status
 ) {
 

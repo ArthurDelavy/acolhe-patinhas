@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ong.acolhepatinhas.api.report.DTO.NewReportRequest;
@@ -87,7 +86,7 @@ public class AnimalReportController {
         @SecurityRequirement(name = "BearerToken")
         @ApiResponse(responseCode = "200", description = "Criado com sucesso!")
         @ApiResponse(responseCode = "404", description = "Referência não encontrada", content = @Content)
-    public ResponseEntity<ReportResponse> updateStatus(@RequestParam int reportId, @RequestBody @Valid ReportStatusUpdateRequest data) {
+    public ResponseEntity<ReportResponse> updateStatus(@PathVariable int reportId, @RequestBody @Valid ReportStatusUpdateRequest data) {
         ReportResponse responseData = new ReportResponse(arpSvc.updateStatus(reportId, data));
         return ResponseEntity.status(HttpStatus.OK).body(responseData);
     }
