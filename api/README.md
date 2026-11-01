@@ -4,8 +4,8 @@
 
 Com a aplicação rodando localmente, acesse a documentação:
 
-* **Swagger UI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-* **OpenAPI Spec (JSON):** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+* **Swagger UI:** [http://localhost:8080/api/swagger-ui.html](http://localhost:8080/api/swagger-ui.html)
+* **OpenAPI Spec (JSON):** [http://localhost:8080/api/v3/api-docs](http://localhost:8080/api/v3/api-docs)
 
 **Obs.: Todos os erros retornam o mesmo JSON:**
 ```json

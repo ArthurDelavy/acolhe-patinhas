@@ -7,6 +7,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -18,9 +19,11 @@ import com.ong.acolhepatinhas.api.report.enums.ReportStatus;
 import com.ong.acolhepatinhas.api.services.imageService.ImageService;
 import com.ong.acolhepatinhas.api.services.imageService.DTO.ImageRequest;
 import com.ong.acolhepatinhas.api.services.imageService.enums.StorageFileType;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.user.User;
 import com.ong.acolhepatinhas.api.user.UserService;
 import com.ong.acolhepatinhas.api.user.DTO.LoggedUserPayload;
+import com.ong.acolhepatinhas.api.utils.ObjectComparator;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,9 @@ public class AnimalReportService {
     private final ImageService imgSvc;
     
     private static final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+
+    private final ApplicationEventPublisher evtPbs; 
+    private final ObjectComparator objCpr;
 
 
 
@@ -78,6 +84,13 @@ public class AnimalReportService {
             report.setImageUrl(url);
         }
 
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "REPORT_CREATED",
+            "Report/%d".formatted(report.getId()),
+            null
+        ));
+
         return report;
     }
 
@@ -87,9 +100,20 @@ public class AnimalReportService {
 
         AnimalReport report = this.getById(reportId);
 
+        ReportStatusUpdateRequest oldReport = ReportStatusUpdateRequest.fromReport(report);
+
         report.setStatus(data.status());
         report.setUpdatedAt(Instant.now());
 
-        return arpRep.save(report);
+        AnimalReport newReport = arpRep.save(report); 
+        
+        
+        evtPbs.publishEvent(new AuditLogEvent(
+            "REPORT_STATUS_UPDATED",
+            "Report/%d".formatted(newReport.getId()),
+            objCpr.getDifferentAttributes(oldReport, data)
+        ));
+        
+        return newReport;
     }
 }

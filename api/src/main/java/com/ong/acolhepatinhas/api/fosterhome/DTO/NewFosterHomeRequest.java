@@ -1,5 +1,7 @@
 package com.ong.acolhepatinhas.api.fosterhome.DTO;
 
+import com.ong.acolhepatinhas.api.fosterhome.FosterHome;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -47,4 +49,16 @@ public record NewFosterHomeRequest(
     @Schema(example = "15")
     int capacity
 ) { 
+
+    public static NewFosterHomeRequest fromFosterHome(FosterHome data) {
+        return new NewFosterHomeRequest(
+            data.getOwner().getEmail(), 
+            data.getName(), 
+            data.getPhoneNumber(), 
+            data.getEmail(), 
+            data.getLocation().getY(), 
+            data.getLocation().getX(), 
+            data.getCapacity()
+        );
+    }
 }

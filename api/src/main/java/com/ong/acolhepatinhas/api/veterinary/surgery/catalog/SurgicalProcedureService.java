@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -12,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.surgery.catalog.DTO.NewSurgicalProcedureRequest;
 import com.ong.acolhepatinhas.api.veterinary.surgery.procedure.SurgeryService;
 
@@ -27,6 +29,8 @@ public class SurgicalProcedureService {
     private final SurgicalprocedureRepository sgpRep;
 
     private final SurgeryService srgSvc;
+
+    private final ApplicationEventPublisher evtPbs;
 
 
     public boolean existsByName(String name) {
@@ -54,7 +58,16 @@ public class SurgicalProcedureService {
             .name(data.name())
             .build();
 
-        return sgpRep.save(procedure);
+        SurgicalProcedure newProcedure = sgpRep.save(procedure);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "SURGICAL_PROCEDURE_CREATED",
+            "Procedure/%d".formatted(newProcedure.getId()),
+            null
+        ));
+
+        return newProcedure;
     }
 
 
@@ -70,5 +83,18 @@ public class SurgicalProcedureService {
         if (srgSvc.existsBySurgicalProcedure(procedure)) throw new ResourceInUseException("O procedimento não pôde ser deletado pois está vinculado a uma cirurgia.");
     
         sgpRep.delete(procedure);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "SURGICAL_PROCEDURE_DELETED",
+            "Procedure/%d".formatted(procedure.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(procedure.getName())
+        ));
     }
 }

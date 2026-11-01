@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ import com.ong.acolhepatinhas.api.animal.references.repositories.AnimalSpecieRep
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,8 @@ public class ReferencesService {
     private final AnimalColorRepository clrRep;
     private final AnimalDischargeReasonRepository drsRep;
     private final AnimalSpecieRepository spcRep;
+
+    private final ApplicationEventPublisher evtPbs;
 
 
     // Getters
@@ -103,7 +107,16 @@ public class ReferencesService {
             .name(data.name())
             .build();
 
-        return brdRep.save(breed);
+        AnimalBreed newBreed = brdRep.save(breed);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_BREED_CREATED",
+            "Breed/%d".formatted(newBreed.getId()),
+            null
+        ));
+
+        return newBreed;
     }
 
     @Transactional
@@ -115,7 +128,16 @@ public class ReferencesService {
             .name(data.name())
             .build();
 
-        return spcRep.save(specie);
+        AnimalSpecie newSpecie = spcRep.save(specie);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_SPECIE_CREATED",
+            "Specie/%d".formatted(newSpecie.getId()),
+            null
+        ));
+
+        return newSpecie;
     }
 
     @Transactional
@@ -127,7 +149,16 @@ public class ReferencesService {
             .name(data.name())
             .build();
 
-        return clrRep.save(color);
+        AnimalColor newColor = clrRep.save(color);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_COLOR_CREATED",
+            "Color/%d".formatted(newColor.getId()),
+            null
+        ));
+
+        return newColor;
     }
 
     @Transactional
@@ -139,7 +170,16 @@ public class ReferencesService {
             .name(data.name())
             .build();
 
-        return drsRep.save(reason);
+        AnimalDischargeReason newReason = drsRep.save(reason);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_DISCHARGE_REASON_CREATED",
+            "DischargeReason/%d".formatted(newReason.getId()),
+            null
+        ));
+
+        return newReason;
     }
 
 
@@ -155,6 +195,19 @@ public class ReferencesService {
         if (anmSvc.existsByBreed(breed)) throw new ResourceInUseException("A raça não pôde ser deletada pois está vinculada a um animal.");
 
         brdRep.delete(breed);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_BREED_DELETED",
+            "Breed/%d".formatted(breed.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(breed.getName())
+        ));
     }
 
     @Transactional
@@ -167,6 +220,19 @@ public class ReferencesService {
         if (anmSvc.existsByBreedSpecie(specie)) throw new ResourceInUseException("A espécie não pôde ser deletada pois está vinculada a um animal.");
 
         spcRep.delete(specie);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_SPECIE_DELETED",
+            "Specie/%d".formatted(specie.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(specie.getName())
+        ));
     }
 
     @Transactional
@@ -179,6 +245,18 @@ public class ReferencesService {
         if (anmSvc.existsByColor(color)) throw new ResourceInUseException("A cor não pôde ser deletada pois está vinculada a um animal.");
 
         clrRep.delete(color);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_COLOR_DELETED",
+            "Color/%d".formatted(color.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(color.getName())
+        ));
     }
 
     @Transactional
@@ -191,5 +269,17 @@ public class ReferencesService {
         if (anmSvc.existsByDischargeReason(reason)) throw new ResourceInUseException("O motivo não pôde ser deletado pois está vinculado a um animal.");
 
         drsRep.delete(reason);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "ANIMAL_DISCHARGE_REASON_DELETED",
+            "DischargeReason/%d".formatted(reason.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(reason.getName())
+        ));
     }
 }

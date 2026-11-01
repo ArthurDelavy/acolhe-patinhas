@@ -3,12 +3,14 @@ package com.ong.acolhepatinhas.api.veterinary.preventive.procedure;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.medicine.Medicine;
 import com.ong.acolhepatinhas.api.veterinary.medicine.MedicineService;
 import com.ong.acolhepatinhas.api.veterinary.preventive.catalog.PreventiveProcedure;
@@ -33,6 +35,11 @@ public class PreventiveCareService {
 
     @Autowired @Lazy
     private MedicineService mdcSvc;
+
+
+    private final ApplicationEventPublisher evtPbs;
+
+
 
     public boolean existsByPreventiveProcedure(PreventiveProcedure procedure) {
         return pvcRep.existsByProcedure(procedure);
@@ -72,7 +79,18 @@ public class PreventiveCareService {
             .observations(data.observations())
             .build();
 
-        return pvcRep.save(preventive);
+
+        PreventiveCare newPreventive = pvcRep.save(preventive);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "PREVENTIVE_CARE_CREATED",
+            "Care/%d".formatted(newPreventive.getId()),
+            null
+        ));
+
+
+        return newPreventive;
     }
 
     @Transactional
@@ -80,5 +98,18 @@ public class PreventiveCareService {
 
         PreventiveCare preventive = this.getById(preventiveId);
         pvcRep.delete(preventive);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "PREVENTIVE_CARE_DELETED",
+            "Care/%d".formatted(preventive.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "animalId": %d,
+                    "procedure": "%s"
+                }
+            }
+            """.formatted(preventive.getVetRecord().getId(), preventive.getProcedure().getName())
+        ));
     }
 }

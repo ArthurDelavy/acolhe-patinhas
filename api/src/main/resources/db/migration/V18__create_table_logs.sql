@@ -1,0 +1,10 @@
+CREATE TABLE audit_logs(
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    actor VARCHAR(255) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    resource VARCHAR(255),
+    details TEXT,
+    ip VARCHAR(45),
+    agent VARCHAR(500) NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -17,6 +17,9 @@ public record DetailedPostResponse(
     @Schema(example = "Fulano")
     String userName,
 
+    @Schema(example = "https://storage.example/user/avatar/1_uuid.jpg")
+    String userProfileImageUrl,
+
     @Schema(example = "...")
     String description,
 
@@ -33,6 +36,7 @@ public record DetailedPostResponse(
             data.getId(),
             data.getUser().getId(),
             data.getUser().getName(),
+            data.getUser().getProfileImageUrl(),
             data.getDescription(),
             data.getImageUrl(),
             data.getCreatedAt()

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -12,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import com.ong.acolhepatinhas.api.exceptions.custom.DuplicatedValueException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ResourceInUseException;
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.vaccine.catalog.DTO.NewVaccineRequest;
 import com.ong.acolhepatinhas.api.veterinary.vaccine.vaccination.VaccinationService;
 
@@ -28,6 +30,7 @@ public class VaccineService {
     
     private final VaccinationService vctSvc;
 
+    private final ApplicationEventPublisher evtPbs;
 
 
     @Cacheable(value = "vaccines")
@@ -51,7 +54,15 @@ public class VaccineService {
             .name(data.name())
             .build();
 
-        return vccRep.save(vaccine);
+        Vaccine newVaccine = vccRep.save(vaccine);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "VACCINE_CREATED",
+            "Vaccine/%d".formatted(newVaccine.getId()),
+            null
+        ));
+
+        return newVaccine;
     }
 
 
@@ -66,5 +77,18 @@ public class VaccineService {
         if (vctSvc.existsByVaccine(vaccine)) throw new ResourceInUseException("A vacina não pôde ser deletada pois está vinculada a uma vacinação.");
 
         vccRep.delete(vaccine);
+
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "VACCINE_DELETED",
+            "Vaccine/%d".formatted(vaccine.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "name": "%s"
+                }
+            }
+            """.formatted(vaccine.getName())
+        ));
     }
 }

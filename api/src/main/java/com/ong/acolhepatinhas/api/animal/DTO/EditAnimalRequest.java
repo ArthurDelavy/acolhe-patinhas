@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import com.ong.acolhepatinhas.api.animal.Animal;
 import com.ong.acolhepatinhas.api.animal.enums.Gender;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -67,4 +68,24 @@ public record EditAnimalRequest(
 
     boolean neutered
 ) {
+
+    public static EditAnimalRequest fromAnimal (Animal animal) {
+        return new EditAnimalRequest(
+            animal.getName(), 
+            animal.getMicrochipNumber(), 
+            animal.getBreed().getId(), 
+            animal.getColor().getId(), 
+            animal.getGender(), 
+            animal.getBirthDate(), 
+            animal.getIntakeDate(), 
+            animal.getDischargeDate(), 
+            animal.getDischargeReason().getId(), 
+            animal.isToAdoption(), 
+            animal.getDescription(), 
+
+            animal.getVetRecord().getSize(), 
+            animal.getVetRecord().getWeight(),
+            animal.getVetRecord().isNeutered()
+        );
+    }
 }

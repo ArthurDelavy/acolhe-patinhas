@@ -3,12 +3,14 @@ package com.ong.acolhepatinhas.api.veterinary.surgery.procedure;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import com.ong.acolhepatinhas.api.exceptions.custom.ValueNotFoundException;
+import com.ong.acolhepatinhas.api.services.logs.DTO.AuditLogEvent;
 import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecord;
 import com.ong.acolhepatinhas.api.veterinary.record.VeterinaryRecordService;
 import com.ong.acolhepatinhas.api.veterinary.surgery.catalog.SurgicalProcedure;
@@ -29,6 +31,8 @@ public class SurgeryService {
     @Autowired @Lazy
     private SurgicalProcedureService sgpSvc;
     private final VeterinaryRecordService vtrSvc;
+
+    private final ApplicationEventPublisher evtPbs;
 
 
     public boolean existsBySurgicalProcedure(SurgicalProcedure procedure) {
@@ -62,7 +66,15 @@ public class SurgeryService {
             .observations(data.observations())
             .build();
 
-        return srgRep.save(surgery);
+        Surgery newSurgery = srgRep.save(surgery);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "SURGERY_CREATED",
+            "Surgery/%d".formatted(newSurgery.getId()),
+            null
+        ));
+
+        return newSurgery;
     }
 
     @Transactional
@@ -70,5 +82,18 @@ public class SurgeryService {
 
         Surgery surgery = this.getById(surgeryId);
         srgRep.delete(surgery);
+
+        evtPbs.publishEvent(new AuditLogEvent(
+            "SURGERY_DELETED",
+            "Surgery/%d".formatted(surgery.getId()),
+            """
+            {
+                "deletedRecord": {
+                    "animalId": %d,
+                    "procedure": "%s"
+                }
+            }
+            """.formatted(surgery.getVetRecord().getId(), surgery.getSurgicalProcedure().getName())
+        ));
     }
 }
