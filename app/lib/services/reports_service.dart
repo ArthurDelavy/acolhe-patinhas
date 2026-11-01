@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
+import '../utils/validators.dart';
 
 enum ReportType { LOST, FOUND, ABANDONED }
 
@@ -24,6 +25,7 @@ enum ReportStatus { OPEN, RESOLVED, CANCELLED }
 
 class AnimalReport {
   final int? id;
+  final int? userId;
   final String title;
   final String description;
   final ReportType type;
@@ -37,6 +39,7 @@ class AnimalReport {
 
   const AnimalReport({
     this.id,
+    this.userId,
     required this.title,
     required this.description,
     required this.type,
@@ -49,7 +52,6 @@ class AnimalReport {
     this.createdAt,
   });
 
-  /// Busca o endereço completo (Rua, Bairro e Cidade) via OpenStreetMap Nominatim
   Future<String> fetchAddress() async {
     try {
       final uri = Uri.parse(
@@ -59,7 +61,7 @@ class AnimalReport {
       final response = await http.get(
         uri,
         headers: {
-          'User-Agent': 'AcolhePatinhasApp/1.0',
+          'User-Agent': AppUserAgent.getUserAgent(),
           'Accept-Language': 'pt-BR',
         },
       );
@@ -84,8 +86,9 @@ class AnimalReport {
 
           List<String> parts = [];
           if (road.toString().isNotEmpty) parts.add(road.toString());
-          if (neighbourhood.toString().isNotEmpty && neighbourhood != road)
+          if (neighbourhood.toString().isNotEmpty && neighbourhood != road) {
             parts.add(neighbourhood.toString());
+          }
           if (city.toString().isNotEmpty) parts.add(city.toString());
 
           if (parts.isNotEmpty) {
@@ -99,8 +102,38 @@ class AnimalReport {
   }
 
   factory AnimalReport.fromJson(Map<String, dynamic> json) {
+    int? extractedUserId;
+    if (json['userId'] != null) {
+      extractedUserId = int.tryParse(json['userId'].toString());
+    } else if (json['user'] != null && json['user'] is Map) {
+      extractedUserId = int.tryParse(json['user']['id']?.toString() ?? '');
+    }
+
+    String? extractedName = json['userName'];
+    if ((extractedName == null || extractedName.isEmpty) &&
+        json['user'] != null &&
+        json['user'] is Map) {
+      extractedName =
+          json['user']['name']?.toString() ??
+          json['user']['nameUser']?.toString();
+    }
+    String? extractedPhoto =
+        json['userPhotoUrl'] ?? json['photoUrl'] ?? json['avatarUrl'];
+    if ((extractedPhoto == null || extractedPhoto.isEmpty) &&
+        json['user'] != null &&
+        json['user'] is Map) {
+      extractedPhoto =
+          json['user']['profileImageUrl']?.toString() ??
+          json['user']['photoUrl']?.toString() ??
+          json['user']['avatarUrl']?.toString() ??
+          json['user']['userPhotoUrl']?.toString();
+    }
+
     return AnimalReport(
-      id: (json['id'] as num?)?.toInt(),
+      id: (json['id'] as num).toInt(),
+      userId: extractedUserId,
+      userName: extractedName,
+      userPhotoUrl: extractedPhoto,
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       type: _parseType(json['type']),
@@ -108,8 +141,6 @@ class AnimalReport {
       imageUrl: json['imageUrl'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
-      userName: json['userName'] as String?,
-      userPhotoUrl: json['userPhotoUrl'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
@@ -130,7 +161,8 @@ class AnimalReport {
 }
 
 class ReportService {
-  final String baseUrl = 'http://localhost:8080';
+  final String baseUrl = 'https://acolhe-patinhas.duckdns.org/api';
+  final ApiClient _client = ApiClient();
 
   Future<List<AnimalReport>> listAll() async {
     final token = await TokenStorage.getAuthToken();
@@ -138,12 +170,11 @@ class ReportService {
 
     final headers = <String, String>{'Content-Type': 'application/json'};
 
-    // Apenas adiciona se o token for válido e não-vazio
     if (token != null && token.trim().isNotEmpty && token != 'null') {
       headers['Authorization'] = 'Bearer $token';
     }
 
-    final response = await http.get(uri, headers: headers);
+    final response = await _client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(
@@ -169,7 +200,8 @@ class ReportService {
     final uri = Uri.parse('$baseUrl/report');
     final request = http.MultipartRequest('POST', uri);
 
-    // Se houver token, envia a autenticação do usuário logado
+    request.headers['User-Agent'] = AppUserAgent.getUserAgent();
+
     if (token != null && token.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $token';
     }
@@ -219,5 +251,48 @@ class ReportService {
       }
     } catch (_) {}
     return 'Verifique os dados preenchidos no formulário.';
+  }
+
+  Future<void> deleteReport(int reportId) async {
+    final token = await TokenStorage.getAuthToken();
+    final uri = Uri.parse('$baseUrl/report/$reportId');
+
+    final headers = <String, String>{'Content-Type': 'application/json'};
+
+    if (token != null && token.trim().isNotEmpty && token != 'null') {
+      headers['Authorization'] = 'Bearer ${token.trim()}';
+    }
+
+    final response = await _client.delete(uri, headers: headers);
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception(
+        'Erro ao deletar reporte (${response.statusCode}): ${response.body}',
+      );
+    }
+  }
+
+  Future<void> updateReportStatus({
+    required int reportId,
+    required String status,
+  }) async {
+    final token = await TokenStorage.getAuthToken();
+    final uri = Uri.parse('$baseUrl/report/$reportId?reportId=$reportId');
+
+    final headers = <String, String>{'Content-Type': 'application/json'};
+
+    if (token != null && token.trim().isNotEmpty && token != 'null') {
+      headers['Authorization'] = 'Bearer ${token.trim()}';
+    }
+
+    final body = jsonEncode({'status': status});
+
+    final response = await _client.patch(uri, headers: headers, body: body);
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception(
+        'Erro ao atualizar status (HTTP ${response.statusCode}): ${response.body}',
+      );
+    }
   }
 }

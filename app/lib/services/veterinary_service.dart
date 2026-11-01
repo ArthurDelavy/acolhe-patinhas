@@ -3,10 +3,9 @@ import 'package:http/http.dart' as http;
 import '../utils/veterinary_form_data.dart';
 import '../utils/token_storage.dart';
 import 'pet_service.dart';
+import '../utils/validators.dart';
 
-/// Rotas veterinárias, conforme os controllers do backend.
 class VetRoutes {
-  // Catálogos (GET lista / POST cria)
   static const String vaccineCatalog = '/veterinary/vaccine';
   static const String surgeryCatalog = '/veterinary/surgeries/types';
   static const String preventiveCatalog = '/veterinary/preventive/types';
@@ -25,7 +24,6 @@ class VetRoutes {
   static String diagnoses(int animalId) => _withParam('diagnosis', animalId);
   static String treatments(int animalId) => _withParam('treatment', animalId);
 
-  // Registros veterinários individuais.
   static String vaccination(int id) => '/veterinary/vaccination/$id';
   static String surgery(int id) => '/veterinary/surgery/$id';
   static String preventive(int id) => '/veterinary/preventive/$id';
@@ -40,6 +38,7 @@ class VetRoutes {
 }
 
 class VeterinaryService {
+  static final ApiClient _client = ApiClient();
   static Future<Map<String, String>> _headers() async {
     final token = await TokenStorage.getAuthToken();
     final headers = <String, String>{'Content-Type': 'application/json'};
@@ -62,7 +61,7 @@ class VeterinaryService {
   }
 
   static Future<List<Map<String, dynamic>>> _getList(String path) async {
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('${PetService.baseUrl}$path'),
       headers: await _headers(),
     );
@@ -75,7 +74,7 @@ class VeterinaryService {
   }
 
   static Future<Map<String, dynamic>> _getOne(String path) async {
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('${PetService.baseUrl}$path'),
       headers: await _headers(),
     );
@@ -90,7 +89,7 @@ class VeterinaryService {
   }
 
   static Future<dynamic> _getAny(String path) async {
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('${PetService.baseUrl}$path'),
       headers: await _headers(),
     );
@@ -106,7 +105,7 @@ class VeterinaryService {
     Map<String, dynamic> body,
     String label,
   ) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('${PetService.baseUrl}$path'),
       headers: await _headers(),
       body: jsonEncode(body),
@@ -123,7 +122,7 @@ class VeterinaryService {
   }
 
   static Future<void> _delete(String path, String label) async {
-    final response = await http.delete(
+    final response = await _client.delete(
       Uri.parse('${PetService.baseUrl}$path'),
       headers: await _headers(),
     );

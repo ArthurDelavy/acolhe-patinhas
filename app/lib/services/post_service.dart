@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
+import '../utils/validators.dart';
 
 class SocialPost {
   final int id;
@@ -21,7 +22,6 @@ class SocialPost {
   });
 
   factory SocialPost.fromJson(Map<String, dynamic> json) {
-    // Extrai o nome do utilizador (suporta tanto 'userName' quanto 'user.name')
     String extractedUserName = 'Usuário';
     if (json['user'] != null && json['user']['name'] != null) {
       extractedUserName = json['user']['name'];
@@ -29,7 +29,6 @@ class SocialPost {
       extractedUserName = json['userName'];
     }
 
-    // Extrai o ID do utilizador
     int? extractedUserId;
     if (json['userId'] != null) {
       extractedUserId = (json['userId'] as num).toInt();
@@ -42,7 +41,6 @@ class SocialPost {
       userId: extractedUserId,
       userName: extractedUserName,
       description: json['description'] ?? '',
-      // Suporta 'imageUrl' ou 'image'
       imageUrl: json['imageUrl'] as String? ?? json['image'] as String?,
       createdAt: json['createdAt'] != null
           ? (DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
@@ -52,27 +50,25 @@ class SocialPost {
 }
 
 class PostService {
-  final String baseUrl = 'http://localhost:8080';
+  final String baseUrl = 'https://acolhe-patinhas.duckdns.org/api';
+  final ApiClient _client = ApiClient();
 
-  Future<List<SocialPost>> listAll() async {
+  Future<List<SocialPost>> listAll({int page = 0, int size = 20}) async {
     final token = await TokenStorage.getAuthToken();
-    final uri = Uri.parse('$baseUrl/post?order=desc&page=0&size=50');
+    final uri = Uri.parse('$baseUrl/post?order=desc&page=$page&size=$size');
 
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (token != null && token.trim().isNotEmpty && token != 'null') {
       headers['Authorization'] = 'Bearer $token';
     }
 
-    final response = await http.get(uri, headers: headers);
+    final response = await _client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(utf8.decode(response.bodyBytes));
-
-      // Trata a paginação do Spring (content), listas genéricas (items) ou lista direta
       final List<dynamic> jsonList = data is List
           ? data
           : (data['content'] ?? data['items'] ?? []);
-
       return jsonList.map((json) => SocialPost.fromJson(json)).toList();
     }
     return [];
@@ -85,6 +81,8 @@ class PostService {
     final token = await TokenStorage.getAuthToken();
     final uri = Uri.parse('$baseUrl/post');
     final request = http.MultipartRequest('POST', uri);
+
+    request.headers['User-Agent'] = AppUserAgent.getUserAgent();
 
     if (token != null && token.trim().isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $token';
@@ -114,5 +112,61 @@ class PostService {
       return SocialPost.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
     }
     throw Exception('Erro ao publicar. Código: ${response.statusCode}');
+  }
+
+  Future<void> deletePost(int postId) async {
+    final token = await TokenStorage.getAuthToken();
+    final uri = Uri.parse('$baseUrl/post/$postId');
+
+    final headers = <String, String>{};
+    if (token != null && token.trim().isNotEmpty && token != 'null') {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    final response = await _client.delete(uri, headers: headers);
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Erro ao excluir post. Status: ${response.statusCode}');
+    }
+  }
+
+  Future<SocialPost> updatePost({
+    required int postId,
+    required String description,
+    XFile? imageFile,
+  }) async {
+    final token = await TokenStorage.getAuthToken();
+    final uri = Uri.parse('$baseUrl/post/$postId');
+    final request = http.MultipartRequest('PATCH', uri);
+
+    request.headers['User-Agent'] = AppUserAgent.getUserAgent();
+
+    if (token != null && token.trim().isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.fields['description'] = description;
+
+    if (imageFile != null) {
+      final bytes = await imageFile.readAsBytes();
+      if (bytes.isNotEmpty) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            bytes,
+            filename: imageFile.name.isNotEmpty
+                ? imageFile.name
+                : 'post_image.jpg',
+          ),
+        );
+      }
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      return SocialPost.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+    }
+    throw Exception('Erro ao atualizar post. Status: ${response.statusCode}');
   }
 }

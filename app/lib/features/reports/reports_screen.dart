@@ -51,8 +51,33 @@ class _ReportScreenState extends State<ReportScreen> {
   ReportType _selectedType = ReportType.LOST;
   LatLng? _selectedLocation;
   XFile? _selectedImage;
+  String? _existingImageUrl;
+  AnimalReport? _editingReport;
+
   final ImagePicker _imagePicker = ImagePicker();
   bool _isLoading = false;
+  bool _isInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_isInitialized) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args != null && args is AnimalReport) {
+        _editingReport = args;
+        _titleController.text = args.title;
+        _descriptionController.text = args.description;
+        _selectedType = args.type;
+        _existingImageUrl = args.imageUrl;
+
+        _selectedLocation = LatLng(args.latitude, args.longitude);
+        _latitudeController.text = args.latitude.toStringAsFixed(6);
+        _longitudeController.text = args.longitude.toStringAsFixed(6);
+      }
+      _isInitialized = true;
+    }
+  }
 
   Future<void> _pickPetImage() async {
     try {
@@ -101,13 +126,9 @@ class _ReportScreenState extends State<ReportScreen> {
 
   Future<void> _submitReport() async {
     if (!_formKey.currentState!.validate()) return;
-
     if (_selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Escolha a localização no mapa.'),
-          backgroundColor: Colors.orange,
-        ),
+        const SnackBar(content: Text('Por favor, selecione uma localização.')),
       );
       return;
     }
@@ -145,7 +166,9 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
       );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -179,6 +202,56 @@ class _ReportScreenState extends State<ReportScreen> {
 
   Widget _buildPhotoPicker() {
     const double size = 120;
+    Widget imageContent;
+    if (_selectedImage != null) {
+      imageContent = kIsWeb
+          ? Image.network(
+              _selectedImage!.path,
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              width: size,
+              height: size,
+            )
+          : Image.file(
+              File(_selectedImage!.path),
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              width: size,
+              height: size,
+            );
+    } else if (_existingImageUrl != null && _existingImageUrl!.isNotEmpty) {
+      imageContent = Image.network(
+        _existingImageUrl!,
+        fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
+        width: size,
+        height: size,
+        errorBuilder: (context, error, stackTrace) => const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image, size: 38, color: Colors.grey),
+            SizedBox(height: 4),
+            Text('Erro ao carregar', style: TextStyle(fontSize: 10)),
+          ],
+        ),
+      );
+    } else {
+      imageContent = const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.pets_rounded, size: 38, color: _orange),
+          SizedBox(height: 4),
+          Text(
+            'Foto do Pet *',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
 
     return Center(
       child: GestureDetector(
@@ -203,37 +276,7 @@ class _ReportScreenState extends State<ReportScreen> {
                 ],
               ),
               clipBehavior: Clip.antiAlias,
-              child: _selectedImage == null
-                  ? const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.pets_rounded, size: 38, color: _orange),
-                        SizedBox(height: 4),
-                        Text(
-                          'Foto do Pet *',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    )
-                  : (kIsWeb
-                        ? Image.network(
-                            _selectedImage!.path,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
-                            width: size,
-                            height: size,
-                          )
-                        : Image.file(
-                            File(_selectedImage!.path),
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
-                            width: size,
-                            height: size,
-                          )),
+              child: imageContent,
             ),
             Container(
               padding: const EdgeInsets.all(6),
@@ -378,12 +421,13 @@ class _ReportScreenState extends State<ReportScreen> {
         (value) => isValid(value) ? null : msg;
 
     const pickMsg = 'Escolha o local no mapa';
+    final isEditing = _editingReport != null;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Reportar Animal',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          isEditing ? 'Editar Reporte' : 'Reportar Animal',
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: _orange,
         foregroundColor: Colors.white,
@@ -402,7 +446,6 @@ class _ReportScreenState extends State<ReportScreen> {
                   _buildPhotoPicker(),
                   const SizedBox(height: 20),
 
-                  // Seleção do Tipo de Reporte
                   Row(
                     children: [
                       _buildTypeCard(
@@ -439,8 +482,9 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                     validator: (v) {
                       final t = (v ?? '').trim();
-                      if (t.length < 3)
+                      if (t.length < 3) {
                         return 'Informe um título com pelo menos 3 caracteres';
+                      }
                       return null;
                     },
                   ),
@@ -460,15 +504,15 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                     validator: (v) {
                       final d = (v ?? '').trim();
-                      if (d.length < 3)
+                      if (d.length < 3) {
                         return 'A descrição deve ter pelo menos 3 caracteres';
+                      }
                       return null;
                     },
                   ),
 
                   const Divider(height: 32),
 
-                  // SEÇÃO DE LOCALIZAÇÃO (Como último item antes do botão)
                   const Text(
                     'Localização *',
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
@@ -536,9 +580,17 @@ class _ReportScreenState extends State<ReportScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Icon(Icons.send_rounded),
+                          : Icon(
+                              isEditing
+                                  ? Icons.save_rounded
+                                  : Icons.send_rounded,
+                            ),
                       label: Text(
-                        _isLoading ? 'PUBLICANDO...' : 'PUBLICAR REPORTE',
+                        _isLoading
+                            ? (isEditing ? 'SALVANDO...' : 'PUBLICANDO...')
+                            : (isEditing
+                                  ? 'SALVAR ALTERAÇÕES'
+                                  : 'PUBLICAR REPORTE'),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

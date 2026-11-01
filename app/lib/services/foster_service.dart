@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
-
+import '../utils/validators.dart';
 import '../utils/token_storage.dart';
 
 class FosterHome {
@@ -57,7 +56,8 @@ class FosterHome {
 }
 
 class FosterService {
-  final String baseUrl = 'http://localhost:8080';
+  final String baseUrl = 'https://acolhe-patinhas.duckdns.org/api';
+  final ApiClient _client = ApiClient();
 
   static final Map<String, String> _geoCache = {};
   static Future<void> _geoQueue = Future.value();
@@ -69,7 +69,7 @@ class FosterService {
     const action = 'listar lares temporários';
     final headers = await _authHeaders(action);
 
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('$baseUrl/foster-home').replace(
         queryParameters: {
           '_': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -92,7 +92,7 @@ class FosterService {
     const action = 'carregar os dados do lar';
     final headers = await _authHeaders(action);
 
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('$baseUrl/foster-home/$id'),
       headers: headers,
     );
@@ -137,8 +137,8 @@ class FosterService {
     });
 
     final response = id == null
-        ? await http.post(uri, headers: headers, body: body)
-        : await http.patch(uri, headers: headers, body: body);
+        ? await _client.post(uri, headers: headers, body: body)
+        : await _client.patch(uri, headers: headers, body: body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       changes.value++;
@@ -156,7 +156,7 @@ class FosterService {
     const action = 'excluir lar temporário';
     final headers = await _authHeaders(action);
 
-    final response = await http.delete(
+    final response = await _client.delete(
       Uri.parse('$baseUrl/foster-home/$id'),
       headers: headers,
     );
@@ -261,8 +261,8 @@ class FosterService {
           'accept-language': 'pt-BR',
         });
 
-        final response = await http
-            .get(uri, headers: {'User-Agent': 'AcolhePatinhasApp/1.0'})
+        final response = await _client
+            .get(uri, headers: {'User-Agent': AppUserAgent.getUserAgent()})
             .timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {
@@ -331,7 +331,7 @@ class FosterService {
     const action = 'listar usuários';
     final headers = await _authHeaders(action);
 
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('$baseUrl/user'),
       headers: headers,
     );

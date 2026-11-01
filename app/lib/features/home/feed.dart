@@ -45,43 +45,65 @@ class _FeedScreenState extends State<FeedScreen>
   late final PostService _postService;
 
   String? _profileImageUrl;
+  int? _currentUserId;
+  bool _isAdmin = false;
   bool _isLoadingAvatar = true;
 
   List<FeedItem> _feedItems = [];
   bool _isLoadingFeed = true;
   String? _errorMessage;
 
+  int _currentPage = 0;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
+
   final _descriptionController = TextEditingController();
   XFile? _selectedImage;
   bool _isExpanded = false;
   bool _isPublishing = false;
 
-  // Garante que o estado seja preservado
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    _profileService = ProfileService(baseUrl: 'http://localhost:8080');
+    _profileService = ProfileService(
+      baseUrl: 'https://acolhe-patinhas.duckdns.org/api',
+    );
     _reportService = ReportService();
     _postService = PostService();
-    _loadUserAvatar();
+    _scrollController.addListener(_onScroll);
+
+    _loadUserAvatarAndInfo();
     _loadFeed();
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadUserAvatar() async {
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.8) {
+      if (!_isLoadingMore && _hasMore && !_isLoadingFeed) {
+        _loadMoreItems();
+      }
+    }
+  }
+
+  Future<void> _loadUserAvatarAndInfo() async {
     try {
       final profile = await _profileService.getProfile();
       if (mounted) {
         setState(() {
           _profileImageUrl = profile.profileImageUrl;
+          _currentUserId = profile.id;
+          _isAdmin = profile.role == 'ADMIN';
           _isLoadingAvatar = false;
         });
       }
@@ -94,7 +116,6 @@ class _FeedScreenState extends State<FeedScreen>
 
   Future<void> _loadFeed({bool isSilent = false}) async {
     if (!mounted) return;
-
     if (_feedItems.isEmpty && !isSilent) {
       setState(() {
         _isLoadingFeed = true;
@@ -102,14 +123,23 @@ class _FeedScreenState extends State<FeedScreen>
       });
     }
 
+    _currentPage = 0;
+    _hasMore = true;
+
     try {
       final results = await Future.wait([
         _reportService.listAll().catchError((_) => <AnimalReport>[]),
-        _postService.listAll().catchError((_) => <SocialPost>[]),
+        _postService
+            .listAll(page: 0, size: 20)
+            .catchError((_) => <SocialPost>[]),
       ]);
 
       final reports = results[0] as List<AnimalReport>;
       final posts = results[1] as List<SocialPost>;
+
+      if (posts.length < 20) {
+        _hasMore = false;
+      }
 
       List<FeedItem> items = [];
       items.addAll(reports.map((r) => FeedItem.fromReport(r)));
@@ -130,6 +160,32 @@ class _FeedScreenState extends State<FeedScreen>
           _isLoadingFeed = false;
         });
       }
+    }
+  }
+
+  Future<void> _loadMoreItems() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final nextPage = _currentPage + 1;
+      final newPosts = await _postService.listAll(page: nextPage, size: 20);
+
+      if (newPosts.isEmpty || newPosts.length < 20) {
+        _hasMore = false;
+      }
+
+      if (newPosts.isNotEmpty) {
+        _currentPage = nextPage;
+        final newItems = newPosts.map((p) => FeedItem.fromPost(p)).toList();
+
+        setState(() {
+          _feedItems.addAll(newItems);
+        });
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
@@ -167,7 +223,7 @@ class _FeedScreenState extends State<FeedScreen>
         _isExpanded = false;
       });
 
-      _loadFeed();
+      _loadFeed(isSilent: true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -182,8 +238,308 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  Future<void> _deletePost(SocialPost post) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Publicação'),
+        content: const Text(
+          'Tem certeza de que deseja remover esta publicação?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _postService.deletePost(post.id);
+        setState(() {
+          _feedItems.removeWhere((item) => item.post?.id == post.id);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Publicação removida com sucesso.')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao remover: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteReport(AnimalReport report) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir Reporte'),
+        content: const Text(
+          'Tem certeza de que deseja remover este reporte de animal?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && report.id != null) {
+      try {
+        await _reportService.deleteReport(report.id!);
+        setState(() {
+          _feedItems.removeWhere((item) => item.report?.id == report.id);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reporte removido com sucesso.')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao remover reporte: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showUpdateStatusDialog(AnimalReport report) {
+    const Color primaryOrange = Color(0xFFE27B1D);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          actionsPadding: const EdgeInsets.all(16),
+          title: const Text(
+            'Alterar Status do Reporte',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width.clamp(280, 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 6),
+                Text(
+                  'Selecione a nova situação para este reporte. Ao marcar como Resolvido ou Cancelado, ele deixará de ser exibido no feed público.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Voltar'),
+            ),
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade700,
+                side: BorderSide(color: Colors.red.shade300),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => _changeStatus(report, 'CANCELLED', ctx),
+              child: const Text('Cancelar Reporte'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryOrange,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => _changeStatus(report, 'RESOLVED', ctx),
+              child: const Text('Resolvido'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _changeStatus(
+    AnimalReport report,
+    String status,
+    BuildContext dialogContext,
+  ) async {
+    Navigator.pop(dialogContext);
+    try {
+      await _reportService.updateReportStatus(
+        reportId: report.id!,
+        status: status,
+      );
+
+      if (status == 'RESOLVED' || status == 'CANCELLED') {
+        setState(() {
+          _feedItems.removeWhere((item) => item.report?.id == report.id);
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Status alterado para $status com sucesso.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao atualizar status: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showEditPostModal(SocialPost post) {
+    final editController = TextEditingController(text: post.description);
+    XFile? newImage;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Editar Publicação',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: editController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Digite a nova descrição...',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () async {
+                          final img = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 80,
+                          );
+                          if (img != null) {
+                            setModalState(() => newImage = img);
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.photo_library,
+                          color: primaryColor,
+                        ),
+                        label: Text(
+                          newImage != null
+                              ? 'Trocar Imagem'
+                              : 'Anexar Nova Foto',
+                          style: const TextStyle(color: primaryColor),
+                        ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                        ),
+                        onPressed: () async {
+                          if (editController.text.trim().isEmpty) return;
+                          Navigator.pop(ctx);
+                          try {
+                            await _postService.updatePost(
+                              postId: post.id,
+                              description: editController.text.trim(),
+                              imageFile: newImage,
+                            );
+                            _loadFeed(isSilent: true);
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Erro ao atualizar: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text(
+                          'Salvar',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _openProfile() {
-    Navigator.pushNamed(context, '/profile').then((_) => _loadUserAvatar());
+    Navigator.pushNamed(
+      context,
+      '/profile',
+    ).then((_) => _loadUserAvatarAndInfo());
   }
 
   Future<void> _openMap(double lat, double lng) async {
@@ -204,6 +560,7 @@ class _FeedScreenState extends State<FeedScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 48,
@@ -259,14 +616,11 @@ class _FeedScreenState extends State<FeedScreen>
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _loadFeed,
+        onRefresh: () => _loadFeed(isSilent: false),
         color: primaryColor,
         child: Column(
           children: [
-            // Caixa de criação de posts no topo
             _buildCreatePostCard(),
-
-            // Conteúdo principal
             Expanded(child: _buildBody()),
           ],
         ),
@@ -323,10 +677,10 @@ class _FeedScreenState extends State<FeedScreen>
               IconButton(
                 icon: const Icon(Icons.campaign, color: primaryColor),
                 tooltip: 'Reportar Animal',
-                onPressed: () =>
-                    Navigator.pushNamed(context, '/report').then((_) {
-                      _loadFeed(isSilent: true);
-                    }),
+                onPressed: () => Navigator.pushNamed(
+                  context,
+                  '/report',
+                ).then((_) => _loadFeed(isSilent: true)),
               ),
             ],
           ),
@@ -456,7 +810,7 @@ class _FeedScreenState extends State<FeedScreen>
               Text(_errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _loadFeed,
+                onPressed: () => _loadFeed(isSilent: false),
                 style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
                 child: const Text(
                   'Tentar Novamente',
@@ -490,9 +844,22 @@ class _FeedScreenState extends State<FeedScreen>
     }
 
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      itemCount: _feedItems.length,
+      itemCount: _feedItems.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index == _feedItems.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: primaryColor,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        }
+
         final item = _feedItems[index];
         if (item.itemType == FeedItemType.REPORT) {
           return _buildReportCard(item.report!);
@@ -503,8 +870,10 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  // CARD DE POST SOCIAL (Layout com as exatas propriedades das imagens do seu Card)
   Widget _buildSocialPostCard(SocialPost post) {
+    final bool canEditOrDelete =
+        _isAdmin || (_currentUserId != null && _currentUserId == post.userId);
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       elevation: 1.5,
@@ -532,6 +901,47 @@ class _FeedScreenState extends State<FeedScreen>
               '${post.createdAt.day.toString().padLeft(2, '0')}/${post.createdAt.month.toString().padLeft(2, '0')}/${post.createdAt.year}',
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
+            trailing: canEditOrDelete
+                ? PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEditPostModal(post);
+                      } else if (value == 'delete') {
+                        _deletePost(post);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 16, color: primaryColor),
+                            SizedBox(width: 8),
+                            Text('Editar', style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 16, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text(
+                              'Excluir',
+                              style: TextStyle(color: Colors.red, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : null,
           ),
           if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
             Container(
@@ -571,8 +981,16 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  // CARD DE REPORTE (EXATAMENTE IGUAL AO SEU CÓDIGO FORNECIDO)
   Widget _buildReportCard(AnimalReport report) {
+    // Converte ambos para String para evitar qualquer incompatibilidade de int vs double/String[cite: 6]
+    final bool isOwner =
+        _currentUserId != null &&
+        report.userId != null &&
+        _currentUserId.toString() == report.userId.toString();
+
+    final bool canEditOrDelete = _isAdmin || isOwner;
+    final String? avatarUrl = report.userPhotoUrl;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       elevation: 1.5,
@@ -581,7 +999,6 @@ class _FeedScreenState extends State<FeedScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Cabeçalho Compacto (Avatar + Nome + Badge)
           ListTile(
             dense: true,
             contentPadding: const EdgeInsets.symmetric(
@@ -590,14 +1007,26 @@ class _FeedScreenState extends State<FeedScreen>
             ),
             leading: CircleAvatar(
               radius: 16,
-              backgroundColor: primaryColor.withAlpha(40),
-              backgroundImage:
-                  report.userPhotoUrl != null && report.userPhotoUrl!.isNotEmpty
-                  ? NetworkImage(report.userPhotoUrl!)
-                  : null,
-              child: report.userPhotoUrl == null || report.userPhotoUrl!.isEmpty
-                  ? const Icon(Icons.person, size: 18, color: primaryColor)
-                  : null,
+              backgroundColor: primaryColor.withOpacity(0.1),
+              child:
+                  (avatarUrl != null &&
+                      avatarUrl.trim().isNotEmpty &&
+                      avatarUrl != 'null')
+                  ? ClipOval(
+                      child: Image.network(
+                        avatarUrl,
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.person,
+                              size: 18,
+                              color: primaryColor,
+                            ),
+                      ),
+                    )
+                  : const Icon(Icons.person, size: 18, color: primaryColor),
             ),
             title: Text(
               report.userName ?? 'Usuário Anônimo',
@@ -606,27 +1035,83 @@ class _FeedScreenState extends State<FeedScreen>
             subtitle: Text(
               report.createdAt != null
                   ? '${report.createdAt!.day.toString().padLeft(2, '0')}/${report.createdAt!.month.toString().padLeft(2, '0')}/${report.createdAt!.year}'
-                  : 'Recently',
+                  : 'Recente',
               style: const TextStyle(fontSize: 11, color: Colors.grey),
             ),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: _getTypeColor(report.type).withAlpha(25),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: _getTypeColor(report.type),
-                  width: 0.8,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getTypeColor(report.type).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _getTypeColor(report.type),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Text(
+                    report.type.label,
+                    style: TextStyle(
+                      color: _getTypeColor(report.type),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                report.type.label,
-                style: TextStyle(
-                  color: _getTypeColor(report.type),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 10,
-                ),
-              ),
+
+                // Exibe os 3 pontinhos para o Admin OU para o criador do post[cite: 6]
+                if (canEditOrDelete)
+                  PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showUpdateStatusDialog(report);
+                      } else if (value == 'delete') {
+                        _deleteReport(report);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 16, color: primaryColor),
+                            SizedBox(width: 8),
+                            Text(
+                              'Alterar Status',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 16, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text(
+                              'Excluir',
+                              style: TextStyle(color: Colors.red, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
           ),
 
@@ -634,7 +1119,7 @@ class _FeedScreenState extends State<FeedScreen>
             Container(
               width: double.infinity,
               constraints: const BoxConstraints(maxHeight: 320),
-              color: primaryColor.withAlpha(20),
+              color: primaryColor.withOpacity(0.08),
               child: Image.network(
                 report.imageUrl!,
                 fit: BoxFit.contain,
@@ -659,7 +1144,7 @@ class _FeedScreenState extends State<FeedScreen>
           else
             Container(
               height: 80,
-              color: Colors.orange.withAlpha(15),
+              color: Colors.orange.withOpacity(0.08),
               child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -677,7 +1162,6 @@ class _FeedScreenState extends State<FeedScreen>
               ),
             ),
 
-          // 3. Conteúdo (Título + Descrição)
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(

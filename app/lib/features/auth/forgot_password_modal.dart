@@ -18,7 +18,9 @@ class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
   static const Color secondaryColor = Color(0xFFFF8C42);
 
   final _formKey = GlobalKey<FormState>();
-  final _authService = AuthService(baseUrl: 'http://localhost:8080');
+  final _authService = AuthService(
+    baseUrl: 'https://acolhe-patinhas.duckdns.org/api',
+  );
 
   late final _emailController = TextEditingController(
     text: widget.initialEmail,

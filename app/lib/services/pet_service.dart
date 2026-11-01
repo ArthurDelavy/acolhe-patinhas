@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
+import '../utils/validators.dart';
 
 class PetService {
-  static const String baseUrl = 'http://localhost:8080';
+  static const String baseUrl = 'https://acolhe-patinhas.duckdns.org/api';
+  static final ApiClient _client = ApiClient();
 
   static Future<Map<String, String>> _getHeaders() async {
     final token = await TokenStorage.getAuthToken();
@@ -18,7 +20,7 @@ class PetService {
   }
 
   static Future<dynamic> _get(String path) async {
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('$baseUrl$path'),
       headers: await _getHeaders(),
     );
@@ -65,7 +67,7 @@ class PetService {
   }
 
   static Future<bool> registerAnimal(Map<String, dynamic> payload) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/animal'),
       headers: await _getHeaders(),
       body: jsonEncode(payload),
@@ -81,6 +83,8 @@ class PetService {
       'PATCH',
       Uri.parse('$baseUrl/animal/$animalId/image'),
     );
+
+    request.headers['User-Agent'] = AppUserAgent.getUserAgent();
 
     final token = await TokenStorage.getAuthToken();
     if (token != null && token.isNotEmpty) {
@@ -109,7 +113,7 @@ class PetService {
     required Map<String, dynamic> payload,
     XFile? imageFile,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/animal'),
       headers: await _getHeaders(),
       body: jsonEncode(payload),
@@ -175,7 +179,7 @@ class PetService {
   static Future<int> registerAnimalAndGetId({
     required Map<String, dynamic> payload,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/animal'),
       headers: await _getHeaders(),
       body: jsonEncode(payload),
@@ -225,7 +229,7 @@ class PetService {
     required Map<String, dynamic> payload,
     XFile? imageFile,
   }) async {
-    final response = await http.patch(
+    final response = await _client.patch(
       Uri.parse('$baseUrl/animal/$id'),
       headers: await _getHeaders(),
       body: jsonEncode(await withVeterinaryRecord(id, payload)),
@@ -266,7 +270,7 @@ class PetService {
       "toAdoption": false,
     };
 
-    final response = await http.patch(
+    final response = await _client.patch(
       Uri.parse('$baseUrl/animal/$id'),
       headers: await _getHeaders(),
       body: jsonEncode(await withVeterinaryRecord(id, body)),
@@ -281,7 +285,7 @@ class PetService {
   }
 
   static Future<bool> deleteAnimal(dynamic id) async {
-    final response = await http.delete(
+    final response = await _client.delete(
       Uri.parse('$baseUrl/animal/$id'),
       headers: await _getHeaders(),
     );
@@ -300,7 +304,7 @@ class PetService {
     required String name,
     required int specieId,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/animal/reference/breed'),
       headers: await _getHeaders(),
       body: jsonEncode({'name': name, 'specieId': specieId}),
@@ -326,7 +330,7 @@ class PetService {
   static Future<Map<String, dynamic>> registerColor({
     required String name,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/animal/reference/color'),
       headers: await _getHeaders(),
       body: jsonEncode({'name': name}),
@@ -351,7 +355,7 @@ class PetService {
   static Future<Map<String, dynamic>> registerSpecies({
     required String name,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/animal/reference/specie'),
       headers: await _getHeaders(),
       body: jsonEncode({'name': name}),
@@ -377,7 +381,7 @@ class PetService {
   static Future<Map<String, dynamic>> registerDischargeReason({
     required String name,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$baseUrl/animal/reference/discharge-reason'),
       headers: await _getHeaders(),
       body: jsonEncode({'name': name}),
