@@ -157,6 +157,31 @@ class _FosterRegisterState extends State<FosterRegister> {
   String? Function(String?) _rule(bool Function(String?) isValid, String msg) =>
       (value) => isValid(value) ? null : msg;
 
+  InputDecoration _inputDecoration(String label, {IconData? icon}) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: icon == null
+          ? null
+          : Icon(icon, color: _secondaryColor, size: 20),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: _secondaryColor, width: 2),
+      ),
+      filled: true,
+      fillColor: Colors.white,
+      isDense: true,
+    );
+  }
+
   Widget _buildField({
     required String label,
     required TextEditingController controller,
@@ -172,16 +197,7 @@ class _FosterRegisterState extends State<FosterRegister> {
         keyboardType: keyboardType,
         validator: validator,
         readOnly: readOnly,
-        decoration: InputDecoration(
-          labelText: label,
-          isDense: true,
-          prefixIcon: Icon(icon, color: _secondaryColor, size: 20),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: _secondaryColor, width: 1.5),
-          ),
-        ),
+        decoration: _inputDecoration(label, icon: icon),
       ),
     );
   }
@@ -333,24 +349,9 @@ class _FosterRegisterState extends State<FosterRegister> {
                                 )
                               : DropdownButtonFormField<UserOption>(
                                   value: _selectedUser,
-                                  decoration: InputDecoration(
-                                    labelText: 'Selecione o responsável *',
-                                    isDense: true,
-                                    prefixIcon: const Icon(
-                                      Icons.person_outline,
-                                      color: _secondaryColor,
-                                      size: 20,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: _secondaryColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
+                                  decoration: _inputDecoration(
+                                    'Selecione o responsável *',
+                                    icon: Icons.person_outline,
                                   ),
                                   items: _userOptions.map((user) {
                                     return DropdownMenuItem<UserOption>(

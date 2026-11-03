@@ -8,6 +8,7 @@ import '../../services/post_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/reports_service.dart';
 
+//type of content presented in the feed / post or report
 enum FeedItemType { REPORT, POST }
 
 class FeedItem {
@@ -40,10 +41,12 @@ class _FeedScreenState extends State<FeedScreen>
     with AutomaticKeepAliveClientMixin {
   static const Color primaryColor = Color(0xFFE27B1D);
 
+  //API services
   late final ProfileService _profileService;
   late final ReportService _reportService;
   late final PostService _postService;
 
+  //logged-in user data
   String? _profileImageUrl;
   int? _currentUserId;
   bool _isAdmin = false;
@@ -53,6 +56,7 @@ class _FeedScreenState extends State<FeedScreen>
   bool _isLoadingFeed = true;
   String? _errorMessage;
 
+  //pagination state
   int _currentPage = 0;
   bool _hasMore = true;
   bool _isLoadingMore = false;
@@ -63,6 +67,7 @@ class _FeedScreenState extends State<FeedScreen>
   bool _isExpanded = false;
   bool _isPublishing = false;
 
+  // Keeps the screen active when switching tabs in the navigation bar
   @override
   bool get wantKeepAlive => true;
 
@@ -87,6 +92,7 @@ class _FeedScreenState extends State<FeedScreen>
     super.dispose();
   }
 
+  /// When the scroll goes past 80% of the list it loads more posts.
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent * 0.8) {
@@ -96,6 +102,7 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  //function to load the user avatar and info from the profile service
   Future<void> _loadUserAvatarAndInfo() async {
     try {
       final profile = await _profileService.getProfile();
@@ -114,6 +121,7 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  // Loads reports + posts
   Future<void> _loadFeed({bool isSilent = false}) async {
     if (!mounted) return;
     if (_feedItems.isEmpty && !isSilent) {
@@ -127,6 +135,7 @@ class _FeedScreenState extends State<FeedScreen>
     _hasMore = true;
 
     try {
+      // Fetches reports and posts in paralle
       final results = await Future.wait([
         _reportService.listAll().catchError((_) => <AnimalReport>[]),
         _postService
@@ -137,14 +146,21 @@ class _FeedScreenState extends State<FeedScreen>
       final reports = results[0] as List<AnimalReport>;
       final posts = results[1] as List<SocialPost>;
 
+      // Fewer than 20 posts = no next page
       if (posts.length < 20) {
         _hasMore = false;
       }
 
+      final openReports = reports.where((r) {
+        final statusStr = r.status.name.toUpperCase();
+        return statusStr == 'OPEN';
+      }).toList();
+
       List<FeedItem> items = [];
-      items.addAll(reports.map((r) => FeedItem.fromReport(r)));
+      items.addAll(openReports.map((r) => FeedItem.fromReport(r)));
       items.addAll(posts.map((p) => FeedItem.fromPost(p)));
 
+      // Newest first
       items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       if (mounted) {
@@ -163,6 +179,7 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  //function to load more items when the user scrolls down
   Future<void> _loadMoreItems() async {
     if (_isLoadingMore || !_hasMore) return;
     setState(() => _isLoadingMore = true);
@@ -189,6 +206,7 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  //function to pick an image from the gallery using the image_picker package
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(
@@ -200,6 +218,7 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  //function to submit a new post using the PostService
   Future<void> _submitPost() async {
     if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -223,6 +242,7 @@ class _FeedScreenState extends State<FeedScreen>
         _isExpanded = false;
       });
 
+      // Refresh the feed after publishing
       _loadFeed(isSilent: true);
     } catch (e) {
       if (mounted) {
@@ -238,26 +258,11 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  //function to delete a post using the PostService
   Future<void> _deletePost(SocialPost post) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Excluir Publicação'),
-        content: const Text(
-          'Tem certeza de que deseja remover esta publicação?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    final confirm = await _showStyledDeleteDialog(
+      title: 'Excluir Publicação',
+      message: 'Tem certeza de que deseja remover esta publicação?',
     );
 
     if (confirm == true) {
@@ -284,26 +289,11 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  //function to delete a report using the ReportService
   Future<void> _deleteReport(AnimalReport report) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Excluir Reporte'),
-        content: const Text(
-          'Tem certeza de que deseja remover este reporte de animal?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    final confirm = await _showStyledDeleteDialog(
+      title: 'Excluir Reporte',
+      message: 'Tem certeza de que deseja remover este reporte de animal?',
     );
 
     if (confirm == true && report.id != null) {
@@ -330,9 +320,69 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  void _showUpdateStatusDialog(AnimalReport report) {
-    const Color primaryOrange = Color(0xFFE27B1D);
+  // Deletion confirmation dialog
+  Future<bool?> _showStyledDeleteDialog({
+    required String title,
+    required String message,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          actionsPadding: const EdgeInsets.all(16),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width.clamp(280, 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Voltar', style: TextStyle(color: Colors.grey)),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                'Excluir',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
+  // Dialog for changing the status of a report (Resolved or Cancelled).
+  void _showUpdateStatusDialog(AnimalReport report) {
     showDialog(
       context: context,
       builder: (ctx) {
@@ -368,7 +418,7 @@ class _FeedScreenState extends State<FeedScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Voltar'),
+              child: const Text('Voltar', style: TextStyle(color: Colors.grey)),
             ),
             OutlinedButton(
               style: OutlinedButton.styleFrom(
@@ -383,7 +433,7 @@ class _FeedScreenState extends State<FeedScreen>
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: primaryOrange,
+                backgroundColor: primaryColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -397,6 +447,7 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
+  //Sends the new status to the API. If it is RESOLVED/CANCELLED
   Future<void> _changeStatus(
     AnimalReport report,
     String status,
@@ -432,6 +483,7 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  //edit post modal bottom sheet
   void _showEditPostModal(SocialPost post) {
     final editController = TextEditingController(text: post.description);
     XFile? newImage;
@@ -535,6 +587,7 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
+  // Opens the profile screen and refreshes the avatar and info when returning.
   void _openProfile() {
     Navigator.pushNamed(
       context,
@@ -542,6 +595,7 @@ class _FeedScreenState extends State<FeedScreen>
     ).then((_) => _loadUserAvatarAndInfo());
   }
 
+  // Opens Google Maps with the given latitude and longitude.
   Future<void> _openMap(double lat, double lng) async {
     final googleMapsUrl = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
@@ -557,11 +611,17 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
+  // Color constants for text and lines
+  static const Color _textDark = Color(0xFF1F1F1F);
+  static const Color _textSoft = Color(0xFF8A8A8A);
+  static const Color _line = Color(0xFFEFEFEF);
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F6F4),
       appBar: AppBar(
         toolbarHeight: 48,
         title: const Text(
@@ -620,7 +680,7 @@ class _FeedScreenState extends State<FeedScreen>
         color: primaryColor,
         child: Column(
           children: [
-            _buildCreatePostCard(),
+            if (_isAdmin) _buildCreatePostCard(),
             Expanded(child: _buildBody()),
           ],
         ),
@@ -629,164 +689,238 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  Widget _buildCreatePostCard() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+  // Builds a circular avatar with an optional gradient ring.
+  Widget _buildAvatar(String? url, {double size = 36, bool ring = true}) {
+    final hasUrl = url != null && url.trim().isNotEmpty && url != 'null';
+    final inner = ClipOval(
+      child: Container(
+        width: size,
+        height: size,
+        color: primaryColor.withOpacity(0.1),
+        child: hasUrl
+            ? Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    Icon(Icons.person, size: size * 0.55, color: primaryColor),
+              )
+            : Icon(Icons.person, size: size * 0.55, color: primaryColor),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                radius: 16,
-                backgroundColor: primaryColor,
-                child: Icon(Icons.person, color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    if (!_isExpanded) setState(() => _isExpanded = true);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _isExpanded
-                          ? 'Escrevendo publicação...'
-                          : 'Escrever publicação...',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.campaign, color: primaryColor),
-                tooltip: 'Reportar Animal',
-                onPressed: () => Navigator.pushNamed(
-                  context,
-                  '/report',
-                ).then((_) => _loadFeed(isSilent: true)),
-              ),
-            ],
-          ),
+    );
 
-          if (_isExpanded) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              style: const TextStyle(fontSize: 12),
-              decoration: const InputDecoration(
-                hintText: 'No que você está pensando hoje?',
-                border: InputBorder.none,
-              ),
-            ),
-            if (_selectedImage != null)
-              Stack(
-                children: [
-                  Container(
-                    height: 120,
-                    width: double.infinity,
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: kIsWeb
-                          ? Image.network(
-                              _selectedImage!.path,
-                              fit: BoxFit.cover,
-                            )
-                          : Image.file(
-                              File(_selectedImage!.path),
-                              fit: BoxFit.cover,
-                            ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 6,
-                    top: 10,
-                    child: InkWell(
-                      onTap: () => setState(() => _selectedImage = null),
-                      child: const CircleAvatar(
-                        radius: 11,
-                        backgroundColor: Colors.black54,
-                        child: Icon(Icons.close, size: 12, color: Colors.white),
+    if (!ring) return inner;
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Color(0xFFF5B84A), primaryColor, Color(0xFFD4501A)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: inner,
+      ),
+    );
+  }
+
+  //converts a DateTime to a human-readable "time ago" format
+  String _timeAgo(DateTime? date) {
+    if (date == null) return 'Recente';
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 1) return 'Agora';
+    if (diff.inMinutes < 60) return 'há ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'há ${diff.inHours} h';
+    if (diff.inDays < 7) return 'há ${diff.inDays} d';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  // Builds the card for creating a new post, which expands when tapped.
+  Widget _buildCreatePostCard() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: _line)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _buildAvatar(_profileImageUrl, size: 34, ring: false),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (!_isExpanded) setState(() => _isExpanded = true);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Text(
+                        _isExpanded
+                            ? 'Escrevendo publicação...'
+                            : 'Escrever publicação...',
+                        style: const TextStyle(color: _textSoft, fontSize: 13),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(
-                    Icons.photo_library,
-                    color: primaryColor,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _selectedImage == null ? 'Anexar Foto' : 'Trocar Foto',
-                    style: const TextStyle(color: primaryColor, fontSize: 11),
                   ),
                 ),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => setState(() => _isExpanded = false),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(color: Colors.grey, fontSize: 11),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _isPublishing ? null : _submitPost,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                      ),
-                      child: _isPublishing
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Publicar',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                    ),
-                  ],
+                // Shortcut to the report animal screen
+                IconButton(
+                  icon: const Icon(
+                    Icons.campaign_outlined,
+                    color: primaryColor,
+                  ),
+                  tooltip: 'Reportar Animal',
+                  onPressed: () => Navigator.pushNamed(
+                    context,
+                    '/report',
+                  ).then((_) => _loadFeed(isSilent: true)),
                 ),
               ],
             ),
+            if (_isExpanded) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: TextField(
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  style: const TextStyle(fontSize: 13.5),
+                  decoration: const InputDecoration(
+                    hintText: 'No que você está pensando hoje?',
+                    hintStyle: TextStyle(color: _textSoft),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+
+              // Preview of the chosen photo
+              if (_selectedImage != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6, bottom: 8),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: SizedBox(
+                          height: 160,
+                          width: double.infinity,
+                          child: kIsWeb
+                              ? Image.network(
+                                  _selectedImage!.path,
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.file(
+                                  File(_selectedImage!.path),
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                      ),
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedImage = null),
+                          child: const CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.black54,
+                            child: Icon(
+                              Icons.close,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(
+                      Icons.photo_library_outlined,
+                      color: primaryColor,
+                      size: 20,
+                    ),
+                    label: Text(
+                      _selectedImage == null ? 'Anexar foto' : 'Trocar foto',
+                      style: const TextStyle(
+                        color: primaryColor,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => setState(() => _isExpanded = false),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(color: _textSoft, fontSize: 12.5),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      FilledButton(
+                        onPressed: _isPublishing ? null : _submitPost,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 8,
+                          ),
+                        ),
+                        child: _isPublishing
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Publicar',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -805,17 +939,19 @@ class _FeedScreenState extends State<FeedScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
               const SizedBox(height: 12),
               Text(_errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              ElevatedButton(
+              FilledButton(
                 onPressed: () => _loadFeed(isSilent: false),
-                style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                child: const Text(
-                  'Tentar Novamente',
-                  style: TextStyle(color: Colors.white),
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
+                child: const Text('Tentar Novamente'),
               ),
             ],
           ),
@@ -825,16 +961,17 @@ class _FeedScreenState extends State<FeedScreen>
 
     if (_feedItems.isEmpty) {
       return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         children: const [
           SizedBox(height: 100),
           Center(
             child: Column(
               children: [
-                Icon(Icons.pets, size: 48, color: Colors.grey),
+                Icon(Icons.pets, size: 48, color: Color(0xFFCFCFCF)),
                 SizedBox(height: 12),
                 Text(
                   'Nenhuma publicação encontrada ainda.',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: TextStyle(color: _textSoft, fontSize: 14),
                 ),
               ],
             ),
@@ -843,9 +980,11 @@ class _FeedScreenState extends State<FeedScreen>
       );
     }
 
+    //building the feed list
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       itemCount: _feedItems.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == _feedItems.length) {
@@ -870,110 +1009,174 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
+  Widget _buildItemHeader({
+    required String? avatarUrl,
+    required String name,
+    required String subtitle,
+    Widget? trailing,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+      child: Row(
+        children: [
+          _buildAvatar(avatarUrl, size: 34),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    color: _textDark,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 11.5, color: _textSoft),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing else const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+
+  //menu for editing or deleting a post/report
+  Widget _buildOptionsMenu({
+    required String editLabel,
+    required VoidCallback onEdit,
+    required VoidCallback onDelete,
+  }) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_horiz, size: 22, color: _textDark),
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onSelected: (value) {
+        if (value == 'edit') {
+          onEdit();
+        } else if (value == 'delete') {
+          onDelete();
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              const Icon(Icons.edit_outlined, size: 18, color: primaryColor),
+              const SizedBox(width: 10),
+              Text(editLabel, style: const TextStyle(fontSize: 13)),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 18, color: Colors.red),
+              SizedBox(width: 10),
+              Text(
+                'Excluir',
+                style: TextStyle(color: Colors.red, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMedia(String url) {
+    return AspectRatio(
+      aspectRatio: 5 / 4,
+      child: Image.network(
+        url,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.medium,
+        loadingBuilder: (context, child, progress) => progress == null
+            ? child
+            : Container(color: const Color(0xFFF5F5F5)),
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: const Color(0xFFF5F5F5),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image_outlined, size: 36, color: _textSoft),
+              SizedBox(height: 4),
+              Text(
+                'Imagem indisponível',
+                style: TextStyle(color: _textSoft, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  //card for a social post, with options to edit or delete if the user is the owner or an admin
   Widget _buildSocialPostCard(SocialPost post) {
     final bool canEditOrDelete =
         _isAdmin || (_currentUserId != null && _currentUserId == post.userId);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 0,
-            ),
-            leading: const CircleAvatar(
-              radius: 16,
-              backgroundColor: primaryColor,
-              child: Icon(Icons.person, size: 18, color: Colors.white),
-            ),
-            title: Text(
-              post.userName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            subtitle: Text(
-              '${post.createdAt.day.toString().padLeft(2, '0')}/${post.createdAt.month.toString().padLeft(2, '0')}/${post.createdAt.year}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
+          _buildItemHeader(
+            avatarUrl: post.userPhotoUrl,
+            name: post.userName,
+            subtitle: _timeAgo(post.createdAt),
             trailing: canEditOrDelete
-                ? PopupMenuButton<String>(
-                    icon: const Icon(
-                      Icons.more_vert,
-                      size: 18,
-                      color: Colors.grey,
-                    ),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showEditPostModal(post);
-                      } else if (value == 'delete') {
-                        _deletePost(post);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 16, color: primaryColor),
-                            SizedBox(width: 8),
-                            Text('Editar', style: TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 16, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text(
-                              'Excluir',
-                              style: TextStyle(color: Colors.red, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                ? _buildOptionsMenu(
+                    editLabel: 'Editar',
+                    onEdit: () => _showEditPostModal(post),
+                    onDelete: () => _deletePost(post),
                   )
                 : null,
           ),
           if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
-            Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(maxHeight: 320),
-              color: primaryColor.withAlpha(20),
-              child: Image.network(
-                post.imageUrl!,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 140,
-                  color: Colors.grey[200],
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image, size: 36, color: Colors.grey),
-                      SizedBox(height: 4),
-                      Text(
-                        'Imagem indisponível',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            _buildMedia(post.imageUrl!),
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              post.description,
-              style: const TextStyle(fontSize: 13, color: Colors.black),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  height: 1.4,
+                  color: _textDark,
+                ),
+                children: [
+                  TextSpan(
+                    text: '${post.userName}  ',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  TextSpan(text: post.description),
+                ],
+              ),
             ),
           ),
         ],
@@ -981,259 +1184,220 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
+  //card for an animal report, with options to change status or delete if the user is the owner or an admin
   Widget _buildReportCard(AnimalReport report) {
-    // Converte ambos para String para evitar qualquer incompatibilidade de int vs double/String[cite: 6]
     final bool isOwner =
         _currentUserId != null &&
         report.userId != null &&
         _currentUserId.toString() == report.userId.toString();
 
-    final bool canEditOrDelete = _isAdmin || isOwner;
-    final String? avatarUrl = report.userPhotoUrl;
+    final bool canManageReport = _isAdmin || isOwner;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    final String? avatarUrl =
+        (report.userPhotoUrl != null &&
+            report.userPhotoUrl!.trim().isNotEmpty &&
+            report.userPhotoUrl != 'null')
+        ? report.userPhotoUrl
+        : (isOwner ? _profileImageUrl : null);
+
+    final typeColor = _getTypeColor(report.type);
+    final hasImage = report.imageUrl != null && report.imageUrl!.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 0,
-            ),
-            leading: CircleAvatar(
-              radius: 16,
-              backgroundColor: primaryColor.withOpacity(0.1),
-              child:
-                  (avatarUrl != null &&
-                      avatarUrl.trim().isNotEmpty &&
-                      avatarUrl != 'null')
-                  ? ClipOval(
-                      child: Image.network(
-                        avatarUrl,
-                        width: 32,
-                        height: 32,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                              Icons.person,
-                              size: 18,
-                              color: primaryColor,
-                            ),
+          _buildItemHeader(
+            avatarUrl: avatarUrl,
+            name: report.userName ?? 'Usuário Anônimo',
+            subtitle: _timeAgo(report.createdAt),
+            trailing: canManageReport
+                ? _buildOptionsMenu(
+                    editLabel: 'Alterar Status',
+                    onEdit: () => _showUpdateStatusDialog(report),
+                    onDelete: () => _deleteReport(report),
+                  )
+                : null,
+          ),
+
+          Stack(
+            children: [
+              if (hasImage)
+                _buildMedia(report.imageUrl!)
+              else
+                AspectRatio(
+                  aspectRatio: 16 / 10,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          primaryColor.withOpacity(0.12),
+                          primaryColor.withOpacity(0.04),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    )
-                  : const Icon(Icons.person, size: 18, color: primaryColor),
-            ),
-            title: Text(
-              report.userName ?? 'Usuário Anônimo',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            subtitle: Text(
-              report.createdAt != null
-                  ? '${report.createdAt!.day.toString().padLeft(2, '0')}/${report.createdAt!.month.toString().padLeft(2, '0')}/${report.createdAt!.year}'
-                  : 'Recente',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
+                    ),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.pets, size: 38, color: primaryColor),
+                        SizedBox(height: 6),
+                        Text(
+                          'Reporte sem foto',
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: 12,
+                bottom: 12,
+                child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: _getTypeColor(report.type).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _getTypeColor(report.type),
-                      width: 0.8,
-                    ),
+                    color: typeColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     report.type.label,
-                    style: TextStyle(
-                      color: _getTypeColor(report.type),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11.5,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
-
-                // Exibe os 3 pontinhos para o Admin OU para o criador do post[cite: 6]
-                if (canEditOrDelete)
-                  PopupMenuButton<String>(
-                    icon: const Icon(
-                      Icons.more_vert,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showUpdateStatusDialog(report);
-                      } else if (value == 'delete') {
-                        _deleteReport(report);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 16, color: primaryColor),
-                            SizedBox(width: 8),
-                            Text(
-                              'Alterar Status',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 16, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text(
-                              'Excluir',
-                              style: TextStyle(color: Colors.red, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
 
-          if (report.imageUrl != null && report.imageUrl!.isNotEmpty)
-            Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(maxHeight: 320),
-              color: primaryColor.withOpacity(0.08),
-              child: Image.network(
-                report.imageUrl!,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 140,
-                  color: Colors.grey[200],
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image, size: 36, color: Colors.grey),
-                      SizedBox(height: 4),
-                      Text(
-                        'Imagem indisponível',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          else
-            Container(
-              height: 80,
-              color: Colors.orange.withOpacity(0.08),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.pets, size: 28, color: primaryColor),
-                  SizedBox(height: 4),
-                  Text(
-                    'Reporte sem foto',
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   report.title,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                    color: _textDark,
+                    letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   report.description,
-                  style: const TextStyle(fontSize: 13, color: Colors.black),
-                ),
-                const SizedBox(height: 10),
-
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.location_on,
-                      size: 14,
-                      color: primaryColor,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: FutureBuilder<String>(
-                        future: report.fetchAddress(),
-                        builder: (context, snapshot) {
-                          return Text(
-                            snapshot.data ?? 'Buscando endereço...',
-                            style: const TextStyle(
-                              fontSize: 10.5,
-                              color: Colors.grey,
-                              height: 1.1,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () => _openMap(report.latitude, report.longitude),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.map, size: 13, color: primaryColor),
-                            SizedBox(width: 3),
-                            Text(
-                              'Ver no mapa',
-                              style: TextStyle(
-                                color: primaryColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    height: 1.4,
+                    color: _textDark,
+                  ),
                 ),
               ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF6F2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    size: 18,
+                    color: primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FutureBuilder<String>(
+                      future: report.fetchAddress(),
+                      builder: (context, snapshot) {
+                        return Text(
+                          snapshot.data ?? 'Buscando endereço...',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF6B6B6B),
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _openMap(report.latitude, report.longitude),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.map_outlined,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'Ver no mapa',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1241,6 +1405,7 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
+  //palette of colors for the different types of reports
   Color _getTypeColor(ReportType type) {
     switch (type) {
       case ReportType.LOST:
