@@ -13,6 +13,9 @@ public record ReportResponse(
 
     @Schema(example = "Fulano de Tal")
     String userName,
+
+    @Schema(example = "https://...")
+    String userProfileImgUrl,
     
     @Schema(example = "LOST")
     String type,
@@ -46,6 +49,7 @@ public record ReportResponse(
         this(
             data.getId(), 
             data.getUser().getName(), 
+            data.getUser().getProfileImageUrl(),
             data.getType().name(), 
             data.getStatus().name(), 
             data.getTitle(), 
