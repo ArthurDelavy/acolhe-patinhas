@@ -8,6 +8,8 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.RequiredArgsConstructor;
 
@@ -15,7 +17,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ObjectComparator {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+
+    public ObjectComparator() {
+        this.objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+    
 
     public <T> String getDifferentAttributes(T oldObject, T newObject) {
         if (oldObject == null || newObject == null) {
