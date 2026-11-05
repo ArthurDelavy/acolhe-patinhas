@@ -79,7 +79,7 @@ public record EditAnimalRequest(
             animal.getBirthDate(), 
             animal.getIntakeDate(), 
             animal.getDischargeDate(), 
-            animal.getDischargeReason().getId(), 
+            animal.getDischargeReason() != null ? animal.getDischargeReason().getId() : null, 
             animal.isToAdoption(), 
             animal.getDescription(), 
 
