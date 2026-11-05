@@ -97,19 +97,19 @@ public class AnimalService {
             .description(data.description())
             .build();
 
-        Animal savedAnimal = anmRep.save(animal);
-
-        VeterinaryRecord vetRecord = vrcSvc.newRecord(
-            savedAnimal,
-            new NewVetRecordRequest(
-                data.size(), 
-                data.weight(),
-                data.neutered()
-            )
-        );
-
-        savedAnimal.setVetRecord(vetRecord);
-
+            
+            VeterinaryRecord vetRecord = vrcSvc.newRecord(
+                animal,
+                new NewVetRecordRequest(
+                    data.size(), 
+                    data.weight(),
+                    data.neutered()
+                )
+            );
+            
+            animal.setVetRecord(vetRecord);
+            
+            Animal savedAnimal = anmRep.save(animal);
 
 
         evtPbs.publishEvent(new AuditLogEvent(
