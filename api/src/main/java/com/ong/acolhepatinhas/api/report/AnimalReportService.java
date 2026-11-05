@@ -46,6 +46,14 @@ public class AnimalReportService {
 
 
 
+
+    public boolean isOwner(int reportId, String username) {
+        return arpRep.findById(reportId)
+                .map(report -> report.getUser().getUsername().equals(username))
+                .orElse(false);
+    }
+
+
     public AnimalReport getById(int id) {
         return arpRep.findById(id).orElseThrow(() -> new ValueNotFoundException("Reporte não encontrado"));
     }
