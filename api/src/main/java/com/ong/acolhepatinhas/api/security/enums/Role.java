@@ -44,6 +44,7 @@ public enum Role {
                         Permission.ANIMAL_READ,
                         Permission.VETERINARY_READ,
                         Permission.REPORT_READ,
+                        Permission.POST_READ,
                         Permission.REPORT_CREATE)),
 
         VERIFIED(Set.of(

@@ -62,7 +62,7 @@ public class AuthService {
         User user = User.builder()
             .id(0)
             .name("guest_" + uuid)
-            .email("gest_" + uuid + "@anonymous.local")
+            .email("guest_" + uuid + "@anonymous.local")
             .role(Role.ANONYMOUS)
             .build();
 
