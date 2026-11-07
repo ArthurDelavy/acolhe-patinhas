@@ -443,8 +443,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 child: UnconstrainedBox(
                   child: Image.asset(
-                    'assets/img/image-inicial.png',
-                    width: 140,
+                    'assets/img/logo_acolhepatinhas.png',
+                    width: 140, //oi
                     height: 140,
                   ),
                 ),

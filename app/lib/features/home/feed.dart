@@ -8,7 +8,7 @@ import '../../services/post_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/reports_service.dart';
 
-//type of content presented in the feed / post or report
+// Tipo de conteúdo apresentado no feed (Reporte ou Post Social)
 enum FeedItemType { REPORT, POST }
 
 class FeedItem {
@@ -40,13 +40,16 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen>
     with AutomaticKeepAliveClientMixin {
   static const Color primaryColor = Color(0xFFE27B1D);
+  static const Color _textDark = Color(0xFF1F1F1F);
+  static const Color _textSoft = Color(0xFF8A8A8A);
+  static const Color _line = Color(0xFFEFEFEF);
 
-  //API services
+  // Serviços de API
   late final ProfileService _profileService;
   late final ReportService _reportService;
   late final PostService _postService;
 
-  //logged-in user data
+  // Dados do utilizador autenticado
   String? _profileImageUrl;
   int? _currentUserId;
   bool _isAdmin = false;
@@ -56,7 +59,7 @@ class _FeedScreenState extends State<FeedScreen>
   bool _isLoadingFeed = true;
   String? _errorMessage;
 
-  //pagination state
+  // Estado da paginação
   int _currentPage = 0;
   bool _hasMore = true;
   bool _isLoadingMore = false;
@@ -67,7 +70,6 @@ class _FeedScreenState extends State<FeedScreen>
   bool _isExpanded = false;
   bool _isPublishing = false;
 
-  // Keeps the screen active when switching tabs in the navigation bar
   @override
   bool get wantKeepAlive => true;
 
@@ -92,7 +94,6 @@ class _FeedScreenState extends State<FeedScreen>
     super.dispose();
   }
 
-  /// When the scroll goes past 80% of the list it loads more posts.
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent * 0.8) {
@@ -102,7 +103,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  //function to load the user avatar and info from the profile service
   Future<void> _loadUserAvatarAndInfo() async {
     try {
       final profile = await _profileService.getProfile();
@@ -121,7 +121,7 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  // Loads reports + posts
+  // Carrega reportes + posts (filtrando reportes apenas para status OPEN)
   Future<void> _loadFeed({bool isSilent = false}) async {
     if (!mounted) return;
     if (_feedItems.isEmpty && !isSilent) {
@@ -135,7 +135,6 @@ class _FeedScreenState extends State<FeedScreen>
     _hasMore = true;
 
     try {
-      // Fetches reports and posts in paralle
       final results = await Future.wait([
         _reportService.listAll().catchError((_) => <AnimalReport>[]),
         _postService
@@ -146,11 +145,11 @@ class _FeedScreenState extends State<FeedScreen>
       final reports = results[0] as List<AnimalReport>;
       final posts = results[1] as List<SocialPost>;
 
-      // Fewer than 20 posts = no next page
       if (posts.length < 20) {
         _hasMore = false;
       }
 
+      // Mantém na lista apenas os reportes abertos (OPEN)
       final openReports = reports.where((r) {
         final statusStr = r.status.name.toUpperCase();
         return statusStr == 'OPEN';
@@ -160,7 +159,7 @@ class _FeedScreenState extends State<FeedScreen>
       items.addAll(openReports.map((r) => FeedItem.fromReport(r)));
       items.addAll(posts.map((p) => FeedItem.fromPost(p)));
 
-      // Newest first
+      // Ordena por data mais recente
       items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       if (mounted) {
@@ -179,7 +178,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  //function to load more items when the user scrolls down
   Future<void> _loadMoreItems() async {
     if (_isLoadingMore || !_hasMore) return;
     setState(() => _isLoadingMore = true);
@@ -206,7 +204,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  //function to pick an image from the gallery using the image_picker package
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(
@@ -218,7 +215,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  //function to submit a new post using the PostService
   Future<void> _submitPost() async {
     if (_descriptionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -242,7 +238,6 @@ class _FeedScreenState extends State<FeedScreen>
         _isExpanded = false;
       });
 
-      // Refresh the feed after publishing
       _loadFeed(isSilent: true);
     } catch (e) {
       if (mounted) {
@@ -258,7 +253,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  //function to delete a post using the PostService
   Future<void> _deletePost(SocialPost post) async {
     final confirm = await _showStyledDeleteDialog(
       title: 'Excluir Publicação',
@@ -289,7 +283,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  //function to delete a report using the ReportService
   Future<void> _deleteReport(AnimalReport report) async {
     final confirm = await _showStyledDeleteDialog(
       title: 'Excluir Reporte',
@@ -320,7 +313,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  // Deletion confirmation dialog
   Future<bool?> _showStyledDeleteDialog({
     required String title,
     required String message,
@@ -381,65 +373,93 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  // Dialog for changing the status of a report (Resolved or Cancelled).
+  // MODAL DE ALTERAÇÃO DE STATUS COM LAYOUT AJUSTADO (BOTÕES EM ROW)
   void _showUpdateStatusDialog(AnimalReport report) {
     showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-          actionsPadding: const EdgeInsets.all(16),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           title: const Text(
             'Alterar Status do Reporte',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           content: SizedBox(
             width: MediaQuery.of(context).size.width.clamp(280, 360),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 6),
-                Text(
-                  'Selecione a nova situação para este reporte. Ao marcar como Resolvido ou Cancelado, ele deixará de ser exibido no feed público.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    height: 1.3,
-                  ),
-                ),
-              ],
+            child: Text(
+              'Selecione a nova situação para este reporte. Ao marcar como Resolvido ou Cancelado, ele deixará de ser exibido no feed público.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade700,
+                height: 1.3,
+              ),
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Voltar', style: TextStyle(color: Colors.grey)),
-            ),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red.shade700,
-                side: BorderSide(color: Colors.red.shade300),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red.shade700,
+                          side: BorderSide(color: Colors.red.shade300),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () =>
+                            _changeStatus(report, 'CANCELLED', ctx),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () => _changeStatus(report, 'RESOLVED', ctx),
+                        child: const Text(
+                          'Resolvido',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              onPressed: () => _changeStatus(report, 'CANCELLED', ctx),
-              child: const Text('Cancelar Reporte'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: primaryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 6),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                  ),
+                  child: const Text('Voltar'),
                 ),
-              ),
-              onPressed: () => _changeStatus(report, 'RESOLVED', ctx),
-              child: const Text('Resolvido'),
+              ],
             ),
           ],
         );
@@ -447,7 +467,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  //Sends the new status to the API. If it is RESOLVED/CANCELLED
   Future<void> _changeStatus(
     AnimalReport report,
     String status,
@@ -483,7 +502,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  //edit post modal bottom sheet
   void _showEditPostModal(SocialPost post) {
     final editController = TextEditingController(text: post.description);
     XFile? newImage;
@@ -587,7 +605,7 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  // Opens the profile screen and refreshes the avatar and info when returning.
+  // Abre o perfil do utilizador autenticado
   void _openProfile() {
     Navigator.pushNamed(
       context,
@@ -595,7 +613,6 @@ class _FeedScreenState extends State<FeedScreen>
     ).then((_) => _loadUserAvatarAndInfo());
   }
 
-  // Opens Google Maps with the given latitude and longitude.
   Future<void> _openMap(double lat, double lng) async {
     final googleMapsUrl = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
@@ -610,11 +627,6 @@ class _FeedScreenState extends State<FeedScreen>
       }
     }
   }
-
-  // Color constants for text and lines
-  static const Color _textDark = Color(0xFF1F1F1F);
-  static const Color _textSoft = Color(0xFF8A8A8A);
-  static const Color _line = Color(0xFFEFEFEF);
 
   @override
   Widget build(BuildContext context) {
@@ -689,7 +701,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  // Builds a circular avatar with an optional gradient ring.
   Widget _buildAvatar(String? url, {double size = 36, bool ring = true}) {
     final hasUrl = url != null && url.trim().isNotEmpty && url != 'null';
     final inner = ClipOval(
@@ -731,7 +742,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  //converts a DateTime to a human-readable "time ago" format
   String _timeAgo(DateTime? date) {
     if (date == null) return 'Recente';
     final diff = DateTime.now().difference(date);
@@ -742,7 +752,6 @@ class _FeedScreenState extends State<FeedScreen>
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  // Builds the card for creating a new post, which expands when tapped.
   Widget _buildCreatePostCard() {
     return AnimatedSize(
       duration: const Duration(milliseconds: 250),
@@ -785,7 +794,6 @@ class _FeedScreenState extends State<FeedScreen>
                     ),
                   ),
                 ),
-                // Shortcut to the report animal screen
                 IconButton(
                   icon: const Icon(
                     Icons.campaign_outlined,
@@ -814,8 +822,6 @@ class _FeedScreenState extends State<FeedScreen>
                   ),
                 ),
               ),
-
-              // Preview of the chosen photo
               if (_selectedImage != null)
                 Padding(
                   padding: const EdgeInsets.only(right: 6, bottom: 8),
@@ -980,7 +986,6 @@ class _FeedScreenState extends State<FeedScreen>
       );
     }
 
-    //building the feed list
     return ListView.builder(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
@@ -1009,6 +1014,7 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
+  // Cabeçalho estático
   Widget _buildItemHeader({
     required String? avatarUrl,
     required String name,
@@ -1048,7 +1054,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  //menu for editing or deleting a post/report
   Widget _buildOptionsMenu({
     required String editLabel,
     required VoidCallback onEdit,
@@ -1123,7 +1128,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  //card for a social post, with options to edit or delete if the user is the owner or an admin
   Widget _buildSocialPostCard(SocialPost post) {
     final bool canEditOrDelete =
         _isAdmin || (_currentUserId != null && _currentUserId == post.userId);
@@ -1184,7 +1188,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  //card for an animal report, with options to change status or delete if the user is the owner or an admin
   Widget _buildReportCard(AnimalReport report) {
     final bool isOwner =
         _currentUserId != null &&
@@ -1233,7 +1236,6 @@ class _FeedScreenState extends State<FeedScreen>
                   )
                 : null,
           ),
-
           Stack(
             children: [
               if (hasImage)
@@ -1301,7 +1303,6 @@ class _FeedScreenState extends State<FeedScreen>
               ),
             ],
           ),
-
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
             child: Column(
@@ -1328,7 +1329,6 @@ class _FeedScreenState extends State<FeedScreen>
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
             child: Container(
@@ -1405,7 +1405,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  //palette of colors for the different types of reports
   Color _getTypeColor(ReportType type) {
     switch (type) {
       case ReportType.LOST:

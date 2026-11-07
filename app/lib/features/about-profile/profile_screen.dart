@@ -21,7 +21,9 @@ BoxDecoration _card() => BoxDecoration(
 );
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final int? userId;
+
+  const ProfileScreen({super.key, this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -33,6 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   final ImagePicker _picker = ImagePicker();
 
   UserProfile? _userProfile;
+  UserProfile? _loggedUserProfile;
   bool _isLoading = true;
   bool _isAnonymous = false;
 
@@ -57,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
-    _loadUserProfile();
+    _loadProfiles();
   }
 
   @override
@@ -66,12 +69,20 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
-  Future<void> _loadUserProfile() async {
+  Future<void> _loadProfiles() async {
     try {
-      final profile = await _profileService.getProfile();
+      final myProfile = await _profileService.getProfile();
+      _loggedUserProfile = myProfile;
+
+      if (widget.userId != null) {
+        final profile = await _profileService.getUserById(widget.userId!);
+        _userProfile = profile;
+      } else {
+        _userProfile = myProfile;
+      }
+
       if (mounted) {
         setState(() {
-          _userProfile = profile;
           _isLoading = false;
           _isAnonymous = false;
         });
@@ -92,6 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _pickAndUploadPhoto() async {
+    if (widget.userId != null) return;
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 95,
@@ -117,6 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _editNameDialog() {
+    if (widget.userId != null) return;
     final nameController = TextEditingController(
       text: _userProfile?.name ?? '',
     );
@@ -159,6 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _editEmailDialog() {
+    if (widget.userId != null) return;
     final emailController = TextEditingController(
       text: _userProfile?.email ?? '',
     );
@@ -254,7 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Navigator.pop(context);
               try {
                 await _profileService.confirmEmailChange(code);
-                await _loadUserProfile();
+                await _loadProfiles();
                 _snack('E-mail alterado com sucesso!');
               } catch (e) {
                 _snack('Código inválido ou expirado.');
@@ -267,6 +281,15 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _showUserSearchModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _UserSearchModal(profileService: _profileService),
     );
   }
 
@@ -286,6 +309,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
+    final isOwnProfile = widget.userId == null;
 
     if (_isLoading) {
       return const Scaffold(
@@ -365,13 +389,22 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     }
 
+    if (_userProfile == null) {
+      return const Scaffold(
+        backgroundColor: _background,
+        body: Center(child: Text('Perfil não encontrado.')),
+      );
+    }
+
+    final isAdmin = _loggedUserProfile?.role == 'ADMIN';
+
     return Scaffold(
       backgroundColor: _background,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            _buildHeader(top),
+            _buildHeader(top, isOwnProfile, isAdmin),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -379,9 +412,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const _SectionTitle('Informações'),
-                  _buildInfoCard(),
+                  _buildInfoCard(isOwnProfile),
                   const SizedBox(height: 32),
-                  _buildLogoutButton(),
+                  if (!isOwnProfile && isAdmin && _userProfile!.role != 'ADMIN')
+                    _buildAdminVerificationButton(),
+                  if (!isOwnProfile && isAdmin) const SizedBox(height: 32),
+
+                  if (isOwnProfile) _buildLogoutButton(),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -392,9 +429,51 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildHeader(double top) {
+  Widget _buildAdminVerificationButton() {
+    final bool isVerified =
+        _userProfile!.isVerified || _userProfile!.role == 'VERIFIED';
+
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          try {
+            await _profileService.toggleUserVerification(_userProfile!.id);
+            _snack('Status de verificação alterado com sucesso!');
+            await _loadProfiles();
+          } catch (e) {
+            _snack('Erro: Não foi possível alterar a verificação.');
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isVerified
+              ? Colors.red.shade100
+              : Colors.blue.shade100,
+          foregroundColor: isVerified
+              ? Colors.red.shade800
+              : Colors.blue.shade800,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        icon: Icon(
+          isVerified ? Icons.remove_moderator : Icons.verified,
+          size: 20,
+        ),
+        label: Text(
+          isVerified ? 'Remover Selo de Verificado' : 'Conceder Verificação',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(double top, bool isOwnProfile, bool isAdmin) {
     final h = 290 + top;
     final name = _userProfile?.name ?? 'Usuário';
+    final isVerified = _userProfile?.isVerified ?? false;
 
     return SizedBox(
       height: h * 0.92,
@@ -427,7 +506,20 @@ class _ProfileScreenState extends State<ProfileScreen>
               () => Navigator.maybePop(context),
             ),
           ),
-          Positioned(top: top + 64, left: 24, child: _buildAvatar()),
+
+          // Ícone de Pesquisa (Só aparece no PRÓPRIO perfil se for ADMIN)
+          if (isOwnProfile && isAdmin)
+            Positioned(
+              top: top + 4,
+              right: 12,
+              child: _roundIcon(Icons.search, _showUserSearchModal),
+            ),
+
+          Positioned(
+            top: top + 64,
+            left: 24,
+            child: _buildAvatar(isOwnProfile),
+          ),
           Positioned(
             top: top + 94,
             left: 152,
@@ -453,14 +545,25 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ),
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.edit_outlined,
-                            color: Colors.white,
+                        if (isVerified || _userProfile?.role == 'ADMIN') ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.verified,
+                            color: _userProfile?.role == 'ADMIN'
+                                ? Colors.black87
+                                : Colors.blue.shade200,
                             size: 20,
                           ),
-                          onPressed: _editNameDialog,
-                        ),
+                        ],
+                        if (isOwnProfile)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            onPressed: _editNameDialog,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -492,11 +595,11 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(bool isOwnProfile) {
     final imageUrl = _userProfile?.profileImageUrl;
 
     return GestureDetector(
-      onTap: _pickAndUploadPhoto,
+      onTap: isOwnProfile ? _pickAndUploadPhoto : null,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -527,29 +630,30 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
             ),
           ),
-          Positioned(
-            right: 0,
-            bottom: 2,
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: _darkOrange,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: const Icon(
-                Icons.camera_alt,
-                size: 14,
-                color: Colors.white,
+          if (isOwnProfile)
+            Positioned(
+              right: 0,
+              bottom: 2,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _darkOrange,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  size: 14,
+                  color: Colors.white,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoCard() {
+  Widget _buildInfoCard(bool isOwnProfile) {
     final email = _userProfile?.email ?? 'Não informado';
 
     return Container(
@@ -578,14 +682,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                 fontWeight: FontWeight.w600,
               ),
             ),
-            trailing: IconButton(
-              icon: const Icon(
-                Icons.edit_outlined,
-                color: _secondary,
-                size: 20,
-              ),
-              onPressed: _editEmailDialog,
-            ),
+            trailing: isOwnProfile
+                ? IconButton(
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: _secondary,
+                      size: 20,
+                    ),
+                    onPressed: _editEmailDialog,
+                  )
+                : null,
           ),
         ],
       ),
@@ -673,4 +779,192 @@ class HeaderCurveClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+class _UserSearchModal extends StatefulWidget {
+  final ProfileService profileService;
+
+  const _UserSearchModal({required this.profileService});
+
+  @override
+  State<_UserSearchModal> createState() => _UserSearchModalState();
+}
+
+class _UserSearchModalState extends State<_UserSearchModal> {
+  List<UserProfile> _allUsers = [];
+  List<UserProfile> _filteredUsers = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    try {
+      final users = await widget.profileService.listAllUsers();
+      if (mounted) {
+        setState(() {
+          _allUsers = users;
+          _filteredUsers = users;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _filterUsers(String query) {
+    final lowerQuery = query.toLowerCase();
+    setState(() {
+      _filteredUsers = _allUsers.where((u) {
+        return u.name.toLowerCase().contains(lowerQuery) ||
+            u.email.toLowerCase().contains(lowerQuery);
+      }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: _background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        children: [
+          // Handle do modal
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            height: 4,
+            width: 40,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'Pesquisar Utilizadores',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: TextField(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search, color: _secondary),
+                hintText: 'Nome ou E-mail...',
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: _filterUsers,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: _secondary),
+                  )
+                : _filteredUsers.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Nenhum utilizador encontrado.',
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                  )
+                : ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _filteredUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = _filteredUsers[index];
+                      final isVerified =
+                          user.isVerified || user.role == 'VERIFIED';
+                      final isAdmin = user.role == 'ADMIN';
+
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 4,
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: _primary.withOpacity(0.2),
+                          backgroundImage: user.profileImageUrl != null
+                              ? NetworkImage(user.profileImageUrl!)
+                              : null,
+                          child: user.profileImageUrl == null
+                              ? Text(
+                                  user.name[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: _darkOrange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        title: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                user.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            if (isVerified || isAdmin) ...[
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.verified,
+                                size: 16,
+                                color: isAdmin ? Colors.orange : Colors.blue,
+                              ),
+                            ],
+                          ],
+                        ),
+                        subtitle: Text(
+                          user.email,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProfileScreen(userId: user.id),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 }

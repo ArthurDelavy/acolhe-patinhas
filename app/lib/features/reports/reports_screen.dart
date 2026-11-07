@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-
 import '../../components/navbar.dart';
 import '../../services/foster_service.dart';
 import '../../services/reports_service.dart';
@@ -79,10 +78,10 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-  Future<void> _pickPetImage() async {
+  Future<void> _pickPetImageFromSource(ImageSource source) async {
     try {
       final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         maxWidth: 1200,
         maxHeight: 1200,
         imageQuality: 85,
@@ -100,6 +99,42 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
       );
     }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: _orange),
+                  title: const Text('Escolher da Galeria'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickPetImageFromSource(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: _orange),
+                  title: const Text('Tirar Foto com a Câmera'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickPetImageFromSource(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _openMapPicker() async {
@@ -255,7 +290,8 @@ class _ReportScreenState extends State<ReportScreen> {
 
     return Center(
       child: GestureDetector(
-        onTap: _pickPetImage,
+        onTap:
+            _showImageSourceDialog, // Abre o modal com opção de Câmera/Galeria
         child: Stack(
           alignment: Alignment.bottomRight,
           children: [

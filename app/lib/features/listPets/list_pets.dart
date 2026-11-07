@@ -306,10 +306,10 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
           );
 
           if (updatedOrDischarged == true) {
+            _PetDetailsCache.clear();
             _loadPets(silent: true);
           }
         } else {
-          // Modal de Detalhes com Animação Hero
           _showPetDetailsModal(pet, heroTag);
         }
       },

@@ -4,7 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../../services/foster_service.dart';
 import '../../utils/validators.dart';
 
-const Color _secondaryColor = Color(0xFFE27B1D);
+const Color _orange = Color(0xFFE27B1D);
 const LatLng _defaultCenter = LatLng(-29.2361, -51.8697);
 
 List<Widget> _mapLayers(LatLng? point) => [
@@ -112,6 +112,12 @@ class _FosterRegisterState extends State<FosterRegister> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selected == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, selecione uma localização.')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -157,24 +163,27 @@ class _FosterRegisterState extends State<FosterRegister> {
   String? Function(String?) _rule(bool Function(String?) isValid, String msg) =>
       (value) => isValid(value) ? null : msg;
 
-  InputDecoration _inputDecoration(String label, {IconData? icon}) {
+  InputDecoration _inputDecoration(
+    String label, {
+    IconData? icon,
+    String? hint,
+  }) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: icon == null
-          ? null
-          : Icon(icon, color: _secondaryColor, size: 20),
+      hintText: hint,
+      prefixIcon: icon == null ? null : Icon(icon, color: _orange, size: 20),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.0),
         borderSide: BorderSide(color: Colors.grey.shade300),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.0),
         borderSide: BorderSide(color: Colors.grey.shade300),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: _secondaryColor, width: 2),
+        borderRadius: BorderRadius.circular(16.0),
+        borderSide: const BorderSide(color: _orange, width: 2),
       ),
       filled: true,
       fillColor: Colors.white,
@@ -189,6 +198,7 @@ class _FosterRegisterState extends State<FosterRegister> {
     required String? Function(String?) validator,
     TextInputType keyboardType = TextInputType.text,
     bool readOnly = false,
+    String? hint,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -197,7 +207,7 @@ class _FosterRegisterState extends State<FosterRegister> {
         keyboardType: keyboardType,
         validator: validator,
         readOnly: readOnly,
-        decoration: _inputDecoration(label, icon: icon),
+        decoration: _inputDecoration(label, icon: icon, hint: hint),
       ),
     );
   }
@@ -208,12 +218,12 @@ class _FosterRegisterState extends State<FosterRegister> {
     return GestureDetector(
       onTap: _openMap,
       child: Container(
-        height: 260,
+        height: 290,
         margin: const EdgeInsets.only(bottom: 12),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
         ),
         child: Stack(
           children: [
@@ -290,214 +300,202 @@ class _FosterRegisterState extends State<FosterRegister> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 48,
         title: Text(
-          _isEditing ? 'Editar lar' : 'Cadastrar lar',
-          style: const TextStyle(fontSize: 16),
+          _isEditing ? 'Editar Lar Temporário' : 'Cadastrar Lar Temporário',
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: _secondaryColor,
+        backgroundColor: _orange,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 650),
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildField(
+                    label: 'Nome do lar *',
+                    controller: _nameController,
+                    icon: Icons.home_outlined,
+                    hint: 'Ex: Cantinho dos Patinhas',
+                    validator: _rule(
+                      (v) => Validators.isValidLength(v, 3, 50),
+                      'Use entre 3 e 50 caracteres',
+                    ),
+                  ),
+
+                  if (!_isEditing) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _isLoadingUsers
+                          ? const LinearProgressIndicator(color: _orange)
+                          : DropdownButtonFormField<UserOption>(
+                              value: _selectedUser,
+                              decoration: _inputDecoration(
+                                'Selecione o responsável *',
+                                icon: Icons.person_outline,
+                              ),
+                              items: _userOptions.map((user) {
+                                return DropdownMenuItem<UserOption>(
+                                  value: user,
+                                  child: Text(
+                                    user.name,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (selected) {
+                                setState(() {
+                                  _selectedUser = selected;
+                                  if (selected != null) {
+                                    _ownerEmailController.text = selected.email;
+                                  }
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null &&
+                                    _ownerEmailController.text.trim().isEmpty) {
+                                  return 'Selecione o responsável pelo lar';
+                                }
+                                return null;
+                              },
+                            ),
+                    ),
+                  ],
+
+                  if (_isEditing && widget.foster?.ownerName != null) ...[
+                    _buildField(
+                      label: 'Responsável',
+                      controller: TextEditingController(
+                        text: widget.foster!.ownerName,
+                      ),
+                      icon: Icons.badge_outlined,
+                      readOnly: true,
+                      validator: (_) => null,
+                    ),
+                  ],
+
+                  _buildField(
+                    label: 'Telefone celular *',
+                    controller: _phoneController,
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    hint: 'Ex: 54999999999',
+                    validator: _rule(
+                      Validators.isValidCellPhone,
+                      'Informe um celular com DDD e 11 dígitos',
+                    ),
+                  ),
+                  _buildField(
+                    label: 'E-mail de contato do lar *',
+                    controller: _emailController,
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    hint: 'Ex: contato@lar.com',
+                    validator: emailRule,
+                  ),
+                  _buildField(
+                    label: 'Capacidade de animais *',
+                    controller: _capacityController,
+                    icon: Icons.pets_outlined,
+                    keyboardType: TextInputType.number,
+                    hint: 'Ex: 5',
+                    validator: _rule(
+                      Validators.isValidPositiveInt,
+                      'Informe uma capacidade maior que zero',
+                    ),
+                  ),
+
+                  const Divider(height: 32),
+
+                  const Text(
+                    'Localização *',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildMapPreview(),
+
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _isEditing
-                            ? 'Editar lar temporário'
-                            : 'Cadastrar lar temporário',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Preencha os dados do lar e de seu responsável.',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildField(
-                        label: 'Nome do lar',
-                        controller: _nameController,
-                        icon: Icons.home_outlined,
-                        validator: _rule(
-                          (v) => Validators.isValidLength(v, 3, 50),
-                          'Use entre 3 e 50 caracteres',
-                        ),
-                      ),
-
-                      if (!_isEditing) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _isLoadingUsers
-                              ? const LinearProgressIndicator(
-                                  color: _secondaryColor,
-                                )
-                              : DropdownButtonFormField<UserOption>(
-                                  value: _selectedUser,
-                                  decoration: _inputDecoration(
-                                    'Selecione o responsável *',
-                                    icon: Icons.person_outline,
-                                  ),
-                                  items: _userOptions.map((user) {
-                                    return DropdownMenuItem<UserOption>(
-                                      value: user,
-                                      child: Text(
-                                        user.name,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (selected) {
-                                    setState(() {
-                                      _selectedUser = selected;
-                                      if (selected != null) {
-                                        _ownerEmailController.text =
-                                            selected.email;
-                                      }
-                                    });
-                                  },
-                                  validator: (value) {
-                                    if (value == null &&
-                                        _ownerEmailController.text
-                                            .trim()
-                                            .isEmpty) {
-                                      return 'Selecione o responsável pelo lar';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                        ),
-                      ],
-
-                      if (_isEditing && widget.foster?.ownerName != null) ...[
-                        _buildField(
-                          label: 'Responsável',
-                          controller: TextEditingController(
-                            text: widget.foster!.ownerName,
-                          ),
-                          icon: Icons.badge_outlined,
+                      Expanded(
+                        child: _buildField(
+                          label: 'Latitude',
+                          controller: _latitudeController,
+                          icon: Icons.location_on_outlined,
                           readOnly: true,
-                          validator: (_) => null,
-                        ),
-                      ],
-
-                      _buildField(
-                        label: 'Telefone celular',
-                        controller: _phoneController,
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                        validator: _rule(
-                          Validators.isValidCellPhone,
-                          'Informe um celular com DDD e 11 dígitos',
-                        ),
-                      ),
-                      _buildField(
-                        label: 'E-mail de contato do lar',
-                        controller: _emailController,
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: emailRule,
-                      ),
-                      _buildField(
-                        label: 'Capacidade de animais',
-                        controller: _capacityController,
-                        icon: Icons.pets_outlined,
-                        keyboardType: TextInputType.number,
-                        validator: _rule(
-                          Validators.isValidPositiveInt,
-                          'Informe uma capacidade maior que zero',
-                        ),
-                      ),
-                      const Divider(height: 24),
-                      const Text(
-                        'Localização',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildMapPreview(),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _buildField(
-                              label: 'Latitude',
-                              controller: _latitudeController,
-                              icon: Icons.location_on_outlined,
-                              readOnly: true,
-                              validator: _rule(
-                                (v) => Validators.isValidCoordinate(v, 90),
-                                pickMsg,
-                              ),
-                            ),
+                          validator: _rule(
+                            (v) => Validators.isValidCoordinate(v, 90),
+                            pickMsg,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildField(
-                              label: 'Longitude',
-                              controller: _longitudeController,
-                              icon: Icons.map_outlined,
-                              readOnly: true,
-                              validator: _rule(
-                                (v) => Validators.isValidCoordinate(v, 180),
-                                pickMsg,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _save,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _secondaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          icon: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.save_outlined),
-                          label: Text(
-                            _isLoading
-                                ? 'Salvando...'
-                                : _isEditing
-                                ? 'Salvar alterações'
-                                : 'Cadastrar lar temporário',
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildField(
+                          label: 'Longitude',
+                          controller: _longitudeController,
+                          icon: Icons.map_outlined,
+                          readOnly: true,
+                          validator: _rule(
+                            (v) => Validators.isValidCoordinate(v, 180),
+                            pickMsg,
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
+
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    height: 50,
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _orange,
+                        foregroundColor: Colors.white,
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Icon(
+                              _isEditing
+                                  ? Icons.save_rounded
+                                  : Icons.send_rounded,
+                            ),
+                      label: Text(
+                        _isLoading
+                            ? (_isEditing ? 'SALVANDO...' : 'CADASTRANDO...')
+                            : (_isEditing
+                                  ? 'SALVAR ALTERAÇÕES'
+                                  : 'CADASTRAR LAR TEMPORÁRIO'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -553,12 +551,11 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 48,
         title: const Text(
           'Arraste o mapa até o local',
           style: TextStyle(fontSize: 16),
         ),
-        backgroundColor: _secondaryColor,
+        backgroundColor: _orange,
         foregroundColor: Colors.white,
       ),
       body: Stack(
@@ -587,7 +584,7 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
             child: FloatingActionButton.small(
               heroTag: 'my-location',
               backgroundColor: Colors.white,
-              foregroundColor: _secondaryColor,
+              foregroundColor: _orange,
               tooltip: 'Usar minha localização atual',
               onPressed: _isLocating ? null : _goToMyLocation,
               child: _isLocating
@@ -610,10 +607,10 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
                   onPressed: () =>
                       Navigator.pop(context, _controller.camera.center),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _secondaryColor,
+                    backgroundColor: _orange,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   icon: const Icon(Icons.check),

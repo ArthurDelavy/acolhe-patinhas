@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
 import '../utils/validators.dart';
-import 'package:flutter/foundation.dart';
 
 // report type
 enum ReportType { LOST, FOUND, ABANDONED }
@@ -165,11 +164,6 @@ class ReportService {
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(
         utf8.decode(response.bodyBytes),
-      );
-      debugPrint(
-        const JsonEncoder.withIndent(
-          '  ',
-        ).convert(jsonList.isNotEmpty ? jsonList.first : {}),
       );
       return jsonList.map((json) => AnimalReport.fromJson(json)).toList();
     }

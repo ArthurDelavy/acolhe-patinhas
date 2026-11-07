@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,6 +34,8 @@ class _EditPetScreenState extends State<EditPetScreen> {
   final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _dischargeDateController =
       TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
 
   int? _selectedSpeciesId;
   int? _selectedBreedId;
@@ -58,8 +59,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
   final List<_VetViewEntry> _veterinaryEntries = [];
 
-  String _vetHeight = '';
-  String _vetWeight = '';
   bool _vetNeutered = false;
 
   bool _isLoading = true;
@@ -80,6 +79,8 @@ class _EditPetScreenState extends State<EditPetScreen> {
     _descriptionController.dispose();
     _birthDateController.dispose();
     _dischargeDateController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -87,7 +88,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
     try {
       final id = widget.petData['id'];
 
-      // 1. Usa dados em cache se já existirem, caso contrário busca em paralelo
       final speciesFuture = _globalSpeciesCache != null
           ? Future.value(_globalSpeciesCache)
           : PetService.fetchSpecies();
@@ -136,8 +136,8 @@ class _EditPetScreenState extends State<EditPetScreen> {
         vetRecord = Map<String, dynamic>.from(rawVetRecord);
       }
 
-      _vetHeight = vetRecord?['size']?.toString() ?? '';
-      _vetWeight = vetRecord?['weight']?.toString() ?? '';
+      _heightController.text = vetRecord?['size']?.toString() ?? '';
+      _weightController.text = vetRecord?['weight']?.toString() ?? '';
       _vetNeutered = vetRecord?['neutered'] == true;
 
       final String? specieName = detail['specie']?.toString();
@@ -147,28 +147,13 @@ class _EditPetScreenState extends State<EditPetScreen> {
       _selectedColorId = _findIdByName(colors, colorName);
 
       if (_selectedSpeciesId != null) {
-        _filteredBreedsList = breeds.where((breed) {
-          final specieObj = breed['specie'] ?? breed['species'];
-          int? speciesIdFromObject;
-          if (specieObj is Map) speciesIdFromObject = specieObj['id'];
-
-          final dynamic rawDirect =
-              breed['specieId'] ??
-              breed['specie_id'] ??
-              breed['speciesId'] ??
-              breed['species_id'] ??
-              breed['idSpecie'];
-
-          final int? speciesIdDirect = rawDirect is int
-              ? rawDirect
-              : int.tryParse(rawDirect?.toString() ?? '');
-
-          final int? breedSpeciesId = speciesIdFromObject ?? speciesIdDirect;
-          return breedSpeciesId == _selectedSpeciesId;
-        }).toList();
+        _filteredBreedsList = breeds
+            .where((breed) => _breedSpecieId(breed) == _selectedSpeciesId)
+            .toList();
       } else {
         _filteredBreedsList = [];
       }
+      _selectedBreedId = _resolveCurrentBreedId(detail, _filteredBreedsList);
 
       setState(() {
         _speciesList = species;
@@ -178,7 +163,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
         _isLoading = false;
       });
 
-      // 2. Carrega o histórico veterinário paralelizado em segundo plano
       _loadVeterinaryRecordsParallel(id as int);
     } catch (e) {
       if (!mounted) return;
@@ -203,7 +187,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
         final summaries = await listCall(animalId);
         if (summaries.isEmpty) return [];
 
-        // Paraleliza os detalhes de todos os itens do grupo
         final entryFutures = summaries.map((summary) async {
           final id = _extractRecordId(summary, type);
           Map<String, dynamic> data = Map<String, dynamic>.from(summary);
@@ -227,7 +210,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
       }
     }
 
-    // Dispara as 6 categorias veterinárias ao mesmo tempo em paralelo
     final results = await Future.wait([
       fetchGroupEntries(
         type: 'Vacinação',
@@ -283,6 +265,35 @@ class _EditPetScreenState extends State<EditPetScreen> {
         ..addAll(allEntries);
       _isLoadingVet = false;
     });
+  }
+
+  int? _breedSpecieId(Map<String, dynamic> breed) {
+    final dynamic raw = breed['specieId'];
+    return raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+  }
+
+  int? _resolveCurrentBreedId(
+    Map<String, dynamic> detail,
+    List<Map<String, dynamic>> filteredBreeds,
+  ) {
+    int? candidate;
+
+    final dynamic rawBreedId = detail['breedId'];
+    final dynamic rawBreed = detail['breed'];
+
+    if (rawBreedId != null) {
+      candidate = int.tryParse(rawBreedId.toString());
+    } else if (rawBreed is Map) {
+      candidate =
+          int.tryParse(rawBreed['id']?.toString() ?? '') ??
+          _findIdByName(filteredBreeds, rawBreed['name']?.toString());
+    } else if (rawBreed != null) {
+      candidate = _findIdByName(filteredBreeds, rawBreed.toString());
+    }
+
+    if (candidate == null) return null;
+    final exists = filteredBreeds.any((b) => b['id'] == candidate);
+    return exists ? candidate : null;
   }
 
   int? _findIdByName(List<Map<String, dynamic>> list, String? name) {
@@ -378,28 +389,9 @@ class _EditPetScreenState extends State<EditPetScreen> {
         return;
       }
 
-      _filteredBreedsList = _allBreedsList.where((breed) {
-        final specieObj = breed['specie'] ?? breed['species'];
-        int? speciesIdFromObject;
-
-        if (specieObj is Map) {
-          speciesIdFromObject = specieObj['id'];
-        }
-
-        final dynamic rawDirect =
-            breed['specieId'] ??
-            breed['specie_id'] ??
-            breed['speciesId'] ??
-            breed['species_id'] ??
-            breed['idSpecie'];
-
-        final int? speciesIdDirect = rawDirect is int
-            ? rawDirect
-            : int.tryParse(rawDirect?.toString() ?? '');
-
-        final int? breedSpeciesId = speciesIdFromObject ?? speciesIdDirect;
-        return breedSpeciesId == speciesId;
-      }).toList();
+      _filteredBreedsList = _allBreedsList
+          .where((breed) => _breedSpecieId(breed) == speciesId)
+          .toList();
     });
   }
 
@@ -601,6 +593,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
+
     String safeIntakeDate;
     if (_originalIntakeDate != null && _originalIntakeDate!.isNotEmpty) {
       safeIntakeDate = _originalIntakeDate!;
@@ -619,21 +612,27 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
     final String rawMicrochip = _microchipController.text.trim();
 
+    // Parse dos dados numéricos veterinários
+    final int? parsedSize = int.tryParse(
+      _heightController.text.trim().replaceAll(',', '.').split('.').first,
+    );
+    final double? parsedWeight = double.tryParse(
+      _weightController.text.trim().replaceAll(',', '.'),
+    );
+
     final Map<String, dynamic> petPayload = {
       "name": _nameController.text.trim(),
       "gender": _selectedGender,
       "toAdoption": _toAdoption,
-      "active": true,
       "intakeDate": safeIntakeDate,
-      if (_selectedSpeciesId != null) "specieId": _selectedSpeciesId,
-      if (_selectedSpeciesId != null) "specie": {"id": _selectedSpeciesId},
       if (_selectedBreedId != null) "breedId": _selectedBreedId,
-      if (_selectedBreedId != null) "breed": {"id": _selectedBreedId},
       if (_selectedColorId != null) "colorId": _selectedColorId,
-      if (_selectedColorId != null) "color": {"id": _selectedColorId},
       if (rawMicrochip.isNotEmpty) "microchipNumber": rawMicrochip,
       if (formattedBirthDate != null) "birthDate": formattedBirthDate,
       "description": _descriptionController.text.trim(),
+      "size": parsedSize ?? 0,
+      "weight": parsedWeight ?? 0.0,
+      "neutered": _vetNeutered,
     };
 
     try {
@@ -1217,8 +1216,8 @@ class _EditPetScreenState extends State<EditPetScreen> {
                           entries: _veterinaryEntries,
                           isLoadingVet: _isLoadingVet,
                           onDelete: _deleteVeterinaryEntry,
-                          height: _vetHeight,
-                          weight: _vetWeight,
+                          heightController: _heightController,
+                          weightController: _weightController,
                           neutered: _vetNeutered,
                         ),
 
@@ -1399,16 +1398,16 @@ class _VeterinaryReadOnlySection extends StatelessWidget {
   final List<_VetViewEntry> entries;
   final bool isLoadingVet;
   final Future<void> Function(_VetViewEntry) onDelete;
-  final String height;
-  final String weight;
+  final TextEditingController heightController;
+  final TextEditingController weightController;
   final bool neutered;
 
   const _VeterinaryReadOnlySection({
     required this.entries,
     required this.isLoadingVet,
     required this.onDelete,
-    required this.height,
-    required this.weight,
+    required this.heightController,
+    required this.weightController,
     required this.neutered,
   });
 
@@ -1488,8 +1487,10 @@ class _VeterinaryReadOnlySection extends StatelessWidget {
           children: [
             Expanded(
               child: TextFormField(
-                initialValue: height,
-                readOnly: true,
+                controller: heightController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 maxLength: 3,
                 decoration: _inputDecoration('Altura (cm)', icon: Icons.height),
               ),
@@ -1497,8 +1498,10 @@ class _VeterinaryReadOnlySection extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: TextFormField(
-                initialValue: weight,
-                readOnly: true,
+                controller: weightController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 maxLength: 6,
                 decoration: _inputDecoration(
                   'Peso (kg)',
