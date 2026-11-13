@@ -71,9 +71,23 @@ class _FostersScreenState extends State<FostersScreen> {
       backgroundColor: _background,
       appBar: AppBar(
         toolbarHeight: 48,
-        title: const Text('Lares parceiros', style: TextStyle(fontSize: 16)),
-        backgroundColor: _secondary,
+        title: const Text(
+          'Lares parceiros',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+            ),
+          ),
+        ),
       ),
       body: FutureBuilder<List<FosterHome>>(
         future: _fosters,

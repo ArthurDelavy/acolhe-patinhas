@@ -23,7 +23,9 @@ class NavbarComponent extends StatefulWidget {
 }
 
 class _NavbarComponentState extends State<NavbarComponent> {
-  static const Color navBarColor = Color(0xFFE27B1D);
+  // Mesmas cores do degradê da tela de login
+  static const Color primaryColor = Color(0xFFFFA94D);
+  static const Color secondaryColor = Color(0xFFFF8C42);
 
   bool _isAdmin = false;
   bool _isLoading = true;
@@ -101,7 +103,11 @@ class _NavbarComponentState extends State<NavbarComponent> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: navBarColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [primaryColor, secondaryColor],
+        ),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(

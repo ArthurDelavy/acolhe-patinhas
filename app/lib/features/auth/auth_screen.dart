@@ -485,6 +485,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           : CrossFadeState.showFirst,
                       firstChild: Column(
                         children: [
+                          // Espaço no topo para o rótulo (label) não cortar ao flutuar
+                          const SizedBox(height: 6),
                           _buildInput(
                             label: 'E-mail',
                             hint: 'Digite seu e-mail',
@@ -502,7 +504,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(
+                            height: 18,
+                          ), // Espaçamento levemente aumentado para a label do próximo campo
                           _buildInput(
                             label: 'Senha',
                             hint: 'Digite sua senha',
@@ -801,6 +805,7 @@ class _AuthScreenState extends State<AuthScreen> {
       validator: validator,
       style: const TextStyle(fontSize: 15, color: Color(0xFF2D3142)),
       decoration: InputDecoration(
+        alignLabelWithHint: true,
         floatingLabelStyle: const TextStyle(
           color: secondaryColor,
           fontWeight: FontWeight.bold,
@@ -812,16 +817,13 @@ class _AuthScreenState extends State<AuthScreen> {
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: const Color(0xFFFAFAFA),
-        contentPadding: const EdgeInsets.only(
-          top: 22,
-          bottom: 10,
-          left: 16,
-          right: 16,
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 16,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: Colors.grey.shade200),
-          gapPadding: 6,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
