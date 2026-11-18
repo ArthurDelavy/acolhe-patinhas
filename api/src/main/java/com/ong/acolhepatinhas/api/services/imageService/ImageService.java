@@ -83,10 +83,10 @@ public class ImageService {
     private byte[] optimizeImage(MultipartFile image, StorageFileType fileType) {
 
         int maxEdge = switch (fileType) {
-            case ANIMAL_REGISTER_PHOTO -> 80;
+            case ANIMAL_REGISTER_PHOTO -> 300;
             case POST_PHOTO -> 1080;
             case USER_PROFILE_PHOTO -> 512;
-            case REPORT_PHOTO -> 1080;
+            case REPORT_PHOTO -> 512;
         };
 
         long maxSizeBytes = maxSizeImageKb * 1024;
