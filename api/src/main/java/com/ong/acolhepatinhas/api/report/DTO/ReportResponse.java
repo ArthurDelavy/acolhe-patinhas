@@ -48,8 +48,8 @@ public record ReportResponse(
     public ReportResponse(AnimalReport data) {
         this(
             data.getId(), 
-            data.getUser().getName(), 
-            data.getUser().getProfileImageUrl(),
+            (data.getUser() != null) ? data.getUser().getName() : "anonymous", 
+            (data.getUser() != null) ? data.getUser().getProfileImageUrl() : null,
             data.getType().name(), 
             data.getStatus().name(), 
             data.getTitle(), 
