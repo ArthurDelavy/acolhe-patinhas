@@ -86,7 +86,7 @@ public class ImageService {
             case ANIMAL_REGISTER_PHOTO -> 300;
             case POST_PHOTO -> 1080;
             case USER_PROFILE_PHOTO -> 512;
-            case REPORT_PHOTO -> 512;
+            case REPORT_PHOTO -> 1080;
         };
 
         long maxSizeBytes = maxSizeImageKb * 1024;
