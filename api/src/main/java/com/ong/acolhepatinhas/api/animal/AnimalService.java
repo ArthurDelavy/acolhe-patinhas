@@ -51,8 +51,7 @@ public class AnimalService {
 
 
     public List<Animal> listAll(Boolean toAdoption) {
-        if (toAdoption != null) anmRep.findAllByToAdoption(toAdoption);
-        return anmRep.findAll();
+        return (toAdoption != null) ? anmRep.findAllByToAdoption(toAdoption) : anmRep.findAll();
     }
 
 
