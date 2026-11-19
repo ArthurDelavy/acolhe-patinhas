@@ -15,6 +15,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool anonymousEntry = false;
+  bool _isCheckingSession = true;
   bool obscurePassword = true;
 
   final _formKey = GlobalKey<FormState>();
@@ -34,6 +35,21 @@ class _AuthScreenState extends State<AuthScreen> {
     _authService = AuthService(
       baseUrl: 'https://acolhe-patinhas.duckdns.org/api',
     );
+    _checkExistingSession();
+  }
+
+  Future<void> _checkExistingSession() async {
+    final isLoggedIn = await _authService.hasValidSession();
+
+    if (isLoggedIn && mounted) {
+      Navigator.pushReplacementNamed(context, '/feed');
+    } else {
+      if (mounted) {
+        setState(() {
+          _isCheckingSession = false;
+        });
+      }
+    }
   }
 
   @override
@@ -83,10 +99,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // =========================================================
-                  // Chamada dinâmica da API (Substitui o Text fixo antigo)
-                  // =========================================================
                   Expanded(
                     child: FutureBuilder<String>(
                       future: _authService.fetchTermContent(),
@@ -138,7 +150,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ),
 
-                  // =========================================================
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -424,6 +435,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingSession) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: secondaryColor)),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(

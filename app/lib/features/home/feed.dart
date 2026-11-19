@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Necessário para o SystemNavigator.pop()
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../components/navbar.dart';
@@ -121,7 +122,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  // Carrega reportes + posts (filtrando reportes apenas para status OPEN)
   Future<void> _loadFeed({bool isSilent = false}) async {
     if (!mounted) return;
     if (_feedItems.isEmpty && !isSilent) {
@@ -149,7 +149,6 @@ class _FeedScreenState extends State<FeedScreen>
         _hasMore = false;
       }
 
-      // Mantém na lista apenas os reportes abertos (OPEN)
       final openReports = reports.where((r) {
         final statusStr = r.status.name.toUpperCase();
         return statusStr == 'OPEN';
@@ -159,7 +158,6 @@ class _FeedScreenState extends State<FeedScreen>
       items.addAll(openReports.map((r) => FeedItem.fromReport(r)));
       items.addAll(posts.map((p) => FeedItem.fromPost(p)));
 
-      // Ordena por data mais recente
       items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       if (mounted) {
@@ -253,127 +251,6 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  Future<void> _deletePost(SocialPost post) async {
-    final confirm = await _showStyledDeleteDialog(
-      title: 'Excluir Publicação',
-      message: 'Tem certeza de que deseja remover esta publicação?',
-    );
-
-    if (confirm == true) {
-      try {
-        await _postService.deletePost(post.id);
-        setState(() {
-          _feedItems.removeWhere((item) => item.post?.id == post.id);
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Publicação removida com sucesso.')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao remover: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _deleteReport(AnimalReport report) async {
-    final confirm = await _showStyledDeleteDialog(
-      title: 'Excluir Reporte',
-      message: 'Tem certeza de que deseja remover este reporte de animal?',
-    );
-
-    if (confirm == true && report.id != null) {
-      try {
-        await _reportService.deleteReport(report.id!);
-        setState(() {
-          _feedItems.removeWhere((item) => item.report?.id == report.id);
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Reporte removido com sucesso.')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao remover reporte: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  Future<bool?> _showStyledDeleteDialog({
-    required String title,
-    required String message,
-  }) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-          actionsPadding: const EdgeInsets.all(16),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          content: SizedBox(
-            width: MediaQuery.of(context).size.width.clamp(280, 360),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 6),
-                Text(
-                  message,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Voltar', style: TextStyle(color: Colors.grey)),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.red.shade600,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text(
-                'Excluir',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // MODAL DE ALTERAÇÃO DE STATUS COM LAYOUT AJUSTADO (BOTÕES EM ROW)
   void _showUpdateStatusDialog(AnimalReport report) {
     showDialog(
       context: context,
@@ -605,7 +482,6 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  // Abre o perfil do utilizador autenticado
   void _openProfile() {
     Navigator.pushNamed(
       context,
@@ -632,84 +508,124 @@ class _FeedScreenState extends State<FeedScreen>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F6F4),
-      appBar: AppBar(
-        toolbarHeight: 48,
-        title: const Text(
-          'Meu Feed',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        foregroundColor: Colors.white,
-        flexibleSpace: Container(
-          // <- novo: o degradê
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+    // PopScope previne que a tecla "Voltar" nativa feche o app acidentalmente
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        final bool? exitApp = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text(
+              'Sair do App',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
+            content: const Text('Tem certeza que deseja sair do aplicativo?'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: primaryColor),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Sair'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: InkWell(
-              onTap: _openProfile,
-              customBorder: const CircleBorder(),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white,
-                child: _isLoadingAvatar
-                    ? const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: primaryColor,
-                        ),
-                      )
-                    : ClipOval(
-                        child:
-                            _profileImageUrl != null &&
-                                _profileImageUrl!.isNotEmpty
-                            ? Image.network(
-                                _profileImageUrl!,
-                                width: 32,
-                                height: 32,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(
-                                      Icons.person,
-                                      size: 20,
-                                      color: primaryColor,
-                                    ),
-                              )
-                            : const Icon(
-                                Icons.person,
-                                size: 20,
-                                color: primaryColor,
-                              ),
-                      ),
+        );
+        if (exitApp == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F6F4),
+        appBar: AppBar(
+          toolbarHeight: 48,
+          title: const Text(
+            'Meu Feed',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          foregroundColor: Colors.white,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
               ),
             ),
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => _loadFeed(isSilent: false),
-        color: primaryColor,
-        child: Column(
-          children: [
-            if (_isAdmin) _buildCreatePostCard(),
-            Expanded(child: _buildBody()),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: InkWell(
+                onTap: _openProfile,
+                customBorder: const CircleBorder(),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white,
+                  child: _isLoadingAvatar
+                      ? const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primaryColor,
+                          ),
+                        )
+                      : ClipOval(
+                          child:
+                              _profileImageUrl != null &&
+                                  _profileImageUrl!.isNotEmpty
+                              ? Image.network(
+                                  _profileImageUrl!,
+                                  width: 32,
+                                  height: 32,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        Icons.person,
+                                        size: 20,
+                                        color: primaryColor,
+                                      ),
+                                )
+                              : const Icon(
+                                  Icons.person,
+                                  size: 20,
+                                  color: primaryColor,
+                                ),
+                        ),
+                ),
+              ),
+            ),
           ],
         ),
+        body: RefreshIndicator(
+          onRefresh: () => _loadFeed(isSilent: false),
+          color: primaryColor,
+          child: Column(
+            children: [
+              if (_isAdmin) _buildCreatePostCard(),
+              Expanded(child: _buildBody()),
+            ],
+          ),
+        ),
+        // SafeArea protege a Navbar da sobreposição da barra de gestos/sistema nativa
+        bottomNavigationBar: const SafeArea(
+          bottom: true,
+          child: NavbarComponent(currentIndex: 0),
+        ),
       ),
-      bottomNavigationBar: const NavbarComponent(currentIndex: 0),
     );
   }
 
@@ -1069,7 +985,6 @@ class _FeedScreenState extends State<FeedScreen>
   Widget _buildOptionsMenu({
     required String editLabel,
     required VoidCallback onEdit,
-    required VoidCallback onDelete,
   }) {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_horiz, size: 22, color: _textDark),
@@ -1079,8 +994,6 @@ class _FeedScreenState extends State<FeedScreen>
       onSelected: (value) {
         if (value == 'edit') {
           onEdit();
-        } else if (value == 'delete') {
-          onDelete();
         }
       },
       itemBuilder: (context) => [
@@ -1091,19 +1004,6 @@ class _FeedScreenState extends State<FeedScreen>
               const Icon(Icons.edit_outlined, size: 18, color: primaryColor),
               const SizedBox(width: 10),
               Text(editLabel, style: const TextStyle(fontSize: 13)),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete_outline, size: 18, color: Colors.red),
-              SizedBox(width: 10),
-              Text(
-                'Excluir',
-                style: TextStyle(color: Colors.red, fontSize: 13),
-              ),
             ],
           ),
         ),
@@ -1141,8 +1041,10 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Widget _buildSocialPostCard(SocialPost post) {
-    final bool canEditOrDelete =
-        _isAdmin || (_currentUserId != null && _currentUserId == post.userId);
+    final bool isOwner =
+        _currentUserId != null &&
+        _currentUserId.toString() == post.userId.toString();
+    final bool canEdit = _isAdmin || isOwner;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1166,11 +1068,10 @@ class _FeedScreenState extends State<FeedScreen>
             avatarUrl: post.userPhotoUrl,
             name: post.userName,
             subtitle: _timeAgo(post.createdAt),
-            trailing: canEditOrDelete
+            trailing: canEdit
                 ? _buildOptionsMenu(
                     editLabel: 'Editar',
                     onEdit: () => _showEditPostModal(post),
-                    onDelete: () => _deletePost(post),
                   )
                 : null,
           ),
@@ -1205,8 +1106,7 @@ class _FeedScreenState extends State<FeedScreen>
         _currentUserId != null &&
         report.userId != null &&
         _currentUserId.toString() == report.userId.toString();
-
-    final bool canManageReport = _isAdmin || isOwner;
+    final bool canEdit = _isAdmin || isOwner;
 
     final String? avatarUrl =
         (report.userPhotoUrl != null &&
@@ -1240,11 +1140,10 @@ class _FeedScreenState extends State<FeedScreen>
             avatarUrl: avatarUrl,
             name: report.userName ?? 'Usuário Anônimo',
             subtitle: _timeAgo(report.createdAt),
-            trailing: canManageReport
+            trailing: canEdit
                 ? _buildOptionsMenu(
                     editLabel: 'Alterar Status',
                     onEdit: () => _showUpdateStatusDialog(report),
-                    onDelete: () => _deleteReport(report),
                   )
                 : null,
           ),

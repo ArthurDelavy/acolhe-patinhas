@@ -403,4 +403,57 @@ class PetService {
           throw Exception('Motivo criado, mas não encontrado na lista.'),
     );
   }
+
+  // ---------------------------------------------------------------------
+  // Exclusão de itens de referência (espécie, raça, cor)
+  // ATENÇÃO: confirme esses caminhos no Swagger / com o backend.
+  // Segui o mesmo padrão dos GET/POST: /animal/reference/<tipo>/{id}
+  // ---------------------------------------------------------------------
+
+  // Nomes dos papéis (roles) que podem excluir. Confira o texto exato
+  // dentro do token (jwt.io, campo "roles") e ajuste aqui.
+  static const List<String> _referenceDeleteRoles = ['ADMIN', 'VERIFIED'];
+
+  /// true se o usuário logado tem algum dos papéis que podem excluir.
+  /// Serve só para mostrar/esconder o botão: quem decide de verdade é o backend.
+  static Future<bool> canDeleteReferences() async {
+    for (final role in _referenceDeleteRoles) {
+      if (await TokenStorage.hasPermission(role)) return true;
+    }
+    return false;
+  }
+
+  static Future<void> _deleteReference(String path, String label) async {
+    final response = await _client.delete(
+      Uri.parse('$baseUrl/animal/reference/$path'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 204) return;
+
+    if (response.statusCode == 403) {
+      throw Exception('Você não tem permissão para excluir $label.');
+    }
+    if (response.statusCode == 404) {
+      throw Exception(
+        '$label não foi encontrado(a). Talvez já tenha sido excluído(a).',
+      );
+    }
+    if (response.statusCode == 409) {
+      throw Exception('Não é possível excluir: $label está em uso.');
+    }
+    throw Exception(
+      'Falha ao excluir $label (${response.statusCode})'
+      '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
+    );
+  }
+
+  static Future<void> deleteSpecies(int id) =>
+      _deleteReference('specie/$id', 'a espécie');
+
+  static Future<void> deleteBreed(int id) =>
+      _deleteReference('breed/$id', 'a raça');
+
+  static Future<void> deleteColor(int id) =>
+      _deleteReference('color/$id', 'a cor');
 }

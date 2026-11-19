@@ -2156,3 +2156,53 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
     );
   }
 }
+
+/// Pergunta se quer excluir e, se confirmar, chama [onDelete].
+/// Retorna true se o item foi excluído.
+/// Uso: confirmAndDeleteReference(context, kind: 'espécie', name: 'Cachorro',
+///        onDelete: () => PetService.deleteSpecies(id));
+Future<bool> confirmAndDeleteReference(
+  BuildContext context, {
+  required String kind,
+  required String name,
+  required Future<void> Function() onDelete,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: _dialogShape,
+      title: Text('Excluir $kind?'),
+      content: Text('Deseja excluir "$name"? Essa ação não pode ser desfeita.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Excluir'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true) return false;
+
+  try {
+    await onDelete();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"$name" excluído(a) com sucesso.')),
+      );
+    }
+    return true;
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+    return false;
+  }
+}

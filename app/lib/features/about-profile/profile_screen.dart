@@ -362,7 +362,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
+               onPressed: () async {
+                    await TokenStorage.clear();
+                    if (!mounted) return;
                     Navigator.pushNamedAndRemoveUntil(
                       context,
                       '/',

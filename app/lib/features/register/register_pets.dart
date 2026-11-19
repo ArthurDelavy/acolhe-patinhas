@@ -400,7 +400,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
               height: size,
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                shape: BoxShape.rectangle, // Borda Quadrada
+                shape: BoxShape.rectangle, // Alterado para Borda Quadrada
                 borderRadius: BorderRadius.zero,
                 border: Border.all(color: _orange, width: 3),
                 boxShadow: [
@@ -432,14 +432,16 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         ? Image.network(
                             _selectedImage!.path,
                             fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
+                            alignment:
+                                Alignment.center, // Alinhamento centralizado
                             width: size,
                             height: size,
                           )
                         : Image.file(
                             File(_selectedImage!.path),
                             fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
+                            alignment:
+                                Alignment.center, // Alinhamento centralizado
                             width: size,
                             height: size,
                           )),

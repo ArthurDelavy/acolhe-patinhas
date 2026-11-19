@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../utils/token_storage.dart';
 
 class Validators {
   static bool isValidEmail(String email) {
@@ -102,10 +104,77 @@ class AppUserAgent {
 
 class ApiClient extends http.BaseClient {
   final http.Client _inner = http.Client();
+  bool _isRefreshing = false;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     request.headers['User-Agent'] = AppUserAgent.getUserAgent();
-    return _inner.send(request);
+
+    final token = await TokenStorage.getAuthToken();
+    if (token != null && !request.headers.containsKey('Authorization')) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final copiedRequest = _copyRequest(request);
+    var response = await _inner.send(request);
+
+    if (response.statusCode == 401 && !request.url.path.contains('/auth/')) {
+      if (!_isRefreshing) {
+        _isRefreshing = true;
+        final success = await _refreshTokenSilently();
+        _isRefreshing = false;
+
+        if (success) {
+          final newToken = await TokenStorage.getAuthToken();
+          copiedRequest.headers['Authorization'] = 'Bearer $newToken';
+
+          return _inner.send(copiedRequest);
+        }
+      }
+    }
+    return response;
+  }
+
+  Future<bool> _refreshTokenSilently() async {
+    try {
+      final refreshToken = await TokenStorage.getRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) return false;
+
+      final refreshResponse = await _inner.post(
+        Uri.parse('https://acolhe-patinhas.duckdns.org/api/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'code': refreshToken}),
+      );
+
+      if (refreshResponse.statusCode == 200) {
+        final data = jsonDecode(refreshResponse.body);
+
+        await TokenStorage.saveTokens(
+          authToken: (data['accessToken'] ?? data['authToken']) as String,
+          refreshToken: (data['refreshToken'] ?? refreshToken) as String,
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  http.BaseRequest _copyRequest(http.BaseRequest original) {
+    if (original is http.Request) {
+      final req = http.Request(original.method, original.url)
+        ..encoding = original.encoding
+        ..bodyBytes = original.bodyBytes;
+      req.headers.addAll(original.headers);
+      return req;
+    } else if (original is http.MultipartRequest) {
+      final req = http.MultipartRequest(original.method, original.url)
+        ..fields.addAll(original.fields)
+        ..files.addAll(original.files);
+      req.headers.addAll(original.headers);
+      return req;
+    }
+    return original;
   }
 }
