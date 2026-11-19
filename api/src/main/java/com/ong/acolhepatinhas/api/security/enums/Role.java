@@ -52,6 +52,8 @@ public enum Role {
                         Permission.ANIMAL_CREATE,
                         Permission.ANIMAL_EDIT,
 
+                        Permission.ANIMAL_REFERENCE_MANAGE,
+
                         Permission.VETERINARY_READ,
                         Permission.VETERINARY_ASSIGN,
 
