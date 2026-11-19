@@ -29,6 +29,9 @@ public record ReportResponse(
     @Schema(example = "...")
     String description,
 
+    @Schema(example = "51999996666")
+    String contact,
+
     @Schema(example = "https://")
     String imageUrl,
     
@@ -53,7 +56,8 @@ public record ReportResponse(
             data.getType().name(), 
             data.getStatus().name(), 
             data.getTitle(), 
-            data.getDescription(), 
+            data.getDescription(),
+            data.getContact(),
             data.getImageUrl(), 
             data.getLocation().getY(), 
             data.getLocation().getX(), 

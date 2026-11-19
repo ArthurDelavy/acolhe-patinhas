@@ -26,6 +26,10 @@ public record NewReportRequest(
     @Schema(example = "...")
     String description,
 
+    @Size(max = 150)
+    @Schema(example = "51999996666", description = "Contato opcional de quem fez o reporte"))
+    String contact,
+    
     MultipartFile image,
 
     @NotNull

@@ -78,6 +78,7 @@ public class AnimalReportService {
             .status(ReportStatus.OPEN)
             .title(data.title())
             .description(data.description())
+            .contact(normalizeContact(data.contact()))
             .location(location)
             .createdAt(Instant.now())
             .updatedAt(Instant.now())
@@ -123,5 +124,11 @@ public class AnimalReportService {
         ));
         
         return newReport;
+    }
+
+    private String normalizeContact(String contact) {
+        if (contact == null) return null;
+        String trimmed = contact.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
