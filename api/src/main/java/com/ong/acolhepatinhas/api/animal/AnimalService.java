@@ -3,6 +3,7 @@ package com.ong.acolhepatinhas.api.animal;
 import java.util.List;
 import java.util.Objects;
 
+import org.hibernate.Hibernate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -163,6 +164,7 @@ public class AnimalService {
 
 
         Animal savedAnimal = anmRep.save(animal);
+        Hibernate.initialize(savedAnimal.getBreed().getSpecie());
 
         evtPbs.publishEvent(new AuditLogEvent(
             "ANIMAL_EDITED",
