@@ -230,7 +230,7 @@ public class AnimalService {
                 "deletedRecord": {
                     "name": "%s",
                     "microchipNumber": "%s",
-                    "specie": "%s"
+                    "specie": "%s",
                     "breed": "%s"
                 }
             }
