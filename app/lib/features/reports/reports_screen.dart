@@ -46,6 +46,8 @@ class _ReportScreenState extends State<ReportScreen> {
   final _descriptionController = TextEditingController();
   final _latitudeController = TextEditingController();
   final _longitudeController = TextEditingController();
+  final _contactController =
+      TextEditingController(); //new controller for contact field
 
   ReportType _selectedType = ReportType.LOST;
   LatLng? _selectedLocation;
@@ -177,6 +179,7 @@ class _ReportScreenState extends State<ReportScreen> {
         type: _selectedType,
         latitude: _selectedLocation!.latitude,
         longitude: _selectedLocation!.longitude,
+        contact: _contactController.text.trim(),
         imageFile: _selectedImage,
       );
 
@@ -445,6 +448,7 @@ class _ReportScreenState extends State<ReportScreen> {
     _descriptionController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
+    _contactController.dispose();
     super.dispose();
   }
 
@@ -533,6 +537,15 @@ class _ReportScreenState extends State<ReportScreen> {
                       }
                       return null;
                     },
+                  ),
+
+                  TextFormField(
+                    controller: _contactController,
+                    keyboardType: TextInputType.phone,
+                    decoration: _inputDecoration(
+                      'Contato (WhatsApp, Telefone, etc)',
+                      icon: Icons.phone,
+                    ),
                   ),
 
                   const SizedBox(height: 12),

@@ -1237,6 +1237,27 @@ class _FeedScreenState extends State<FeedScreen>
                     color: _textDark,
                   ),
                 ),
+                if (report.contact != null && report.contact!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.phone_outlined,
+                        size: 16,
+                        color: primaryColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Contato: ${report.contact}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

@@ -41,6 +41,7 @@ class AnimalReport {
   final String? userName;
   final String? userPhotoUrl;
   final DateTime? createdAt;
+  final String? contact; //new field for contact information
 
   const AnimalReport({
     this.id,
@@ -55,6 +56,7 @@ class AnimalReport {
     this.userName,
     this.userPhotoUrl,
     this.createdAt,
+    this.contact,
   });
 
   //Converts latitude/longitude into a human-readable address
@@ -128,6 +130,7 @@ class AnimalReport {
       createdAt: DateTime.tryParse(
         json['createdAt']?.toString() ?? '',
       )?.toLocal(),
+      contact: json['contact'] as String?,
     );
   }
   static ReportType _parseType(dynamic value) {
@@ -180,6 +183,7 @@ class ReportService {
     required ReportType type,
     required double latitude,
     required double longitude,
+    String? contact,
     XFile? imageFile,
   }) async {
     final token = await TokenStorage.getAuthToken();
@@ -197,6 +201,9 @@ class ReportService {
     request.fields['type'] = type.nameValue;
     request.fields['latitude'] = latitude.toStringAsFixed(6);
     request.fields['longitude'] = longitude.toStringAsFixed(6);
+    if (contact != null && contact.isNotEmpty) {
+      request.fields['contact'] = contact; // <-- ENVIANDO PARA O BACKEND
+    }
 
     if (imageFile != null) {
       final bytes = await imageFile.readAsBytes();

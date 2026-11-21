@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -110,55 +109,42 @@ class ApiClient extends http.BaseClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     request.headers['User-Agent'] = AppUserAgent.getUserAgent();
 
+    // 1. Tenta pegar o token (o TokenStorage já tenta renovar preventivamente se perceber que expirou)
     final token = await TokenStorage.getAuthToken();
     if (token != null && !request.headers.containsKey('Authorization')) {
       request.headers['Authorization'] = 'Bearer $token';
     }
 
+    // Copia a requisição original para o caso de precisarmos refazê-la
     final copiedRequest = _copyRequest(request);
+
+    // Dispara a requisição para o servidor
     var response = await _inner.send(request);
 
+    // 2. Se der 401 (Não Autorizado), significa que o token venceu (ou o servidor recusou)
     if (response.statusCode == 401 && !request.url.path.contains('/auth/')) {
       if (!_isRefreshing) {
         _isRefreshing = true;
-        final success = await _refreshTokenSilently();
+
+        // Chama a função centralizada do TokenStorage para forçar a renovação
+        final success = await TokenStorage.refresh();
+
         _isRefreshing = false;
 
         if (success) {
+          // Renovação deu certo! Pega o NOVO token e anexa na requisição que havia falhado
           final newToken = await TokenStorage.getAuthToken();
           copiedRequest.headers['Authorization'] = 'Bearer $newToken';
 
+          // Refaz a requisição (o usuário nem vai perceber)
           return _inner.send(copiedRequest);
+        } else {
+          // Renovação falhou definitivamente (Refresh Token também venceu). Limpa a sessão.
+          await TokenStorage.clear();
         }
       }
     }
     return response;
-  }
-
-  Future<bool> _refreshTokenSilently() async {
-    try {
-      final refreshToken = await TokenStorage.getRefreshToken();
-      if (refreshToken == null || refreshToken.isEmpty) return false;
-
-      final refreshResponse = await _inner.post(
-        Uri.parse('https://acolhe-patinhas.duckdns.org/api/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'code': refreshToken}),
-      );
-
-      if (refreshResponse.statusCode == 200) {
-        final data = jsonDecode(refreshResponse.body);
-
-        await TokenStorage.saveTokens(
-          authToken: (data['accessToken'] ?? data['authToken']) as String,
-          refreshToken: (data['refreshToken'] ?? refreshToken) as String,
-        );
-        return true;
-      }
-      return false;
-    } catch (e) {
-      return false;
-    }
   }
 
   http.BaseRequest _copyRequest(http.BaseRequest original) {
