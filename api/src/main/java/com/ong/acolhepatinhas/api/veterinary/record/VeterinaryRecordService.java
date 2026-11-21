@@ -48,6 +48,7 @@ public class VeterinaryRecordService {
         
         VeterinaryRecord record = this.getByAnimal(animal);
 
+        record.setAnimal(animal);
         record.setSize(data.size());
         record.setWeight(data.weight());
         record.setNeutered(data.neutered());

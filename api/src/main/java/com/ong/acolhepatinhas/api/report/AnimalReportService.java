@@ -46,6 +46,14 @@ public class AnimalReportService {
 
 
 
+
+    public boolean isOwner(int reportId, String username) {
+        return arpRep.findById(reportId)
+                .map(report -> report.getUser().getUsername().equals(username))
+                .orElse(false);
+    }
+
+
     public AnimalReport getById(int id) {
         return arpRep.findById(id).orElseThrow(() -> new ValueNotFoundException("Reporte não encontrado"));
     }
@@ -70,6 +78,7 @@ public class AnimalReportService {
             .status(ReportStatus.OPEN)
             .title(data.title())
             .description(data.description())
+            .contact(normalizeContact(data.contact()))
             .location(location)
             .createdAt(Instant.now())
             .updatedAt(Instant.now())
@@ -115,5 +124,11 @@ public class AnimalReportService {
         ));
         
         return newReport;
+    }
+
+    private String normalizeContact(String contact) {
+        if (contact == null) return null;
+        String trimmed = contact.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

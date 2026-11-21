@@ -53,6 +53,10 @@ public class AnimalReport {
 
     private String title;
     private String description;
+
+    @Column(length = 150)
+    private String contact;
+
     private String imageUrl;
     
     @Column(columnDefinition = "geography(Point, 4326)")

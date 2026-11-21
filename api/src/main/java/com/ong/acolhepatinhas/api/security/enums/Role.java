@@ -44,12 +44,15 @@ public enum Role {
                         Permission.ANIMAL_READ,
                         Permission.VETERINARY_READ,
                         Permission.REPORT_READ,
+                        Permission.POST_READ,
                         Permission.REPORT_CREATE)),
 
         VERIFIED(Set.of(
                         Permission.ANIMAL_READ,
                         Permission.ANIMAL_CREATE,
                         Permission.ANIMAL_EDIT,
+
+                        Permission.ANIMAL_REFERENCE_MANAGE,
 
                         Permission.VETERINARY_READ,
                         Permission.VETERINARY_ASSIGN,

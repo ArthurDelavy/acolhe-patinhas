@@ -81,10 +81,11 @@ public class AnimalReportController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
     }
 
-    @PatchMapping("/{reportId}") @PreAuthorize("hasAuthority('report:edit')")
+    @PatchMapping("/{reportId}") @PreAuthorize("isAuthenticated() && (hasAuthority('report:edit') || @animalReportService.isOwner(#reportId, principal.email))")
     @Operation(summary = "Atualiza status do reporte")
         @SecurityRequirement(name = "BearerToken")
-        @ApiResponse(responseCode = "200", description = "Criado com sucesso!")
+        @ApiResponse(responseCode = "200", description = "Atualizado com sucesso!")
+        @ApiResponse(responseCode = "403", description = "Usuário sem permissão para executar a ação", content = @Content)
         @ApiResponse(responseCode = "404", description = "Referência não encontrada", content = @Content)
     public ResponseEntity<ReportResponse> updateStatus(@PathVariable int reportId, @RequestBody @Valid ReportStatusUpdateRequest data) {
         ReportResponse responseData = new ReportResponse(arpSvc.updateStatus(reportId, data));

@@ -32,11 +32,11 @@ public class ImageService {
     private final ImageGateway imageGateway;
 
 
-    @Value("${app.images.minCompressionKb}")
-    private int minCompressionKb;
+    @Value("${app.images.maxSizeKb}")
+    private int maxSizeImageKb;
 
-    @Value("${app.images.qualityCompression}")
-    private float qualityCompression;
+    @Value("${app.images.qualityStartCompression}")
+    private float qualityStartCompression;
 
 
     public String saveImage(@Valid ImageRequest file, String namePrefix, StorageFileType fileType) {
@@ -83,25 +83,43 @@ public class ImageService {
     private byte[] optimizeImage(MultipartFile image, StorageFileType fileType) {
 
         int maxEdge = switch (fileType) {
-            case ANIMAL_REGISTER_PHOTO -> 80;
+            case ANIMAL_REGISTER_PHOTO -> 300;
             case POST_PHOTO -> 1080;
             case USER_PROFILE_PHOTO -> 512;
             case REPORT_PHOTO -> 1080;
         };
 
-        boolean isLowSize = image.getSize() < (minCompressionKb * 1024);
-        double compression = isLowSize ? 1.0 : qualityCompression;
+        long maxSizeBytes = maxSizeImageKb * 1024;
 
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try {
+            BufferedImage originalImage = ImageIO.read(image.getInputStream());
 
-            Thumbnails.of(image.getInputStream())
-                .size(maxEdge, maxEdge)
-                .crop(Positions.CENTER)
-                .outputFormat("jpg")
-                .outputQuality(compression)
-                .toOutputStream(outputStream);
+            if (originalImage == null) throw new ImageProcessingException("Imagem inválida");
 
-            return outputStream.toByteArray();
-        } catch (IOException e) { throw new ImageProcessingException("Falha ao otimizar imagem."); }
+
+            float quality = Math.min(qualityStartCompression, 0.85f);
+            byte[] resultBytes;
+
+            do {
+
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+                Thumbnails.of(originalImage)
+                    .size(maxEdge, maxEdge)
+                    .crop(Positions.CENTER)
+                    .outputFormat("jpg")
+                    .outputQuality(quality)
+                    .toOutputStream(outputStream);
+
+                resultBytes = outputStream.toByteArray();
+
+                quality -= 0.10f;
+
+            } while (resultBytes.length > maxSizeBytes && quality > 0.2f);
+
+            return resultBytes;
+        } catch (IOException e) {
+            throw new ImageProcessingException("Falha ao otimizar imagem");
+        }
     }
 }

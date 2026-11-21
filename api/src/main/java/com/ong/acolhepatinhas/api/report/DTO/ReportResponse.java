@@ -13,6 +13,9 @@ public record ReportResponse(
 
     @Schema(example = "Fulano de Tal")
     String userName,
+
+    @Schema(example = "https://...")
+    String userProfileImgUrl,
     
     @Schema(example = "LOST")
     String type,
@@ -25,6 +28,9 @@ public record ReportResponse(
 
     @Schema(example = "...")
     String description,
+
+    @Schema(example = "51999996666")
+    String contact,
 
     @Schema(example = "https://")
     String imageUrl,
@@ -45,11 +51,13 @@ public record ReportResponse(
     public ReportResponse(AnimalReport data) {
         this(
             data.getId(), 
-            data.getUser().getName(), 
+            (data.getUser() != null) ? data.getUser().getName() : "anonymous", 
+            (data.getUser() != null) ? data.getUser().getProfileImageUrl() : null,
             data.getType().name(), 
             data.getStatus().name(), 
             data.getTitle(), 
-            data.getDescription(), 
+            data.getDescription(),
+            data.getContact(),
             data.getImageUrl(), 
             data.getLocation().getY(), 
             data.getLocation().getX(), 

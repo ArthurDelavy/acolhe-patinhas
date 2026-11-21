@@ -3,6 +3,7 @@ package com.ong.acolhepatinhas.api.animal;
 import java.util.List;
 import java.util.Objects;
 
+import org.hibernate.Hibernate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,8 +51,7 @@ public class AnimalService {
 
 
     public List<Animal> listAll(Boolean toAdoption) {
-        if (toAdoption != null) anmRep.findAllByToAdoption(toAdoption);
-        return anmRep.findAll();
+        return (toAdoption != null) ? anmRep.findAllByToAdoption(toAdoption) : anmRep.findAll();
     }
 
 
@@ -97,19 +97,19 @@ public class AnimalService {
             .description(data.description())
             .build();
 
-        Animal savedAnimal = anmRep.save(animal);
-
-        VeterinaryRecord vetRecord = vrcSvc.newRecord(
-            savedAnimal,
-            new NewVetRecordRequest(
-                data.size(), 
-                data.weight(),
-                data.neutered()
-            )
-        );
-
-        savedAnimal.setVetRecord(vetRecord);
-
+            
+            VeterinaryRecord vetRecord = vrcSvc.newRecord(
+                animal,
+                new NewVetRecordRequest(
+                    data.size(), 
+                    data.weight(),
+                    data.neutered()
+                )
+            );
+            
+            animal.setVetRecord(vetRecord);
+            
+            Animal savedAnimal = anmRep.save(animal);
 
 
         evtPbs.publishEvent(new AuditLogEvent(
@@ -163,6 +163,7 @@ public class AnimalService {
 
 
         Animal savedAnimal = anmRep.save(animal);
+        Hibernate.initialize(savedAnimal.getBreed().getSpecie());
 
         evtPbs.publishEvent(new AuditLogEvent(
             "ANIMAL_EDITED",
@@ -230,7 +231,7 @@ public class AnimalService {
                 "deletedRecord": {
                     "name": "%s",
                     "microchipNumber": "%s",
-                    "specie": "%s"
+                    "specie": "%s",
                     "breed": "%s"
                 }
             }
