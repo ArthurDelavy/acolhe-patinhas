@@ -84,6 +84,24 @@ class _EditPetScreenState extends State<EditPetScreen> {
     super.dispose();
   }
 
+  void _addUnique(List<Map<String, dynamic>> list, Map<String, dynamic> item) {
+    if (!list.any((e) => e['id'] == item['id'])) {
+      list.add(item);
+    }
+  }
+
+
+  List<Map<String, dynamic>> _dedupe(List<Map<String, dynamic>> source) {
+    final ids = <dynamic>{};
+    return source.where((item) => ids.add(item['id'])).toList();
+  }
+
+  int? _safeValue(int? value, List<Map<String, dynamic>> items) {
+    if (value == null) return null;
+    final count = items.where((i) => i['id'] == value).length;
+    return count == 1 ? value : null;
+  }
+
   Future<void> _loadEverything() async {
     try {
       final id = widget.petData['id'];
@@ -115,10 +133,11 @@ class _EditPetScreenState extends State<EditPetScreen> {
       _globalColorsCache = results[3] as List<Map<String, dynamic>>;
       _globalDischargeReasonsCache = results[4] as List<Map<String, dynamic>>;
 
-      final species = _globalSpeciesCache!;
-      final breeds = _globalBreedsCache!;
-      final colors = _globalColorsCache!;
-      final reasons = _globalDischargeReasonsCache!;
+  
+      final species = _dedupe(_globalSpeciesCache!);
+      final breeds = _dedupe(_globalBreedsCache!);
+      final colors = _dedupe(_globalColorsCache!);
+      final reasons = _dedupe(_globalDischargeReasonsCache!);
 
       if (!mounted) return;
 
@@ -405,12 +424,14 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (newSpecies == null || !mounted) return;
 
     setState(() {
-      _speciesList.add(newSpecies);
-      _globalSpeciesCache?.add(newSpecies);
+      _addUnique(_speciesList, newSpecies);
+      if (_globalSpeciesCache != null) {
+        _addUnique(_globalSpeciesCache!, newSpecies);
+      }
       _selectedSpeciesId = newSpecies['id'];
       _selectedBreedId = null;
       _filteredBreedsList = _allBreedsList
-          .where((breed) => breed['specieId'] == newSpecies['id'])
+          .where((breed) => _breedSpecieId(breed) == newSpecies['id'])
           .toList();
     });
   }
@@ -436,9 +457,11 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (newBreed == null || !mounted) return;
 
     setState(() {
-      _allBreedsList.add(newBreed);
-      _globalBreedsCache?.add(newBreed);
-      _filteredBreedsList.add(newBreed);
+      _addUnique(_allBreedsList, newBreed);
+      if (_globalBreedsCache != null) {
+        _addUnique(_globalBreedsCache!, newBreed);
+      }
+      _addUnique(_filteredBreedsList, newBreed);
       _selectedBreedId = newBreed['id'];
     });
   }
@@ -456,8 +479,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (newColor == null || !mounted) return;
 
     setState(() {
-      _colorsList.add(newColor);
-      _globalColorsCache?.add(newColor);
+      _addUnique(_colorsList, newColor);
+      if (_globalColorsCache != null) {
+        _addUnique(_globalColorsCache!, newColor);
+      }
       _selectedColorId = newColor['id'];
     });
   }
@@ -471,8 +496,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (newReason == null || !mounted) return;
 
     setState(() {
-      _dischargeReasonsList.add(newReason);
-      _globalDischargeReasonsCache?.add(newReason);
+      _addUnique(_dischargeReasonsList, newReason);
+      if (_globalDischargeReasonsCache != null) {
+        _addUnique(_globalDischargeReasonsCache!, newReason);
+      }
       _selectedDischargeReasonId = newReason['id'];
     });
   }
@@ -612,7 +639,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
     final String rawMicrochip = _microchipController.text.trim();
 
-    // Parse dos dados numéricos veterinários
     final int? parsedSize = int.tryParse(
       _heightController.text.trim().replaceAll(',', '.').split('.').first,
     );
@@ -1016,7 +1042,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
                         _pair(
                           DropdownButtonFormField<int>(
-                            value: _selectedSpeciesId,
+                            value: _safeValue(_selectedSpeciesId, _speciesList),
                             isExpanded: true,
                             decoration: _inputDecoration(
                               'Espécie *',
@@ -1048,7 +1074,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
                                 : 'Selecione a espécie',
                           ),
                           DropdownButtonFormField<int>(
-                            value: _selectedBreedId,
+                            value: _safeValue(
+                              _selectedBreedId,
+                              _filteredBreedsList,
+                            ),
                             isExpanded: true,
                             decoration: _inputDecoration(
                               'Raça *',
@@ -1092,7 +1121,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
                         _pair(
                           DropdownButtonFormField<int>(
-                            value: _selectedColorId,
+                            value: _safeValue(_selectedColorId, _colorsList),
                             isExpanded: true,
                             decoration: _inputDecoration(
                               'Cor *',
@@ -1322,7 +1351,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
                               ),
                             ),
                             DropdownButtonFormField<int>(
-                              value: _selectedDischargeReasonId,
+                              value: _safeValue(
+                                _selectedDischargeReasonId,
+                                _dischargeReasonsList,
+                              ),
                               isExpanded: true,
                               decoration: _inputDecoration(
                                 'Motivo da Baixa',

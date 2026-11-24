@@ -404,23 +404,10 @@ class PetService {
     );
   }
 
-  // ---------------------------------------------------------------------
-  // Exclusão de itens de referência (espécie, raça, cor)
-  // ATENÇÃO: confirme esses caminhos no Swagger / com o backend.
-  // Segui o mesmo padrão dos GET/POST: /animal/reference/<tipo>/{id}
-  // ---------------------------------------------------------------------
+static const String _referenceManagePermission = 'animalReference:manage'; //ver isso certo
 
-  // Nomes dos papéis (roles) que podem excluir. Confira o texto exato
-  // dentro do token (jwt.io, campo "roles") e ajuste aqui.
-  static const List<String> _referenceDeleteRoles = ['ADMIN', 'VERIFIED'];
-
-  /// true se o usuário logado tem algum dos papéis que podem excluir.
-  /// Serve só para mostrar/esconder o botão: quem decide de verdade é o backend.
   static Future<bool> canDeleteReferences() async {
-    for (final role in _referenceDeleteRoles) {
-      if (await TokenStorage.hasPermission(role)) return true;
-    }
-    return false;
+    return await TokenStorage.hasPermission(_referenceManagePermission);
   }
 
   static Future<void> _deleteReference(String path, String label) async {

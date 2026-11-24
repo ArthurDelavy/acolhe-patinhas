@@ -45,6 +45,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
   List<Map<String, dynamic>> _filteredBreedsList = [];
   List<Map<String, dynamic>> _colorsList = [];
 
+  bool _canDeleteReferences = false;
   bool _isLoading = true;
   bool _isSubmitting = false;
 
@@ -54,18 +55,29 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
     _fetchLookupData();
   }
 
+  List<Map<String, dynamic>> _toMapList(dynamic source) {
+    if (source is! List) return [];
+    return source
+        .map<Map<String, dynamic>>(
+          (e) => Map<String, dynamic>.from(e as Map),
+        )
+        .toList();
+  }
+
   Future<void> _fetchLookupData() async {
     try {
       final species = await PetService.fetchSpecies();
       final breeds = await PetService.fetchBreeds();
       final colors = await PetService.fetchColors();
+      final canDelete = await PetService.canDeleteReferences();
 
       if (!mounted) return;
 
       setState(() {
-        _speciesList = species;
-        _allBreedsList = breeds;
-        _colorsList = colors;
+        _speciesList = _toMapList(species);
+        _allBreedsList = _toMapList(breeds);
+        _colorsList = _toMapList(colors);
+        _canDeleteReferences = canDelete;
         _isLoading = false;
       });
 
@@ -238,6 +250,144 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
     });
   }
 
+  Future<void> _deleteSpecies(Map<String, dynamic> species) async {
+    final int id = species['id'];
+    final String name = species['name'].toString();
+
+    final deleted = await confirmAndDeleteReference(
+      context,
+      kind: 'espécie',
+      name: name,
+      onDelete: () => PetService.deleteSpecies(id),
+    );
+
+    if (!deleted || !mounted) return;
+
+    setState(() {
+      _speciesList.removeWhere((s) => s['id'] == id);
+      _allBreedsList.removeWhere((b) => b['specieId'] == id);
+
+      if (_selectedSpeciesId == id) {
+        _selectedSpeciesId = null;
+        _selectedBreedId = null;
+        _filteredBreedsList = [];
+      }
+    });
+  }
+
+  Future<void> _deleteBreed(Map<String, dynamic> breed) async {
+    final int id = breed['id'];
+    final String name = breed['name'].toString();
+
+    final deleted = await confirmAndDeleteReference(
+      context,
+      kind: 'raça',
+      name: name,
+      onDelete: () => PetService.deleteBreed(id),
+    );
+
+    if (!deleted || !mounted) return;
+
+    setState(() {
+      _allBreedsList.removeWhere((b) => b['id'] == id);
+      _filteredBreedsList.removeWhere((b) => b['id'] == id);
+
+      if (_selectedBreedId == id) {
+        _selectedBreedId = null;
+      }
+    });
+  }
+
+  Future<void> _deleteColor(Map<String, dynamic> color) async {
+    final int id = color['id'];
+    final String name = color['name'].toString();
+
+    final deleted = await confirmAndDeleteReference(
+      context,
+      kind: 'cor',
+      name: name,
+      onDelete: () => PetService.deleteColor(id),
+    );
+
+    if (!deleted || !mounted) return;
+
+    setState(() {
+      _colorsList.removeWhere((c) => c['id'] == id);
+
+      if (_selectedColorId == id) {
+        _selectedColorId = null;
+      }
+    });
+  }
+
+  Widget _buildDeletableDropdown({
+    required String label,
+    required int? value,
+    required List<Map<String, dynamic>> items,
+    required ValueChanged<int?>? onChanged,
+    required VoidCallback onAdd,
+    required Future<void> Function(Map<String, dynamic> item) onDelete,
+    required String? Function(int?) validator,
+    String? hint,
+  }) {
+    return DropdownButtonFormField<int>(
+      value: value,
+      isExpanded: true,
+      decoration: _inputDecoration(
+        label,
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.add_circle, color: _orange),
+          onPressed: onAdd,
+        ),
+      ),
+      hint: hint != null ? Text(hint, overflow: TextOverflow.ellipsis) : null,
+      selectedItemBuilder: (context) {
+        return items.map((item) {
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              item['name'].toString(),
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList();
+      },
+      items: items.map((item) {
+        return DropdownMenuItem<int>(
+          value: item['id'] as int,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item['name'].toString(),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (_canDeleteReferences)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await onDelete(item);
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      validator: validator,
+    );
+  }
+
   Future<void> _pickPetImage() async {
     try {
       final XFile? image = await _imagePicker.pickImage(
@@ -400,7 +550,7 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
               height: size,
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                shape: BoxShape.rectangle, // Alterado para Borda Quadrada
+                shape: BoxShape.rectangle,
                 borderRadius: BorderRadius.zero,
                 border: Border.all(color: _orange, width: 3),
                 boxShadow: [
@@ -432,16 +582,14 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         ? Image.network(
                             _selectedImage!.path,
                             fit: BoxFit.cover,
-                            alignment:
-                                Alignment.center, // Alinhamento centralizado
+                            alignment: Alignment.center,
                             width: size,
                             height: size,
                           )
                         : Image.file(
                             File(_selectedImage!.path),
                             fit: BoxFit.cover,
-                            alignment:
-                                Alignment.center, // Alinhamento centralizado
+                            alignment: Alignment.center,
                             width: size,
                             height: size,
                           )),
@@ -553,66 +701,31 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         const SizedBox(height: 12),
 
                         _pair(
-                          DropdownButtonFormField<int>(
+                          _buildDeletableDropdown(
+                            label: 'Espécie *',
                             value: _selectedSpeciesId,
-                            isExpanded: true,
-                            decoration: _inputDecoration(
-                              'Espécie *',
-                              suffixIcon: IconButton(
-                                icon: const Icon(
-                                  Icons.add_circle,
-                                  color: _orange,
-                                ),
-                                onPressed: _openRegisterSpeciesDialog,
-                              ),
-                            ),
-                            items: _speciesList.map((species) {
-                              return DropdownMenuItem<int>(
-                                value: species['id'],
-                                child: Text(
-                                  species['name'],
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList(),
+                            items: _speciesList,
                             onChanged: _onSpeciesChanged,
+                            onAdd: _openRegisterSpeciesDialog,
+                            onDelete: _deleteSpecies,
                             validator: (value) =>
                                 Validators.isValidSpecies(value)
                                 ? null
                                 : 'Selecione a espécie',
                           ),
-                          DropdownButtonFormField<int>(
+                          _buildDeletableDropdown(
+                            label: 'Raça *',
                             value: _selectedBreedId,
-                            isExpanded: true,
-                            decoration: _inputDecoration(
-                              'Raça *',
-                              suffixIcon: IconButton(
-                                icon: const Icon(
-                                  Icons.add_circle,
-                                  color: _orange,
-                                ),
-                                onPressed: _openRegisterBreedDialog,
-                              ),
-                            ),
-                            hint: Text(
-                              _selectedSpeciesId == null
-                                  ? 'Escolha a espécie'
-                                  : 'Selecione',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            items: _filteredBreedsList.map((breed) {
-                              return DropdownMenuItem<int>(
-                                value: breed['id'],
-                                child: Text(
-                                  breed['name'],
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList(),
+                            items: _filteredBreedsList,
+                            hint: _selectedSpeciesId == null
+                                ? 'Escolha a espécie'
+                                : 'Selecione',
                             onChanged: _selectedSpeciesId == null
                                 ? null
                                 : (value) =>
                                       setState(() => _selectedBreedId = value),
+                            onAdd: _openRegisterBreedDialog,
+                            onDelete: _deleteBreed,
                             validator: (value) => Validators.isValidBreed(value)
                                 ? null
                                 : 'Selecione a raça',
@@ -622,30 +735,14 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                         const SizedBox(height: 12),
 
                         _pair(
-                          DropdownButtonFormField<int>(
+                          _buildDeletableDropdown(
+                            label: 'Cor *',
                             value: _selectedColorId,
-                            isExpanded: true,
-                            decoration: _inputDecoration(
-                              'Cor *',
-                              suffixIcon: IconButton(
-                                icon: const Icon(
-                                  Icons.add_circle,
-                                  color: _orange,
-                                ),
-                                onPressed: _openRegisterColorDialog,
-                              ),
-                            ),
-                            items: _colorsList.map((color) {
-                              return DropdownMenuItem<int>(
-                                value: color['id'],
-                                child: Text(
-                                  color['name'],
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList(),
+                            items: _colorsList,
                             onChanged: (value) =>
                                 setState(() => _selectedColorId = value),
+                            onAdd: _openRegisterColorDialog,
+                            onDelete: _deleteColor,
                             validator: (value) => Validators.isValidColor(value)
                                 ? null
                                 : 'Selecione a cor',
@@ -731,11 +828,10 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
 
                         const SizedBox(height: 8),
 
-                        // DESCRIÇÃO (Campo expandido e maior)
                         TextFormField(
                           controller: _descriptionController,
-                          minLines: 3, // Aumentado
-                          maxLines: 5, // Aumentado
+                          minLines: 3,
+                          maxLines: 5,
                           maxLength: 1000,
                           textCapitalization: TextCapitalization.sentences,
                           decoration: _inputDecoration(
@@ -744,7 +840,6 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
                           ),
                         ),
 
-                        // DADOS VETERINÁRIOS
                         VeterinarySection(data: _vetData),
 
                         const SizedBox(height: 20),
@@ -937,7 +1032,7 @@ class _VeterinarySectionState extends State<VeterinarySection> {
       return await loader();
     } catch (e) {
       errors.add('$label: ${e.toString().replaceFirst('Exception: ', '')}');
-      return [];
+      return <Map<String, dynamic>>[];
     }
   }
 
@@ -949,7 +1044,7 @@ class _VeterinarySectionState extends State<VeterinarySection> {
 
     final errors = <String>[];
 
-    final results = await Future.wait([
+    final results = await Future.wait<List<Map<String, dynamic>>>([
       _safeLoad('Vacinas', VeterinaryService.fetchVaccines, errors),
       _safeLoad('Cirurgias', VeterinaryService.fetchSurgicalProcedures, errors),
       _safeLoad(
