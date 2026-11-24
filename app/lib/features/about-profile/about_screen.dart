@@ -348,12 +348,11 @@ class _AboutScreenState extends State<AboutScreen>
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          _contactTile(Icons.phone, 'Telefone / WhatsApp', '(51) 9XXXX-XXXX'),
           _contactTile(Icons.camera_alt, 'Instagram', '@associacaoacolher'),
           _contactTile(
             Icons.facebook,
             'Facebook',
-            'Associação Acolher',
+            'AssocAcolher Enc',
             isLast: true,
           ),
         ],

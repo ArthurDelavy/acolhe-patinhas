@@ -69,7 +69,7 @@ class _FostersScreenState extends State<FostersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
-      appBar: AppBar(
+      appBar: AppBar( 
         toolbarHeight: 48,
         title: const Text(
           'Lares parceiros',
@@ -139,12 +139,36 @@ class _FostersScreenState extends State<FostersScreen> {
         },
       ),
       floatingActionButton: _canCreate
-          ? FloatingActionButton.extended(
-              onPressed: _openRegister,
-              backgroundColor: _secondary,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Cadastrar lar temporário'),
+          ? DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: _secondary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton.extended(
+                onPressed: _openRegister,
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                focusElevation: 0,
+                hoverElevation: 0,
+                highlightElevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                icon: const Icon(Icons.add),
+                label: const Text('Cadastrar lar temporário'),
+              ),
             )
           : null,
       bottomNavigationBar: const NavbarComponent(currentIndex: 0),

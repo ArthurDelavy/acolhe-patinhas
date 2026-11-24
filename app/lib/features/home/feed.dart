@@ -307,20 +307,32 @@ class _FeedScreenState extends State<FeedScreen>
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
                           ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        onPressed: () => _changeStatus(report, 'RESOLVED', ctx),
-                        child: const Text(
-                          'Resolvido',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () =>
+                              _changeStatus(report, 'RESOLVED', ctx),
+                          child: const Text(
+                            'Resolvido',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -441,34 +453,46 @@ class _FeedScreenState extends State<FeedScreen>
                           style: const TextStyle(color: primaryColor),
                         ),
                       ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        onPressed: () async {
-                          if (editController.text.trim().isEmpty) return;
-                          Navigator.pop(ctx);
-                          try {
-                            await _postService.updatePost(
-                              postId: post.id,
-                              description: editController.text.trim(),
-                              imageFile: newImage,
-                            );
-                            _loadFeed(isSilent: true);
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Erro ao atualizar: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            elevation: 0,
+                          ),
+                          onPressed: () async {
+                            if (editController.text.trim().isEmpty) return;
+                            Navigator.pop(ctx);
+                            try {
+                              await _postService.updatePost(
+                                postId: post.id,
+                                description: editController.text.trim(),
+                                imageFile: newImage,
                               );
+                              _loadFeed(isSilent: true);
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Erro ao atualizar: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
-                          }
-                        },
-                        child: const Text(
-                          'Salvar',
-                          style: TextStyle(color: Colors.white),
+                          },
+                          child: const Text(
+                            'Salvar',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ],
@@ -532,10 +556,23 @@ class _FeedScreenState extends State<FeedScreen>
                   style: TextStyle(color: Colors.grey),
                 ),
               ),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: primaryColor),
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Sair'),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                  ),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Sair'),
+                ),
               ),
             ],
           ),
@@ -819,34 +856,50 @@ class _FeedScreenState extends State<FeedScreen>
                         ),
                       ),
                       const SizedBox(width: 4),
-                      FilledButton(
-                        onPressed: _isPublishing ? null : _submitPost,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          shape: RoundedRectangleBorder(
+                      Opacity(
+                        opacity: _isPublishing ? 0.7 : 1,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                            ),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 8,
+                          child: FilledButton(
+                            onPressed: _isPublishing ? null : _submitPost,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              disabledBackgroundColor: Colors.transparent,
+                              disabledForegroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 8,
+                              ),
+                            ),
+                            child: _isPublishing
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Publicar',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                           ),
                         ),
-                        child: _isPublishing
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Publicar',
-                                style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
                       ),
                     ],
                   ),
@@ -877,15 +930,26 @@ class _FeedScreenState extends State<FeedScreen>
               const SizedBox(height: 12),
               Text(_errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => _loadFeed(isSilent: false),
-                style: FilledButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
                   ),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text('Tentar Novamente'),
+                child: FilledButton(
+                  onPressed: () => _loadFeed(isSilent: false),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text('Tentar Novamente'),
+                ),
               ),
             ],
           ),
@@ -1304,7 +1368,11 @@ class _FeedScreenState extends State<FeedScreen>
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: primaryColor,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                        ),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Row(

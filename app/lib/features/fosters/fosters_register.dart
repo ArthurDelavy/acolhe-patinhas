@@ -7,6 +7,12 @@ import '../../utils/validators.dart';
 const Color _orange = Color(0xFFE27B1D);
 const LatLng _defaultCenter = LatLng(-29.2361, -51.8697);
 
+const LinearGradient _headerGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+);
+
 List<Widget> _mapLayers(LatLng? point) => [
   TileLayer(
     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -299,17 +305,26 @@ class _FosterRegisterState extends State<FosterRegister> {
     const pickMsg = 'Escolha o local no mapa';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _isEditing ? 'Editar Lar Temporário' : 'Cadastrar Lar Temporário',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+       appBar: AppBar( //
+        toolbarHeight: 48,
+        title: const Text(
+          'Lares parceiros',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: _orange,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+            ),
+          ),
+        ),
       ),
-      // O SafeArea aqui impede que o conteúdo do formulário fique escondido atrás
-      // da barra de gestos ou de navegação nativa do celular.
       body: SafeArea(
         bottom: true,
         child: SingleChildScrollView(
@@ -464,43 +479,61 @@ class _FosterRegisterState extends State<FosterRegister> {
 
                     const SizedBox(height: 24),
 
-                    SizedBox(
+                   SizedBox(
                       height: 50,
                       width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _orange,
-                          foregroundColor: Colors.white,
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(
+                      child: Opacity(
+                        opacity: _isLoading ? 0.7 : 1,
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                            ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                        ),
-                        icon: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Icon(
-                                _isEditing
-                                    ? Icons.save_rounded
-                                    : Icons.send_rounded,
+                          child: ElevatedButton.icon(
+                            onPressed: _isLoading ? null : _save,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.transparent,
+                              disabledForegroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                        label: Text(
-                          _isLoading
-                              ? (_isEditing ? 'SALVANDO...' : 'CADASTRANDO...')
-                              : (_isEditing
-                                    ? 'SALVAR ALTERAÇÕES'
-                                    : 'CADASTRAR LAR TEMPORÁRIO'),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
+                            ),
+                            icon: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Icon(
+                                    _isEditing
+                                        ? Icons.save_rounded
+                                        : Icons.send_rounded,
+                                  ),
+                            label: Text(
+                              _isLoading
+                                  ? (_isEditing
+                                        ? 'SALVANDO...'
+                                        : 'CADASTRANDO...')
+                                  : (_isEditing
+                                        ? 'SALVAR ALTERAÇÕES'
+                                        : 'CADASTRAR LAR TEMPORÁRIO'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ),
                         ),
                       ),

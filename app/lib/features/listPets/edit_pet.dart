@@ -1267,33 +1267,52 @@ class _EditPetScreenState extends State<EditPetScreen> {
                           SizedBox(
                             height: 50,
                             width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _isSubmitting ? null : _submitForm,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                foregroundColor: Colors.white,
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
+                            child: Opacity(
+                              opacity: _isSubmitting ? 0.7 : 1,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFFFA94D),
+                                      Color(0xFFFF8C42),
+                                    ],
+                                  ),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                              ),
-                              child: _isSubmitting
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'SALVAR ALTERAÇÕES',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
-                                      ),
+                                child: ElevatedButton(
+                                  onPressed: _isSubmitting ? null : _submitForm,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    disabledForegroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
+                                  ),
+                                  child: _isSubmitting
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'SALVAR ALTERAÇÕES',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                ),
+                              ),
                             ),
                           ),
 
@@ -1384,28 +1403,47 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
                           const SizedBox(height: 16),
 
-                          SizedBox(
+                                                   SizedBox(
                             height: 50,
                             width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : _submitDischarge,
-                              icon: const Icon(Icons.archive_outlined),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange[800],
-                                foregroundColor: Colors.white,
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
+                            child: Opacity(
+                              opacity: _isSubmitting ? 0.7 : 1,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFEF8A2E),
+                                      Color(0xFFD96A12),
+                                    ],
+                                  ),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                              ),
-                              label: const Text(
-                                'REGISTRAR BAIXA',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                                child: ElevatedButton.icon(
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : _submitDischarge,
+                                  icon: const Icon(Icons.archive_outlined),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    disabledForegroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  label: const Text(
+                                    'REGISTRAR BAIXA',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),

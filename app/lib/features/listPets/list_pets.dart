@@ -16,7 +16,7 @@ String? _resolveImageUrl(Map<String, dynamic> pet) {
     return urlStr;
   }
 
-  return '${PetService.baseUrl}$urlStr';
+  return '${PetService.baseUrl}$urlStr'; 
 }
 
 String _formatAge(dynamic ageRaw) {
@@ -264,18 +264,41 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
               ),
             ),
       floatingActionButton: widget.isAdminMode
-          ? FloatingActionButton.extended(
-              onPressed: _openRegisterPets,
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
-              elevation: 3,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text(
-                'Cadastrar Pet',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Colors.white,
+          ? DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: FloatingActionButton.extended(
+                onPressed: _openRegisterPets,
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                focusElevation: 0,
+                hoverElevation: 0,
+                highlightElevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text(
+                  'Cadastrar Pet',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             )
@@ -332,7 +355,6 @@ class _ListPetsScreenState extends State<ListPetsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Imagem com Hero Tag
             Expanded(
               child: Stack(
                 children: [
