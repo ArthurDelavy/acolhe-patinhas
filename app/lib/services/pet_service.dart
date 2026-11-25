@@ -36,21 +36,23 @@ class PetService {
     return data as Map<String, dynamic>;
   }
 
-  static Future<List<Map<String, dynamic>>> fetchSpecies() async {
-    final data = await _get('/animal/reference/specie');
-    return List<Map<String, dynamic>>.from(data);
-  }
+static Future<List<Map<String, dynamic>>> fetchSpecies() async {
+  final data = await _get('/animal/reference/specie');
+  print('ESPÉCIES RETORNADAS PELA API: $data');
+  return List<Map<String, dynamic>>.from(data);
+}
 
-  static Future<List<Map<String, dynamic>>> fetchBreeds() async {
-    final data = await _get('/animal/reference/breed');
-    return List<Map<String, dynamic>>.from(data);
-  }
+static Future<List<Map<String, dynamic>>> fetchBreeds() async {
+  final data = await _get('/animal/reference/breed');
+  print('RAÇAS RETORNADAS PELA API: $data');
+  return List<Map<String, dynamic>>.from(data);
+}
 
-  static Future<List<Map<String, dynamic>>> fetchColors() async {
-    final data = await _get('/animal/reference/color');
-    return List<Map<String, dynamic>>.from(data);
-  }
-
+static Future<List<Map<String, dynamic>>> fetchColors() async {
+  final data = await _get('/animal/reference/color');
+  print('CORES RETORNADAS PELA API: $data');
+  return List<Map<String, dynamic>>.from(data);
+}
   static Future<List<Map<String, dynamic>>> fetchDischargeReasons() async {
     final data = await _get('/animal/reference/dischargeReason');
     return List<Map<String, dynamic>>.from(data);
@@ -403,4 +405,44 @@ class PetService {
           throw Exception('Motivo criado, mas não encontrado na lista.'),
     );
   }
+
+static const String _referenceManagePermission = 'animalReference:manage'; //ver isso certo
+
+  static Future<bool> canDeleteReferences() async {
+    return await TokenStorage.hasPermission(_referenceManagePermission);
+  }
+
+  static Future<void> _deleteReference(String path, String label) async {
+    final response = await _client.delete(
+      Uri.parse('$baseUrl/animal/reference/$path'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 204) return;
+
+    if (response.statusCode == 403) {
+      throw Exception('Você não tem permissão para excluir $label.');
+    }
+    if (response.statusCode == 404) {
+      throw Exception(
+        '$label não foi encontrado(a). Talvez já tenha sido excluído(a).',
+      );
+    }
+    if (response.statusCode == 409) {
+      throw Exception('Não é possível excluir: $label está em uso.');
+    }
+    throw Exception(
+      'Falha ao excluir $label (${response.statusCode})'
+      '${response.body.isNotEmpty ? ': ${response.body}' : ''}',
+    );
+  }
+
+  static Future<void> deleteSpecies(int id) =>
+      _deleteReference('specie/$id', 'a espécie');
+
+  static Future<void> deleteBreed(int id) =>
+      _deleteReference('breed/$id', 'a raça');
+
+  static Future<void> deleteColor(int id) =>
+      _deleteReference('color/$id', 'a cor');
 }

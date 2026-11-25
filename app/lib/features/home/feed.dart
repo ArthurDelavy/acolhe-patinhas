@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Necessário para o SystemNavigator.pop()
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../components/navbar.dart';
@@ -8,6 +9,7 @@ import '../../services/post_service.dart';
 import '../../services/profile_service.dart';
 import '../../services/reports_service.dart';
 
+// Tipo de conteúdo apresentado no feed (Reporte ou Post Social)
 enum FeedItemType { REPORT, POST }
 
 class FeedItem {
@@ -39,11 +41,16 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen>
     with AutomaticKeepAliveClientMixin {
   static const Color primaryColor = Color(0xFFE27B1D);
+  static const Color _textDark = Color(0xFF1F1F1F);
+  static const Color _textSoft = Color(0xFF8A8A8A);
+  static const Color _line = Color(0xFFEFEFEF);
 
+  // Serviços de API
   late final ProfileService _profileService;
   late final ReportService _reportService;
   late final PostService _postService;
 
+  // Dados do utilizador autenticado
   String? _profileImageUrl;
   int? _currentUserId;
   bool _isAdmin = false;
@@ -53,6 +60,7 @@ class _FeedScreenState extends State<FeedScreen>
   bool _isLoadingFeed = true;
   String? _errorMessage;
 
+  // Estado da paginação
   int _currentPage = 0;
   bool _hasMore = true;
   bool _isLoadingMore = false;
@@ -141,8 +149,13 @@ class _FeedScreenState extends State<FeedScreen>
         _hasMore = false;
       }
 
+      final openReports = reports.where((r) {
+        final statusStr = r.status.name.toUpperCase();
+        return statusStr == 'OPEN';
+      }).toList();
+
       List<FeedItem> items = [];
-      items.addAll(reports.map((r) => FeedItem.fromReport(r)));
+      items.addAll(openReports.map((r) => FeedItem.fromReport(r)));
       items.addAll(posts.map((p) => FeedItem.fromPost(p)));
 
       items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -238,158 +251,104 @@ class _FeedScreenState extends State<FeedScreen>
     }
   }
 
-  Future<void> _deletePost(SocialPost post) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Excluir Publicação'),
-        content: const Text(
-          'Tem certeza de que deseja remover esta publicação?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await _postService.deletePost(post.id);
-        setState(() {
-          _feedItems.removeWhere((item) => item.post?.id == post.id);
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Publicação removida com sucesso.')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao remover: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _deleteReport(AnimalReport report) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Excluir Reporte'),
-        content: const Text(
-          'Tem certeza de que deseja remover este reporte de animal?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true && report.id != null) {
-      try {
-        await _reportService.deleteReport(report.id!);
-        setState(() {
-          _feedItems.removeWhere((item) => item.report?.id == report.id);
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Reporte removido com sucesso.')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao remover reporte: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   void _showUpdateStatusDialog(AnimalReport report) {
-    const Color primaryOrange = Color(0xFFE27B1D);
-
     showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-          actionsPadding: const EdgeInsets.all(16),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           title: const Text(
             'Alterar Status do Reporte',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           content: SizedBox(
             width: MediaQuery.of(context).size.width.clamp(280, 360),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 6),
-                Text(
-                  'Selecione a nova situação para este reporte. Ao marcar como Resolvido ou Cancelado, ele deixará de ser exibido no feed público.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    height: 1.3,
-                  ),
-                ),
-              ],
+            child: Text(
+              'Selecione a nova situação para este reporte. Ao marcar como Resolvido ou Cancelado, ele deixará de ser exibido no feed público.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade700,
+                height: 1.3,
+              ),
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Voltar'),
-            ),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red.shade700,
-                side: BorderSide(color: Colors.red.shade300),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red.shade700,
+                          side: BorderSide(color: Colors.red.shade300),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () =>
+                            _changeStatus(report, 'CANCELLED', ctx),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () =>
+                              _changeStatus(report, 'RESOLVED', ctx),
+                          child: const Text(
+                            'Resolvido',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              onPressed: () => _changeStatus(report, 'CANCELLED', ctx),
-              child: const Text('Cancelar Reporte'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: primaryOrange,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 6),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                  ),
+                  child: const Text('Voltar'),
                 ),
-              ),
-              onPressed: () => _changeStatus(report, 'RESOLVED', ctx),
-              child: const Text('Resolvido'),
+              ],
             ),
           ],
         );
@@ -445,12 +404,16 @@ class _FeedScreenState extends State<FeedScreen>
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final keyboardInset = MediaQuery.of(ctx).viewInsets.bottom;
+            final systemBottom = MediaQuery.of(ctx).viewPadding.bottom;
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 16,
                 right: 16,
                 top: 16,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+                bottom:
+                    (keyboardInset > 0 ? keyboardInset : systemBottom) + 20,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -494,34 +457,46 @@ class _FeedScreenState extends State<FeedScreen>
                           style: const TextStyle(color: primaryColor),
                         ),
                       ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        onPressed: () async {
-                          if (editController.text.trim().isEmpty) return;
-                          Navigator.pop(ctx);
-                          try {
-                            await _postService.updatePost(
-                              postId: post.id,
-                              description: editController.text.trim(),
-                              imageFile: newImage,
-                            );
-                            _loadFeed(isSilent: true);
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Erro ao atualizar: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            elevation: 0,
+                          ),
+                          onPressed: () async {
+                            if (editController.text.trim().isEmpty) return;
+                            Navigator.pop(ctx);
+                            try {
+                              await _postService.updatePost(
+                                postId: post.id,
+                                description: editController.text.trim(),
+                                imageFile: newImage,
                               );
+                              _loadFeed(isSilent: true);
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Erro ao atualizar: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
-                          }
-                        },
-                        child: const Text(
-                          'Salvar',
-                          style: TextStyle(color: Colors.white),
+                          },
+                          child: const Text(
+                            'Salvar',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ],
@@ -561,232 +536,382 @@ class _FeedScreenState extends State<FeedScreen>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 48,
-        title: const Text(
-          'Meu Feed',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: InkWell(
-              onTap: _openProfile,
-              customBorder: const CircleBorder(),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white,
-                child: _isLoadingAvatar
-                    ? const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: primaryColor,
-                        ),
-                      )
-                    : ClipOval(
-                        child:
-                            _profileImageUrl != null &&
-                                _profileImageUrl!.isNotEmpty
-                            ? Image.network(
-                                _profileImageUrl!,
-                                width: 32,
-                                height: 32,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(
-                                      Icons.person,
-                                      size: 20,
-                                      color: primaryColor,
-                                    ),
-                              )
-                            : const Icon(
-                                Icons.person,
-                                size: 20,
-                                color: primaryColor,
-                              ),
-                      ),
-              ),
+    // PopScope previne que a tecla "Voltar" nativa feche o app acidentalmente
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        final bool? exitApp = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text(
+              'Sair do App',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => _loadFeed(isSilent: false),
-        color: primaryColor,
-        child: Column(
-          children: [
-            _buildCreatePostCard(),
-            Expanded(child: _buildBody()),
-          ],
-        ),
-      ),
-      bottomNavigationBar: const NavbarComponent(currentIndex: 0),
-    );
-  }
-
-  Widget _buildCreatePostCard() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                radius: 16,
-                backgroundColor: primaryColor,
-                child: Icon(Icons.person, color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    if (!_isExpanded) setState(() => _isExpanded = true);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _isExpanded
-                          ? 'Escrevendo publicação...'
-                          : 'Escrever publicação...',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  ),
+            content: const Text('Tem certeza que deseja sair do aplicativo?'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(color: Colors.grey),
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.campaign, color: primaryColor),
-                tooltip: 'Reportar Animal',
-                onPressed: () => Navigator.pushNamed(
-                  context,
-                  '/report',
-                ).then((_) => _loadFeed(isSilent: true)),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                  ),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Sair'),
+                ),
               ),
             ],
           ),
-
-          if (_isExpanded) ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 3,
-              style: const TextStyle(fontSize: 12),
-              decoration: const InputDecoration(
-                hintText: 'No que você está pensando hoje?',
-                border: InputBorder.none,
+        );
+        if (exitApp == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F6F4),
+        appBar: AppBar(
+          toolbarHeight: 48,
+          title: const Text(
+            'Meu Feed',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          foregroundColor: Colors.white,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
               ),
             ),
-            if (_selectedImage != null)
-              Stack(
-                children: [
-                  Container(
-                    height: 120,
-                    width: double.infinity,
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: kIsWeb
-                          ? Image.network(
-                              _selectedImage!.path,
-                              fit: BoxFit.cover,
-                            )
-                          : Image.file(
-                              File(_selectedImage!.path),
-                              fit: BoxFit.cover,
-                            ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 6,
-                    top: 10,
-                    child: InkWell(
-                      onTap: () => setState(() => _selectedImage = null),
-                      child: const CircleAvatar(
-                        radius: 11,
-                        backgroundColor: Colors.black54,
-                        child: Icon(Icons.close, size: 12, color: Colors.white),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: InkWell(
+                onTap: _openProfile,
+                customBorder: const CircleBorder(),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white,
+                  child: _isLoadingAvatar
+                      ? const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primaryColor,
+                          ),
+                        )
+                      : ClipOval(
+                          child:
+                              _profileImageUrl != null &&
+                                  _profileImageUrl!.isNotEmpty
+                              ? Image.network(
+                                  _profileImageUrl!,
+                                  width: 32,
+                                  height: 32,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        Icons.person,
+                                        size: 20,
+                                        color: primaryColor,
+                                      ),
+                                )
+                              : const Icon(
+                                  Icons.person,
+                                  size: 20,
+                                  color: primaryColor,
+                                ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () => _loadFeed(isSilent: false),
+          color: primaryColor,
+          child: Column(
+            children: [
+              if (_isAdmin) _buildCreatePostCard(),
+              Expanded(child: _buildBody()),
+            ],
+          ),
+        ),
+        // SafeArea protege a Navbar da sobreposição da barra de gestos/sistema nativa
+        bottomNavigationBar: const SafeArea(
+          bottom: true,
+          child: NavbarComponent(currentIndex: 0),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(String? url, {double size = 36, bool ring = true}) {
+    final hasUrl = url != null && url.trim().isNotEmpty && url != 'null';
+    final inner = ClipOval(
+      child: Container(
+        width: size,
+        height: size,
+        color: primaryColor.withOpacity(0.1),
+        child: hasUrl
+            ? Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    Icon(Icons.person, size: size * 0.55, color: primaryColor),
+              )
+            : Icon(Icons.person, size: size * 0.55, color: primaryColor),
+      ),
+    );
+
+    if (!ring) return inner;
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Color(0xFFF5B84A), primaryColor, Color(0xFFD4501A)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: inner,
+      ),
+    );
+  }
+
+  String _timeAgo(DateTime? date) {
+    if (date == null) return 'Recente';
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 1) return 'Agora';
+    if (diff.inMinutes < 60) return 'há ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'há ${diff.inHours} h';
+    if (diff.inDays < 7) return 'há ${diff.inDays} d';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  Widget _buildCreatePostCard() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: _line)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _buildAvatar(_profileImageUrl, size: 34, ring: false),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (!_isExpanded) setState(() => _isExpanded = true);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Text(
+                        _isExpanded
+                            ? 'Escrevendo publicação...'
+                            : 'Escrever publicação...',
+                        style: const TextStyle(color: _textSoft, fontSize: 13),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(
-                    Icons.photo_library,
-                    color: primaryColor,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _selectedImage == null ? 'Anexar Foto' : 'Trocar Foto',
-                    style: const TextStyle(color: primaryColor, fontSize: 11),
                   ),
                 ),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => setState(() => _isExpanded = false),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(color: Colors.grey, fontSize: 11),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _isPublishing ? null : _submitPost,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                      ),
-                      child: _isPublishing
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Publicar',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                              ),
-                            ),
-                    ),
-                  ],
+                IconButton(
+                  icon: const Icon(
+                    Icons.campaign_outlined,
+                    color: primaryColor,
+                  ),
+                  tooltip: 'Reportar Animal',
+                  onPressed: () => Navigator.pushNamed(
+                    context,
+                    '/report',
+                  ).then((_) => _loadFeed(isSilent: true)),
                 ),
               ],
             ),
+            if (_isExpanded) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: TextField(
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  style: const TextStyle(fontSize: 13.5),
+                  decoration: const InputDecoration(
+                    hintText: 'No que você está pensando hoje?',
+                    hintStyle: TextStyle(color: _textSoft),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              if (_selectedImage != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6, bottom: 8),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: SizedBox(
+                          height: 160,
+                          width: double.infinity,
+                          child: kIsWeb
+                              ? Image.network(
+                                  _selectedImage!.path,
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.file(
+                                  File(_selectedImage!.path),
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                      ),
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedImage = null),
+                          child: const CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.black54,
+                            child: Icon(
+                              Icons.close,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(
+                      Icons.photo_library_outlined,
+                      color: primaryColor,
+                      size: 20,
+                    ),
+                    label: Text(
+                      _selectedImage == null ? 'Anexar foto' : 'Trocar foto',
+                      style: const TextStyle(
+                        color: primaryColor,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => setState(() => _isExpanded = false),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(color: _textSoft, fontSize: 12.5),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Opacity(
+                        opacity: _isPublishing ? 0.7 : 1,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: FilledButton(
+                            onPressed: _isPublishing ? null : _submitPost,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              disabledBackgroundColor: Colors.transparent,
+                              disabledForegroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 8,
+                              ),
+                            ),
+                            child: _isPublishing
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Publicar',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -805,16 +930,29 @@ class _FeedScreenState extends State<FeedScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
               const SizedBox(height: 12),
               Text(_errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => _loadFeed(isSilent: false),
-                style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-                child: const Text(
-                  'Tentar Novamente',
-                  style: TextStyle(color: Colors.white),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: FilledButton(
+                  onPressed: () => _loadFeed(isSilent: false),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text('Tentar Novamente'),
                 ),
               ),
             ],
@@ -825,16 +963,17 @@ class _FeedScreenState extends State<FeedScreen>
 
     if (_feedItems.isEmpty) {
       return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         children: const [
           SizedBox(height: 100),
           Center(
             child: Column(
               children: [
-                Icon(Icons.pets, size: 48, color: Colors.grey),
+                Icon(Icons.pets, size: 48, color: Color(0xFFCFCFCF)),
                 SizedBox(height: 12),
                 Text(
                   'Nenhuma publicação encontrada ainda.',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: TextStyle(color: _textSoft, fontSize: 14),
                 ),
               ],
             ),
@@ -845,7 +984,8 @@ class _FeedScreenState extends State<FeedScreen>
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       itemCount: _feedItems.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == _feedItems.length) {
@@ -870,110 +1010,158 @@ class _FeedScreenState extends State<FeedScreen>
     );
   }
 
-  Widget _buildSocialPostCard(SocialPost post) {
-    final bool canEditOrDelete =
-        _isAdmin || (_currentUserId != null && _currentUserId == post.userId);
+  // Cabeçalho estático
+  Widget _buildItemHeader({
+    required String? avatarUrl,
+    required String name,
+    required String subtitle,
+    Widget? trailing,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+      child: Row(
+        children: [
+          _buildAvatar(avatarUrl, size: 34),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    color: _textDark,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 11.5, color: _textSoft),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing else const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  Widget _buildOptionsMenu({
+    required String editLabel,
+    required VoidCallback onEdit,
+  }) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_horiz, size: 22, color: _textDark),
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onSelected: (value) {
+        if (value == 'edit') {
+          onEdit();
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              const Icon(Icons.edit_outlined, size: 18, color: primaryColor),
+              const SizedBox(width: 10),
+              Text(editLabel, style: const TextStyle(fontSize: 13)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMedia(String url) {
+    return AspectRatio(
+      aspectRatio: 5 / 4,
+      child: Image.network(
+        url,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.medium,
+        loadingBuilder: (context, child, progress) => progress == null
+            ? child
+            : Container(color: const Color(0xFFF5F5F5)),
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: const Color(0xFFF5F5F5),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image_outlined, size: 36, color: _textSoft),
+              SizedBox(height: 4),
+              Text(
+                'Imagem indisponível',
+                style: TextStyle(color: _textSoft, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialPostCard(SocialPost post) {
+    final bool isOwner =
+        _currentUserId != null &&
+        _currentUserId.toString() == post.userId.toString();
+    final bool canEdit = _isAdmin || isOwner;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 0,
-            ),
-            leading: const CircleAvatar(
-              radius: 16,
-              backgroundColor: primaryColor,
-              child: Icon(Icons.person, size: 18, color: Colors.white),
-            ),
-            title: Text(
-              post.userName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            subtitle: Text(
-              '${post.createdAt.day.toString().padLeft(2, '0')}/${post.createdAt.month.toString().padLeft(2, '0')}/${post.createdAt.year}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            trailing: canEditOrDelete
-                ? PopupMenuButton<String>(
-                    icon: const Icon(
-                      Icons.more_vert,
-                      size: 18,
-                      color: Colors.grey,
-                    ),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showEditPostModal(post);
-                      } else if (value == 'delete') {
-                        _deletePost(post);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 16, color: primaryColor),
-                            SizedBox(width: 8),
-                            Text('Editar', style: TextStyle(fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 16, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text(
-                              'Excluir',
-                              style: TextStyle(color: Colors.red, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+          _buildItemHeader(
+            avatarUrl: post.userPhotoUrl,
+            name: post.userName,
+            subtitle: _timeAgo(post.createdAt),
+            trailing: canEdit
+                ? _buildOptionsMenu(
+                    editLabel: 'Editar',
+                    onEdit: () => _showEditPostModal(post),
                   )
                 : null,
           ),
           if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
-            Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(maxHeight: 320),
-              color: primaryColor.withAlpha(20),
-              child: Image.network(
-                post.imageUrl!,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 140,
-                  color: Colors.grey[200],
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image, size: 36, color: Colors.grey),
-                      SizedBox(height: 4),
-                      Text(
-                        'Imagem indisponível',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            _buildMedia(post.imageUrl!),
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              post.description,
-              style: const TextStyle(fontSize: 13, color: Colors.black),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  height: 1.4,
+                  color: _textDark,
+                ),
+                children: [
+                  TextSpan(
+                    text: '${post.userName}  ',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  TextSpan(text: post.description),
+                ],
+              ),
             ),
           ),
         ],
@@ -982,258 +1170,238 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Widget _buildReportCard(AnimalReport report) {
-    // Converte ambos para String para evitar qualquer incompatibilidade de int vs double/String[cite: 6]
     final bool isOwner =
         _currentUserId != null &&
         report.userId != null &&
         _currentUserId.toString() == report.userId.toString();
+    final bool canEdit = _isAdmin || isOwner;
 
-    final bool canEditOrDelete = _isAdmin || isOwner;
-    final String? avatarUrl = report.userPhotoUrl;
+    final String? avatarUrl =
+        (report.userPhotoUrl != null &&
+            report.userPhotoUrl!.trim().isNotEmpty &&
+            report.userPhotoUrl != 'null')
+        ? report.userPhotoUrl
+        : (isOwner ? _profileImageUrl : null);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    final typeColor = _getTypeColor(report.type);
+    final hasImage = report.imageUrl != null && report.imageUrl!.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 0,
-            ),
-            leading: CircleAvatar(
-              radius: 16,
-              backgroundColor: primaryColor.withOpacity(0.1),
-              child:
-                  (avatarUrl != null &&
-                      avatarUrl.trim().isNotEmpty &&
-                      avatarUrl != 'null')
-                  ? ClipOval(
-                      child: Image.network(
-                        avatarUrl,
-                        width: 32,
-                        height: 32,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                              Icons.person,
-                              size: 18,
-                              color: primaryColor,
-                            ),
+          _buildItemHeader(
+            avatarUrl: avatarUrl,
+            name: report.userName ?? 'Usuário Anônimo',
+            subtitle: _timeAgo(report.createdAt),
+            trailing: canEdit
+                ? _buildOptionsMenu(
+                    editLabel: 'Alterar Status',
+                    onEdit: () => _showUpdateStatusDialog(report),
+                  )
+                : null,
+          ),
+          Stack(
+            children: [
+              if (hasImage)
+                _buildMedia(report.imageUrl!)
+              else
+                AspectRatio(
+                  aspectRatio: 16 / 10,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          primaryColor.withOpacity(0.12),
+                          primaryColor.withOpacity(0.04),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    )
-                  : const Icon(Icons.person, size: 18, color: primaryColor),
-            ),
-            title: Text(
-              report.userName ?? 'Usuário Anônimo',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            subtitle: Text(
-              report.createdAt != null
-                  ? '${report.createdAt!.day.toString().padLeft(2, '0')}/${report.createdAt!.month.toString().padLeft(2, '0')}/${report.createdAt!.year}'
-                  : 'Recente',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
+                    ),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.pets, size: 38, color: primaryColor),
+                        SizedBox(height: 6),
+                        Text(
+                          'Reporte sem foto',
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: 12,
+                bottom: 12,
+                child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: _getTypeColor(report.type).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _getTypeColor(report.type),
-                      width: 0.8,
-                    ),
+                    color: typeColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     report.type.label,
-                    style: TextStyle(
-                      color: _getTypeColor(report.type),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11.5,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
-
-                // Exibe os 3 pontinhos para o Admin OU para o criador do post[cite: 6]
-                if (canEditOrDelete)
-                  PopupMenuButton<String>(
-                    icon: const Icon(
-                      Icons.more_vert,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showUpdateStatusDialog(report);
-                      } else if (value == 'delete') {
-                        _deleteReport(report);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 16, color: primaryColor),
-                            SizedBox(width: 8),
-                            Text(
-                              'Alterar Status',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 16, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text(
-                              'Excluir',
-                              style: TextStyle(color: Colors.red, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
-
-          if (report.imageUrl != null && report.imageUrl!.isNotEmpty)
-            Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(maxHeight: 320),
-              color: primaryColor.withOpacity(0.08),
-              child: Image.network(
-                report.imageUrl!,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 140,
-                  color: Colors.grey[200],
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.broken_image, size: 36, color: Colors.grey),
-                      SizedBox(height: 4),
-                      Text(
-                        'Imagem indisponível',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          else
-            Container(
-              height: 80,
-              color: Colors.orange.withOpacity(0.08),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.pets, size: 28, color: primaryColor),
-                  SizedBox(height: 4),
-                  Text(
-                    'Reporte sem foto',
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   report.title,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                    color: _textDark,
+                    letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   report.description,
-                  style: const TextStyle(fontSize: 13, color: Colors.black),
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    height: 1.4,
+                    color: _textDark,
+                  ),
                 ),
-                const SizedBox(height: 10),
-
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.location_on,
-                      size: 14,
-                      color: primaryColor,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: FutureBuilder<String>(
-                        future: report.fetchAddress(),
-                        builder: (context, snapshot) {
-                          return Text(
-                            snapshot.data ?? 'Buscando endereço...',
-                            style: const TextStyle(
-                              fontSize: 10.5,
-                              color: Colors.grey,
-                              height: 1.1,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          );
-                        },
+                if (report.contact != null && report.contact!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.phone_outlined,
+                        size: 16,
+                        color: primaryColor,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () => _openMap(report.latitude, report.longitude),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.map, size: 13, color: primaryColor),
-                            SizedBox(width: 3),
-                            Text(
-                              'Ver no mapa',
-                              style: TextStyle(
-                                color: primaryColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                      const SizedBox(width: 6),
+                      Text(
+                        'Contato: ${report.contact}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _textDark,
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF6F2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    size: 18,
+                    color: primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FutureBuilder<String>(
+                      future: report.fetchAddress(),
+                      builder: (context, snapshot) {
+                        return Text(
+                          snapshot.data ?? 'Buscando endereço...',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF6B6B6B),
+                            height: 1.25,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _openMap(report.latitude, report.longitude),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.map_outlined,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'Ver no mapa',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

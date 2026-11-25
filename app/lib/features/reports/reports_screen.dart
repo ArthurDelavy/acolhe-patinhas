@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-
 import '../../components/navbar.dart';
 import '../../services/foster_service.dart';
 import '../../services/reports_service.dart';
@@ -47,6 +46,8 @@ class _ReportScreenState extends State<ReportScreen> {
   final _descriptionController = TextEditingController();
   final _latitudeController = TextEditingController();
   final _longitudeController = TextEditingController();
+  final _contactController =
+      TextEditingController(); //new controller for contact field
 
   ReportType _selectedType = ReportType.LOST;
   LatLng? _selectedLocation;
@@ -79,10 +80,10 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-  Future<void> _pickPetImage() async {
+  Future<void> _pickPetImageFromSource(ImageSource source) async {
     try {
       final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         maxWidth: 1200,
         maxHeight: 1200,
         imageQuality: 85,
@@ -100,6 +101,42 @@ class _ReportScreenState extends State<ReportScreen> {
         ),
       );
     }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: _orange),
+                  title: const Text('Escolher da Galeria'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickPetImageFromSource(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: _orange),
+                  title: const Text('Tirar Foto com a Câmera'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickPetImageFromSource(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _openMapPicker() async {
@@ -142,6 +179,7 @@ class _ReportScreenState extends State<ReportScreen> {
         type: _selectedType,
         latitude: _selectedLocation!.latitude,
         longitude: _selectedLocation!.longitude,
+        contact: _contactController.text.trim(),
         imageFile: _selectedImage,
       );
 
@@ -255,7 +293,8 @@ class _ReportScreenState extends State<ReportScreen> {
 
     return Center(
       child: GestureDetector(
-        onTap: _pickPetImage,
+        onTap:
+            _showImageSourceDialog, // Abre o modal com opção de Câmera/Galeria
         child: Stack(
           alignment: Alignment.bottomRight,
           children: [
@@ -409,6 +448,7 @@ class _ReportScreenState extends State<ReportScreen> {
     _descriptionController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
+    _contactController.dispose();
     super.dispose();
   }
 
@@ -427,11 +467,21 @@ class _ReportScreenState extends State<ReportScreen> {
       appBar: AppBar(
         title: Text(
           isEditing ? 'Editar Reporte' : 'Reportar Animal',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: _orange,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+            ),
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -487,6 +537,15 @@ class _ReportScreenState extends State<ReportScreen> {
                       }
                       return null;
                     },
+                  ),
+
+                  TextFormField(
+                    controller: _contactController,
+                    keyboardType: TextInputType.phone,
+                    decoration: _inputDecoration(
+                      'Contato (WhatsApp, Telefone, etc)',
+                      icon: Icons.phone,
+                    ),
                   ),
 
                   const SizedBox(height: 12),
@@ -558,43 +617,59 @@ class _ReportScreenState extends State<ReportScreen> {
 
                   const SizedBox(height: 24),
 
-                  SizedBox(
+                    SizedBox(
                     height: 50,
                     width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _submitReport,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _orange,
-                        foregroundColor: Colors.white,
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
+                    child: Opacity(
+                      opacity: _isLoading ? 0.7 : 1,
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                      ),
-                      icon: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Icon(
-                              isEditing
-                                  ? Icons.save_rounded
-                                  : Icons.send_rounded,
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : _submitReport,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.transparent,
+                            disabledForegroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                      label: Text(
-                        _isLoading
-                            ? (isEditing ? 'SALVANDO...' : 'PUBLICANDO...')
-                            : (isEditing
-                                  ? 'SALVAR ALTERAÇÕES'
-                                  : 'PUBLICAR REPORTE'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                          ),
+                          icon: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Icon(
+                                  isEditing
+                                      ? Icons.save_rounded
+                                      : Icons.send_rounded,
+                                ),
+                          label: Text(
+                            _isLoading
+                                ? (isEditing ? 'SALVANDO...' : 'PUBLICANDO...')
+                                : (isEditing
+                                      ? 'SALVAR ALTERAÇÕES'
+                                      : 'PUBLICAR REPORTE'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -648,12 +723,24 @@ class _MapLocationPickerState extends State<_MapLocationPicker> {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 48,
         title: const Text(
           'Arraste o mapa até o local',
-          style: TextStyle(fontSize: 16),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: _orange,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+            ),
+          ),
+        ),
       ),
       body: Stack(
         children: [
@@ -691,25 +778,37 @@ class _MapLocationPickerState extends State<_MapLocationPicker> {
                   : const Icon(Icons.my_location),
             ),
           ),
-          Positioned(
+           Positioned(
             left: 16,
             right: 16,
             bottom: 16,
             child: SafeArea(
               child: SizedBox(
                 height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: () =>
-                      Navigator.pop(context, _mapController.camera.center),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _orange,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
                     ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  icon: const Icon(Icons.check),
-                  label: const Text('Confirmar local'),
+                  child: ElevatedButton.icon(
+                    onPressed: () =>
+                        Navigator.pop(context, _mapController.camera.center),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(Icons.check),
+                    label: const Text('Confirmar local'),
+                  ),
                 ),
               ),
             ),

@@ -7,8 +7,18 @@ import 'package:acolhe_patinhas/features/about-profile/about_screen.dart';
 import 'package:acolhe_patinhas/features/about-profile/profile_screen.dart';
 import 'package:acolhe_patinhas/features/fosters/foster_screen.dart';
 import 'package:acolhe_patinhas/features/reports/reports_screen.dart';
+import 'package:acolhe_patinhas/features/auth/splash.screen.dart';
+import 'package:flutter/services.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      systemNavigationBarColor: Color(0xFFE27B1D),
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+
   runApp(const MyApp());
 }
 
@@ -21,20 +31,21 @@ class MyApp extends StatelessWidget {
       title: 'Acolhe Patinhas',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE27B1D)),
         useMaterial3: true,
       ),
-      home: const AuthScreen(),
+      home: const SplashScreen(),
       routes: {
+        '/login': (context) => const AuthScreen(),
         '/feed': (context) => const FeedScreen(),
         '/report': (context) => const ReportScreen(),
         '/registerPets': (context) => const RegisterPetsScreen(),
         '/user_pets': (context) =>
-            const ListPetsScreen(isAdminMode: false, navIndex: 1),
+            const ListPetsScreen(isAdminMode: false, navIndex: 2),
         '/admin_pets': (context) =>
             const ListPetsScreen(isAdminMode: true, navIndex: 3),
         '/list_pets': (context) =>
-            const ListPetsScreen(isAdminMode: false, navIndex: 1),
+            const ListPetsScreen(isAdminMode: false, navIndex: 2),
         '/about-profile': (context) => const AboutScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/fosters': (context) => const FostersScreen(),

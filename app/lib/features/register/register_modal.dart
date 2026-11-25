@@ -152,7 +152,6 @@ class _CatalogDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Remove elementos duplicados por ID para não quebrar o Flutter
     final Map<int, Map<String, dynamic>> uniqueMap = {};
     for (var item in items) {
       if (item['id'] != null) {
@@ -161,8 +160,6 @@ class _CatalogDropdown extends StatelessWidget {
     }
     final uniqueItems = uniqueMap.values.toList();
     final bool empty = uniqueItems.isEmpty;
-
-    // Garante que o valor selecionado realmente exista na lista única
     final safeValue = uniqueItems.any((i) => i['id'] == value) ? value : null;
 
     final dropdown = DropdownButtonFormField<int>(
@@ -805,7 +802,6 @@ class _VaccinationDialogState extends State<VaccinationDialog> {
           'vaccineId': _vaccineId,
           'dose': dose,
           'manufacturer': manufacturer,
-          // ⚠️ "batchNumer" (sem o "b") é mantido do DTO do backend
           'batchNumer': batch,
           if (_date != null) 'vaccinationDate': _iso(_date!),
           if (_next != null) 'nextDoseDate': _iso(_next!),
@@ -2154,5 +2150,51 @@ class _TreatmentDialogState extends State<TreatmentDialog> {
         ),
       ],
     );
+  }
+}
+
+Future<bool> confirmAndDeleteReference(
+  BuildContext context, {
+  required String kind,
+  required String name,
+  required Future<void> Function() onDelete,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: _dialogShape,
+      title: Text('Excluir $kind?'),
+      content: Text('Deseja excluir "$name"? Essa ação não pode ser desfeita.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Excluir'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true) return false;
+
+  try {
+    await onDelete();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"$name" excluído(a) com sucesso.')),
+      );
+    }
+    return true;
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+    return false;
   }
 }

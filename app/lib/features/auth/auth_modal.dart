@@ -68,119 +68,120 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
           maxChildSize: 0.95,
           expand: false,
           builder: (context, scrollController) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
+            return SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Termos de Compromisso',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D3142),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Termos de Compromisso',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D3142),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: FutureBuilder<String>(
+                        future: _authService.fetchTermContent(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: secondaryColor,
+                              ),
+                            );
+                          }
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text(
+                                'Erro ao carregar o termo:\n${snapshot.error}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            );
+                          }
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Center(
+                              child: Text('Nenhum texto encontrado no termo.'),
+                            );
+                          }
 
-                  Expanded(
-                    child: FutureBuilder<String>(
-                      future: _authService.fetchTermContent(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: secondaryColor,
-                            ),
-                          );
-                        }
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Text(
-                              'Erro ao carregar o termo:\n${snapshot.error}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 13,
+                          // RENDERIZADOR MARKDOWN PERSONALIZADO
+                          return SingleChildScrollView(
+                            controller: scrollController,
+                            physics: const BouncingScrollPhysics(),
+                            child: MarkdownBody(
+                              data: snapshot.data!,
+                              styleSheet: MarkdownStyleSheet(
+                                h1: const TextStyle(
+                                  color: secondaryColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                                h2: const TextStyle(
+                                  color: Color(0xFF2D3142),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                p: const TextStyle(
+                                  color: Color(0xFF2D3142),
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                                strong: const TextStyle(
+                                  color: secondaryColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                listBullet: const TextStyle(
+                                  color: secondaryColor,
+                                ),
                               ),
                             ),
                           );
-                        }
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(
-                            child: Text('Nenhum texto encontrado no termo.'),
-                          );
-                        }
-
-                        // RENDERIZADOR MARKDOWN PERSONALIZADO
-                        return SingleChildScrollView(
-                          controller: scrollController,
-                          physics: const BouncingScrollPhysics(),
-                          child: MarkdownBody(
-                            data: snapshot.data!,
-                            styleSheet: MarkdownStyleSheet(
-                              h1: const TextStyle(
-                                color: secondaryColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                              h2: const TextStyle(
-                                color: Color(0xFF2D3142),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                              p: const TextStyle(
-                                color: Color(0xFF2D3142),
-                                fontSize: 14,
-                                height: 1.5,
-                              ),
-                              strong: const TextStyle(
-                                color: secondaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              listBullet: const TextStyle(
-                                color: secondaryColor,
-                              ),
-                            ),
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: secondaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: secondaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Fechar',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Fechar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },
@@ -269,7 +270,7 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
     final mq = MediaQuery.of(context);
     final bottom = mq.viewInsets.bottom > 0
         ? mq.viewInsets.bottom
-        : mq.padding.bottom;
+        : mq.viewPadding.bottom;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 20, 24, bottom + 20),
@@ -379,25 +380,34 @@ class _AuthRegisterModalState extends State<AuthRegisterModal> {
                     ),
                   ],
                 ),
-                if (!_aceitouTermos)
+if (!_aceitouTermos)
                   const Padding(
-                    padding: EdgeInsets.only(left: 12, bottom: 6),
+                    padding: EdgeInsets.only(left: 12, right: 12, bottom: 6),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.error_outline, size: 14, color: Colors.red),
-                        SizedBox(width: 4),
-                        Text(
-                          'Atenção: Você precisa aceitar os termos para se cadastrar.',
-                          style: TextStyle(
+                        Padding(
+                          padding: EdgeInsets.only(top: 1),
+                          child: Icon(
+                            Icons.error_outline,
+                            size: 14,
                             color: Colors.red,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Atenção: Você precisa aceitar os termos para se cadastrar.',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-              ],
+                  ),        ],
             ),
           ),
 

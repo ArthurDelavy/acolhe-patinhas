@@ -4,10 +4,12 @@ import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
 import '../utils/validators.dart';
 
+//publication template
 class SocialPost {
   final int id;
   final int? userId;
   final String userName;
+  final String? userPhotoUrl;
   final String description;
   final String? imageUrl;
   final DateTime createdAt;
@@ -16,43 +18,34 @@ class SocialPost {
     required this.id,
     this.userId,
     required this.userName,
+    this.userPhotoUrl,
     required this.description,
     this.imageUrl,
     required this.createdAt,
   });
 
+  //Converts the API JSON into a [SocialPost].
   factory SocialPost.fromJson(Map<String, dynamic> json) {
-    String extractedUserName = 'Usuário';
-    if (json['user'] != null && json['user']['name'] != null) {
-      extractedUserName = json['user']['name'];
-    } else if (json['userName'] != null) {
-      extractedUserName = json['userName'];
-    }
-
-    int? extractedUserId;
-    if (json['userId'] != null) {
-      extractedUserId = (json['userId'] as num).toInt();
-    } else if (json['user'] != null && json['user']['id'] != null) {
-      extractedUserId = (json['user']['id'] as num).toInt();
-    }
-
     return SocialPost(
       id: (json['id'] as num).toInt(),
-      userId: extractedUserId,
-      userName: extractedUserName,
-      description: json['description'] ?? '',
-      imageUrl: json['imageUrl'] as String? ?? json['image'] as String?,
-      createdAt: json['createdAt'] != null
-          ? (DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now())
-          : DateTime.now(),
+      userId: (json['userId'] as num?)?.toInt(),
+      userName: json['userName'] as String? ?? 'Usuário',
+      userPhotoUrl: json['userProfileImageUrl'] as String?,
+      description: json['description'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String?,
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '')?.toLocal() ??
+          DateTime.now(),
     );
   }
 }
 
+// Service that communicates with the posts API
 class PostService {
   final String baseUrl = 'https://acolhe-patinhas.duckdns.org/api';
   final ApiClient _client = ApiClient();
 
+  //Lists posts with pagination, from newest to oldest.
   Future<List<SocialPost>> listAll({int page = 0, int size = 20}) async {
     final token = await TokenStorage.getAuthToken();
     final uri = Uri.parse('$baseUrl/post?order=desc&page=$page&size=$size');
@@ -66,14 +59,13 @@ class PostService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(utf8.decode(response.bodyBytes));
-      final List<dynamic> jsonList = data is List
-          ? data
-          : (data['content'] ?? data['items'] ?? []);
+      final List<dynamic> jsonList = data['content'] ?? [];
       return jsonList.map((json) => SocialPost.fromJson(json)).toList();
     }
     return [];
   }
 
+  // Creates a new post
   Future<SocialPost> createPost({
     required String description,
     XFile? imageFile,
@@ -114,6 +106,7 @@ class PostService {
     throw Exception('Erro ao publicar. Código: ${response.statusCode}');
   }
 
+  // Deletes a post by its ID
   Future<void> deletePost(int postId) async {
     final token = await TokenStorage.getAuthToken();
     final uri = Uri.parse('$baseUrl/post/$postId');
@@ -130,6 +123,7 @@ class PostService {
     }
   }
 
+  // Updates a post by its ID
   Future<SocialPost> updatePost({
     required int postId,
     required String description,

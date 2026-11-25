@@ -1,11 +1,11 @@
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../utils/token_storage.dart';
-import '../utils/validators.dart';
-import 'package:shared_preferences/shared_preferences.dart'; //new import for shared_preferences, which is used for storing tokens and other data locally
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final String baseUrl;
-  final ApiClient _client = ApiClient();
+  final http.Client _client = http.Client();
 
   AuthService({required this.baseUrl});
 
@@ -45,7 +45,7 @@ class AuthService {
     throw Exception('Erro ao realizar login. Código: ${response.statusCode}');
   }
 
-  //anonymous login
+  // Login anônimo
   Future<Map<String, dynamic>> loginAnonymous() async {
     final response = await _client.post(
       Uri.parse('$baseUrl/auth/anonymous'),
@@ -219,6 +219,18 @@ class AuthService {
 
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Erro ao aceitar os termos.');
+    }
+  }
+
+  Future<bool> refreshSession() => TokenStorage.refresh();
+
+  // getAuthToken() já renova o token vencido sozinho
+  Future<bool> hasValidSession() async {
+    try {
+      final token = await TokenStorage.getAuthToken();
+      return token != null && token.isNotEmpty;
+    } catch (e) {
+      return false;
     }
   }
 }

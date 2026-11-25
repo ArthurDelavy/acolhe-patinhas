@@ -9,29 +9,32 @@ class UserProfile {
   final String name;
   final String email;
   final String? profileImageUrl;
-  final String role;
-  final bool emailVerified;
-  final String? createdAt;
+  final String? description;
+  final String role; //admin, verified, user
+  final bool isVerified;
 
   UserProfile({
     required this.id,
     required this.name,
     required this.email,
     this.profileImageUrl,
+    this.description,
     required this.role,
-    required this.emailVerified,
-    this.createdAt,
+    required this.isVerified,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    final roleStr = (json['role'] ?? 'USER').toString().toUpperCase();
     return UserProfile(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
+      id: json['id'] ?? json['userId'] ?? 0,
+      name: json['name'] ?? json['username'] ?? '',
       email: json['email'] ?? '',
-      profileImageUrl: json['profileImageUrl'],
-      role: json['role'] ?? '',
-      emailVerified: json['emailVerified'] ?? false,
-      createdAt: json['createdAt'],
+      profileImageUrl:
+          json['profileImageUrl'] ?? json['userPhotoUrl'] ?? json['photoUrl'],
+      description: json['description'] as String?,
+      role: roleStr,
+      isVerified:
+          json['verified'] ?? (roleStr == 'VERIFIED' || roleStr == 'ADMIN'),
     );
   }
 }
@@ -81,6 +84,29 @@ class ProfileService {
     }
 
     throw Exception('Erro ao atualizar o nome.');
+  }
+
+  Future<UserProfile> updateDescription(String newDescription) async {
+    final token = await TokenStorage.getAuthToken();
+
+    final response = await _client.patch(
+      Uri.parse('$baseUrl/user/me/description'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'description': newDescription}),
+    );
+
+    if (response.statusCode == 200) {
+      return UserProfile.fromJson(jsonDecode(response.body));
+    }
+
+    if (response.statusCode == 400) {
+      throw Exception('Descrição inválida.');
+    }
+
+    throw Exception('Erro ao atualizar a descrição.');
   }
 
   Future<void> requestEmailChange(String newEmail) async {
@@ -167,5 +193,84 @@ class ProfileService {
     throw Exception(
       'Erro ao atualizar a foto de perfil (Status ${response.statusCode}).',
     );
+  }
+
+  Future<UserProfile> getUserById(int userId) async {
+    final token = await TokenStorage.getAuthToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/user/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return UserProfile.fromJson(jsonDecode(response.body));
+    }
+
+    if (response.statusCode == 403) {
+      throw Exception(
+        'Sem permissão para visualizar o perfil deste utilizador.',
+      );
+    }
+
+    if (response.statusCode == 404) {
+      throw Exception('Utilizador não encontrado.');
+    }
+
+    throw Exception('Erro ao carregar os dados do utilizador.');
+  }
+
+  Future<List<UserProfile>> listAllUsers() async {
+    final token = await TokenStorage.getAuthToken();
+
+    final response = await _client.get(
+      Uri.parse('$baseUrl/user'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List list = jsonDecode(response.body);
+      return list.map((json) => UserProfile.fromJson(json)).toList();
+    }
+
+    if (response.statusCode == 403) {
+      throw Exception('Sem permissão para listar utilizadores.');
+    }
+
+    throw Exception('Erro ao listar os utilizadores.');
+  }
+
+  Future<bool> toggleUserVerification(int userId) async {
+    final token = await TokenStorage.getAuthToken();
+
+    final response = await _client.patch(
+      Uri.parse('$baseUrl/user/$userId/toggle-verified'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    }
+
+    if (response.statusCode == 403) {
+      throw Exception('Sem permissão para verificar utilizadores.');
+    }
+
+    if (response.statusCode == 422) {
+      throw Exception(
+        'Administradores e acessos anónimos não podem ter o status de verificado alternado.',
+      );
+    }
+
+    return false;
   }
 }

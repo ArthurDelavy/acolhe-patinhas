@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,6 +34,8 @@ class _EditPetScreenState extends State<EditPetScreen> {
   final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _dischargeDateController =
       TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
 
   int? _selectedSpeciesId;
   int? _selectedBreedId;
@@ -58,8 +59,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
   final List<_VetViewEntry> _veterinaryEntries = [];
 
-  String _vetHeight = '';
-  String _vetWeight = '';
   bool _vetNeutered = false;
 
   bool _isLoading = true;
@@ -80,14 +79,33 @@ class _EditPetScreenState extends State<EditPetScreen> {
     _descriptionController.dispose();
     _birthDateController.dispose();
     _dischargeDateController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
     super.dispose();
+  }
+
+  void _addUnique(List<Map<String, dynamic>> list, Map<String, dynamic> item) {
+    if (!list.any((e) => e['id'] == item['id'])) {
+      list.add(item);
+    }
+  }
+
+
+  List<Map<String, dynamic>> _dedupe(List<Map<String, dynamic>> source) {
+    final ids = <dynamic>{};
+    return source.where((item) => ids.add(item['id'])).toList();
+  }
+
+  int? _safeValue(int? value, List<Map<String, dynamic>> items) {
+    if (value == null) return null;
+    final count = items.where((i) => i['id'] == value).length;
+    return count == 1 ? value : null;
   }
 
   Future<void> _loadEverything() async {
     try {
       final id = widget.petData['id'];
 
-      // 1. Usa dados em cache se já existirem, caso contrário busca em paralelo
       final speciesFuture = _globalSpeciesCache != null
           ? Future.value(_globalSpeciesCache)
           : PetService.fetchSpecies();
@@ -115,10 +133,11 @@ class _EditPetScreenState extends State<EditPetScreen> {
       _globalColorsCache = results[3] as List<Map<String, dynamic>>;
       _globalDischargeReasonsCache = results[4] as List<Map<String, dynamic>>;
 
-      final species = _globalSpeciesCache!;
-      final breeds = _globalBreedsCache!;
-      final colors = _globalColorsCache!;
-      final reasons = _globalDischargeReasonsCache!;
+  
+      final species = _dedupe(_globalSpeciesCache!);
+      final breeds = _dedupe(_globalBreedsCache!);
+      final colors = _dedupe(_globalColorsCache!);
+      final reasons = _dedupe(_globalDischargeReasonsCache!);
 
       if (!mounted) return;
 
@@ -136,8 +155,8 @@ class _EditPetScreenState extends State<EditPetScreen> {
         vetRecord = Map<String, dynamic>.from(rawVetRecord);
       }
 
-      _vetHeight = vetRecord?['size']?.toString() ?? '';
-      _vetWeight = vetRecord?['weight']?.toString() ?? '';
+      _heightController.text = vetRecord?['size']?.toString() ?? '';
+      _weightController.text = vetRecord?['weight']?.toString() ?? '';
       _vetNeutered = vetRecord?['neutered'] == true;
 
       final String? specieName = detail['specie']?.toString();
@@ -147,28 +166,13 @@ class _EditPetScreenState extends State<EditPetScreen> {
       _selectedColorId = _findIdByName(colors, colorName);
 
       if (_selectedSpeciesId != null) {
-        _filteredBreedsList = breeds.where((breed) {
-          final specieObj = breed['specie'] ?? breed['species'];
-          int? speciesIdFromObject;
-          if (specieObj is Map) speciesIdFromObject = specieObj['id'];
-
-          final dynamic rawDirect =
-              breed['specieId'] ??
-              breed['specie_id'] ??
-              breed['speciesId'] ??
-              breed['species_id'] ??
-              breed['idSpecie'];
-
-          final int? speciesIdDirect = rawDirect is int
-              ? rawDirect
-              : int.tryParse(rawDirect?.toString() ?? '');
-
-          final int? breedSpeciesId = speciesIdFromObject ?? speciesIdDirect;
-          return breedSpeciesId == _selectedSpeciesId;
-        }).toList();
+        _filteredBreedsList = breeds
+            .where((breed) => _breedSpecieId(breed) == _selectedSpeciesId)
+            .toList();
       } else {
         _filteredBreedsList = [];
       }
+      _selectedBreedId = _resolveCurrentBreedId(detail, _filteredBreedsList);
 
       setState(() {
         _speciesList = species;
@@ -178,7 +182,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
         _isLoading = false;
       });
 
-      // 2. Carrega o histórico veterinário paralelizado em segundo plano
       _loadVeterinaryRecordsParallel(id as int);
     } catch (e) {
       if (!mounted) return;
@@ -203,7 +206,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
         final summaries = await listCall(animalId);
         if (summaries.isEmpty) return [];
 
-        // Paraleliza os detalhes de todos os itens do grupo
         final entryFutures = summaries.map((summary) async {
           final id = _extractRecordId(summary, type);
           Map<String, dynamic> data = Map<String, dynamic>.from(summary);
@@ -227,7 +229,6 @@ class _EditPetScreenState extends State<EditPetScreen> {
       }
     }
 
-    // Dispara as 6 categorias veterinárias ao mesmo tempo em paralelo
     final results = await Future.wait([
       fetchGroupEntries(
         type: 'Vacinação',
@@ -283,6 +284,35 @@ class _EditPetScreenState extends State<EditPetScreen> {
         ..addAll(allEntries);
       _isLoadingVet = false;
     });
+  }
+
+  int? _breedSpecieId(Map<String, dynamic> breed) {
+    final dynamic raw = breed['specieId'];
+    return raw is int ? raw : int.tryParse(raw?.toString() ?? '');
+  }
+
+  int? _resolveCurrentBreedId(
+    Map<String, dynamic> detail,
+    List<Map<String, dynamic>> filteredBreeds,
+  ) {
+    int? candidate;
+
+    final dynamic rawBreedId = detail['breedId'];
+    final dynamic rawBreed = detail['breed'];
+
+    if (rawBreedId != null) {
+      candidate = int.tryParse(rawBreedId.toString());
+    } else if (rawBreed is Map) {
+      candidate =
+          int.tryParse(rawBreed['id']?.toString() ?? '') ??
+          _findIdByName(filteredBreeds, rawBreed['name']?.toString());
+    } else if (rawBreed != null) {
+      candidate = _findIdByName(filteredBreeds, rawBreed.toString());
+    }
+
+    if (candidate == null) return null;
+    final exists = filteredBreeds.any((b) => b['id'] == candidate);
+    return exists ? candidate : null;
   }
 
   int? _findIdByName(List<Map<String, dynamic>> list, String? name) {
@@ -378,28 +408,9 @@ class _EditPetScreenState extends State<EditPetScreen> {
         return;
       }
 
-      _filteredBreedsList = _allBreedsList.where((breed) {
-        final specieObj = breed['specie'] ?? breed['species'];
-        int? speciesIdFromObject;
-
-        if (specieObj is Map) {
-          speciesIdFromObject = specieObj['id'];
-        }
-
-        final dynamic rawDirect =
-            breed['specieId'] ??
-            breed['specie_id'] ??
-            breed['speciesId'] ??
-            breed['species_id'] ??
-            breed['idSpecie'];
-
-        final int? speciesIdDirect = rawDirect is int
-            ? rawDirect
-            : int.tryParse(rawDirect?.toString() ?? '');
-
-        final int? breedSpeciesId = speciesIdFromObject ?? speciesIdDirect;
-        return breedSpeciesId == speciesId;
-      }).toList();
+      _filteredBreedsList = _allBreedsList
+          .where((breed) => _breedSpecieId(breed) == speciesId)
+          .toList();
     });
   }
 
@@ -413,12 +424,14 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (newSpecies == null || !mounted) return;
 
     setState(() {
-      _speciesList.add(newSpecies);
-      _globalSpeciesCache?.add(newSpecies);
+      _addUnique(_speciesList, newSpecies);
+      if (_globalSpeciesCache != null) {
+        _addUnique(_globalSpeciesCache!, newSpecies);
+      }
       _selectedSpeciesId = newSpecies['id'];
       _selectedBreedId = null;
       _filteredBreedsList = _allBreedsList
-          .where((breed) => breed['specieId'] == newSpecies['id'])
+          .where((breed) => _breedSpecieId(breed) == newSpecies['id'])
           .toList();
     });
   }
@@ -444,9 +457,11 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (newBreed == null || !mounted) return;
 
     setState(() {
-      _allBreedsList.add(newBreed);
-      _globalBreedsCache?.add(newBreed);
-      _filteredBreedsList.add(newBreed);
+      _addUnique(_allBreedsList, newBreed);
+      if (_globalBreedsCache != null) {
+        _addUnique(_globalBreedsCache!, newBreed);
+      }
+      _addUnique(_filteredBreedsList, newBreed);
       _selectedBreedId = newBreed['id'];
     });
   }
@@ -464,8 +479,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (newColor == null || !mounted) return;
 
     setState(() {
-      _colorsList.add(newColor);
-      _globalColorsCache?.add(newColor);
+      _addUnique(_colorsList, newColor);
+      if (_globalColorsCache != null) {
+        _addUnique(_globalColorsCache!, newColor);
+      }
       _selectedColorId = newColor['id'];
     });
   }
@@ -479,8 +496,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (newReason == null || !mounted) return;
 
     setState(() {
-      _dischargeReasonsList.add(newReason);
-      _globalDischargeReasonsCache?.add(newReason);
+      _addUnique(_dischargeReasonsList, newReason);
+      if (_globalDischargeReasonsCache != null) {
+        _addUnique(_globalDischargeReasonsCache!, newReason);
+      }
       _selectedDischargeReasonId = newReason['id'];
     });
   }
@@ -601,6 +620,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
+
     String safeIntakeDate;
     if (_originalIntakeDate != null && _originalIntakeDate!.isNotEmpty) {
       safeIntakeDate = _originalIntakeDate!;
@@ -619,21 +639,26 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
     final String rawMicrochip = _microchipController.text.trim();
 
+    final int? parsedSize = int.tryParse(
+      _heightController.text.trim().replaceAll(',', '.').split('.').first,
+    );
+    final double? parsedWeight = double.tryParse(
+      _weightController.text.trim().replaceAll(',', '.'),
+    );
+
     final Map<String, dynamic> petPayload = {
       "name": _nameController.text.trim(),
       "gender": _selectedGender,
       "toAdoption": _toAdoption,
-      "active": true,
       "intakeDate": safeIntakeDate,
-      if (_selectedSpeciesId != null) "specieId": _selectedSpeciesId,
-      if (_selectedSpeciesId != null) "specie": {"id": _selectedSpeciesId},
       if (_selectedBreedId != null) "breedId": _selectedBreedId,
-      if (_selectedBreedId != null) "breed": {"id": _selectedBreedId},
       if (_selectedColorId != null) "colorId": _selectedColorId,
-      if (_selectedColorId != null) "color": {"id": _selectedColorId},
       if (rawMicrochip.isNotEmpty) "microchipNumber": rawMicrochip,
       if (formattedBirthDate != null) "birthDate": formattedBirthDate,
       "description": _descriptionController.text.trim(),
+      "size": parsedSize ?? 0,
+      "weight": parsedWeight ?? 0.0,
+      "neutered": _vetNeutered,
     };
 
     try {
@@ -684,66 +709,213 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
     final bool? confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Confirmar baixa'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                border: Border.all(color: Colors.amber.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.amber.shade900),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Esta ação inativa o cadastro e arquiva o pet no histórico.',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.amber.shade900,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        backgroundColor: const Color(0xFFF7E8DF),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFE0BD),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.archive_outlined,
+                        color: Color(0xFFD96A12),
+                        size: 21,
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Confirmar baixa',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF30251F),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
-                ],
-              ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    border: Border.all(color: Colors.amber.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Colors.amber.shade900,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          'Esta ação inativa o cadastro e arquiva o pet no histórico.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.3,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Deseja realmente dar baixa em "${_nameController.text}"?',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    color: Color(0xFF40342D),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE8D4C8)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.assignment_outlined,
+                            size: 17,
+                            color: Color(0xFFD96A12),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                children: [
+                                  const TextSpan(
+                                    text: 'Motivo: ',
+                                    style: TextStyle(fontWeight: FontWeight.w700),
+                                  ),
+                                  TextSpan(text: reasonName.toString()),
+                                ],
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF40342D),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 16,
+                            color: Color(0xFFD96A12),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Data: ',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF40342D),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              _dischargeDateController.text,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF40342D),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF9A541F),
+                          minimumSize: const Size.fromHeight(44),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        child: const Text(
+                          'CANCELAR',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange[800],
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          minimumSize: const Size.fromHeight(44),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'CONFIRMAR BAIXA',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Tem certeza que deseja dar baixa no pet "${_nameController.text}"?',
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Motivo: $reasonName',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-            Text(
-              'Data: ${_dischargeDateController.text}',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCELAR'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange[800],
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'CONFIRMAR BAIXA',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
       ),
     );
 
@@ -941,13 +1113,24 @@ class _EditPetScreenState extends State<EditPetScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 48,
         title: Text(
           widget.isAdmin ? 'Editar Pet' : 'Detalhes do Pet',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+            ),
+          ),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: primaryColor))
@@ -1006,7 +1189,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
                         _pair(
                           DropdownButtonFormField<int>(
-                            value: _selectedSpeciesId,
+                            value: _safeValue(_selectedSpeciesId, _speciesList),
                             isExpanded: true,
                             decoration: _inputDecoration(
                               'Espécie *',
@@ -1038,7 +1221,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
                                 : 'Selecione a espécie',
                           ),
                           DropdownButtonFormField<int>(
-                            value: _selectedBreedId,
+                            value: _safeValue(
+                              _selectedBreedId,
+                              _filteredBreedsList,
+                            ),
                             isExpanded: true,
                             decoration: _inputDecoration(
                               'Raça *',
@@ -1082,7 +1268,7 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
                         _pair(
                           DropdownButtonFormField<int>(
-                            value: _selectedColorId,
+                            value: _safeValue(_selectedColorId, _colorsList),
                             isExpanded: true,
                             decoration: _inputDecoration(
                               'Cor *',
@@ -1217,8 +1403,8 @@ class _EditPetScreenState extends State<EditPetScreen> {
                           entries: _veterinaryEntries,
                           isLoadingVet: _isLoadingVet,
                           onDelete: _deleteVeterinaryEntry,
-                          height: _vetHeight,
-                          weight: _vetWeight,
+                          heightController: _heightController,
+                          weightController: _weightController,
                           neutered: _vetNeutered,
                         ),
 
@@ -1228,33 +1414,52 @@ class _EditPetScreenState extends State<EditPetScreen> {
                           SizedBox(
                             height: 50,
                             width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _isSubmitting ? null : _submitForm,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                foregroundColor: Colors.white,
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
+                            child: Opacity(
+                              opacity: _isSubmitting ? 0.7 : 1,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFFFA94D),
+                                      Color(0xFFFF8C42),
+                                    ],
+                                  ),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                              ),
-                              child: _isSubmitting
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'SALVAR ALTERAÇÕES',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
-                                      ),
+                                child: ElevatedButton(
+                                  onPressed: _isSubmitting ? null : _submitForm,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    disabledForegroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
+                                  ),
+                                  child: _isSubmitting
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'SALVAR ALTERAÇÕES',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                ),
+                              ),
                             ),
                           ),
 
@@ -1312,7 +1517,10 @@ class _EditPetScreenState extends State<EditPetScreen> {
                               ),
                             ),
                             DropdownButtonFormField<int>(
-                              value: _selectedDischargeReasonId,
+                              value: _safeValue(
+                                _selectedDischargeReasonId,
+                                _dischargeReasonsList,
+                              ),
                               isExpanded: true,
                               decoration: _inputDecoration(
                                 'Motivo da Baixa',
@@ -1342,28 +1550,47 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
                           const SizedBox(height: 16),
 
-                          SizedBox(
+                                                   SizedBox(
                             height: 50,
                             width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : _submitDischarge,
-                              icon: const Icon(Icons.archive_outlined),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange[800],
-                                foregroundColor: Colors.white,
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
+                            child: Opacity(
+                              opacity: _isSubmitting ? 0.7 : 1,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFEF8A2E),
+                                      Color(0xFFD96A12),
+                                    ],
+                                  ),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                              ),
-                              label: const Text(
-                                'REGISTRAR BAIXA',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                                child: ElevatedButton.icon(
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : _submitDischarge,
+                                  icon: const Icon(Icons.archive_outlined),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    disabledForegroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  label: const Text(
+                                    'REGISTRAR BAIXA',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1399,16 +1626,16 @@ class _VeterinaryReadOnlySection extends StatelessWidget {
   final List<_VetViewEntry> entries;
   final bool isLoadingVet;
   final Future<void> Function(_VetViewEntry) onDelete;
-  final String height;
-  final String weight;
+  final TextEditingController heightController;
+  final TextEditingController weightController;
   final bool neutered;
 
   const _VeterinaryReadOnlySection({
     required this.entries,
     required this.isLoadingVet,
     required this.onDelete,
-    required this.height,
-    required this.weight,
+    required this.heightController,
+    required this.weightController,
     required this.neutered,
   });
 
@@ -1488,8 +1715,10 @@ class _VeterinaryReadOnlySection extends StatelessWidget {
           children: [
             Expanded(
               child: TextFormField(
-                initialValue: height,
-                readOnly: true,
+                controller: heightController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 maxLength: 3,
                 decoration: _inputDecoration('Altura (cm)', icon: Icons.height),
               ),
@@ -1497,8 +1726,10 @@ class _VeterinaryReadOnlySection extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: TextFormField(
-                initialValue: weight,
-                readOnly: true,
+                controller: weightController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 maxLength: 6,
                 decoration: _inputDecoration(
                   'Peso (kg)',

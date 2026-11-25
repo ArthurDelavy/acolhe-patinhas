@@ -1,9 +1,16 @@
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TokenStorage {
+  // Mesma URL usada no AuthService / SplashScreen
+  static const String _baseUrl = 'https://acolhe-patinhas.duckdns.org/api';
+
   static const _authKey = 'auth_token';
   static const _refreshKey = 'refresh_token';
+
+  // Evita renovar duas vezes ao mesmo tempo
+  static Future<String?>? _refreshing;
 
   static Future<void> saveAuthToken(String authToken) async {
     final prefs = await SharedPreferences.getInstance();
@@ -19,14 +26,36 @@ class TokenStorage {
     await prefs.setString(_refreshKey, refreshToken);
   }
 
+  /// Devolve SEMPRE um token válido: se o salvo estiver vencido, renova
+  /// automaticamente antes de devolver. Retorna null se não há sessão.
   static Future<String?> getAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_authKey);
+    final token = prefs.getString(_authKey);
+
+    if (token == null || token.isEmpty) return null;
+    if (!_isExpired(token)) return token;
+
+    // Token vencido: tenta renovar
+    final result = await _refreshOnce();
+
+    if (result == null) return token; // sem internet: devolve o antigo
+    if (result.isEmpty) {
+      // servidor recusou: a sessão acabou
+      await clear();
+      return null;
+    }
+    return result; // token novo
   }
 
   static Future<String?> getRefreshToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_refreshKey);
+  }
+
+  /// Força uma renovação. true = renovou.
+  static Future<bool> refresh() async {
+    final result = await _refreshOnce();
+    return result != null && result.isNotEmpty;
   }
 
   static Future<void> clear() async {
@@ -59,6 +88,72 @@ class TokenStorage {
     }
 
     return false;
+  }
+
+  // ---------------- renovação ----------------
+
+  static Future<String?> _refreshOnce() {
+    return _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+  }
+
+  // Retorna: token novo | '' (recusado pelo servidor) | null (erro de rede)
+  static Future<String?> _doRefresh() async {
+    try {
+      final refreshToken = await getRefreshToken() ?? '';
+
+      // Sem refresh token = sessão anônima: pega uma nova sessão anônima
+      if (refreshToken.isEmpty) {
+        final r = await http
+            .post(
+              Uri.parse('$_baseUrl/auth/anonymous'),
+              headers: {'Content-Type': 'application/json'},
+            )
+            .timeout(const Duration(seconds: 15));
+
+        if (r.statusCode == 200 || r.statusCode == 201) {
+          final data = jsonDecode(r.body) as Map<String, dynamic>;
+          final access = data['accessToken'] as String;
+          await saveTokens(
+            authToken: access,
+            refreshToken: data['refreshToken'] as String? ?? '',
+          );
+          return access;
+        }
+        return r.statusCode >= 500 ? null : '';
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/auth/refresh'),
+            headers: {'Content-Type': 'application/json'},
+            // confirme com o backend se o campo é mesmo "code"
+            body: jsonEncode({'code': refreshToken}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final access = (data['accessToken'] ?? data['authToken']) as String;
+        await saveTokens(
+          authToken: access,
+          refreshToken: (data['refreshToken'] ?? refreshToken) as String,
+        );
+        return access;
+      }
+
+      return response.statusCode >= 500 ? null : '';
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static bool _isExpired(String token, {int leewaySeconds = 30}) {
+    final payload = _decodeJwtPayload(token);
+    if (payload == null) return true;
+    final exp = payload['exp'];
+    if (exp is! num) return false; // sem "exp": deixa o servidor decidir
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return now >= exp.toInt() - leewaySeconds;
   }
 
   static Map<String, dynamic>? _decodeJwtPayload(String token) {

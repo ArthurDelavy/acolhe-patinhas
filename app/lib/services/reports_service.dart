@@ -4,8 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import '../utils/token_storage.dart';
 import '../utils/validators.dart';
 
+// report type
 enum ReportType { LOST, FOUND, ABANDONED }
 
+// label shown on the card
 extension ReportTypeExtension on ReportType {
   String get label {
     switch (this) {
@@ -18,11 +20,14 @@ extension ReportTypeExtension on ReportType {
     }
   }
 
+  //value to send to the API
   String get nameValue => name;
 }
 
+// Report status. Only OPEN appears in the public feed.
 enum ReportStatus { OPEN, RESOLVED, CANCELLED }
 
+// Template for an animal report.
 class AnimalReport {
   final int? id;
   final int? userId;
@@ -36,6 +41,7 @@ class AnimalReport {
   final String? userName;
   final String? userPhotoUrl;
   final DateTime? createdAt;
+  final String? contact; //new field for contact information
 
   const AnimalReport({
     this.id,
@@ -50,8 +56,10 @@ class AnimalReport {
     this.userName,
     this.userPhotoUrl,
     this.createdAt,
+    this.contact,
   });
 
+  //Converts latitude/longitude into a human-readable address
   Future<String> fetchAddress() async {
     try {
       final uri = Uri.parse(
@@ -62,28 +70,31 @@ class AnimalReport {
         uri,
         headers: {
           'User-Agent': AppUserAgent.getUserAgent(),
-          'Accept-Language': 'pt-BR',
+          'Accept-Language': 'pt-BR', //portuguese preferred
         },
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         final address = data['address'];
-
+        //filter street
         if (address != null && address is Map) {
           final road =
               address['road'] ??
               address['pedestrian'] ??
               address['suburb'] ??
               '';
+          //filter neighborhood
           final neighbourhood =
               address['neighbourhood'] ?? address['suburb'] ?? '';
+          //filter city
           final city =
               address['city'] ??
               address['town'] ??
               address['municipality'] ??
               '';
 
+          //Assemble the text using only the parts that exist, without repetition.
           List<String> parts = [];
           if (road.toString().isNotEmpty) parts.add(road.toString());
           if (neighbourhood.toString().isNotEmpty && neighbourhood != road) {
@@ -98,55 +109,30 @@ class AnimalReport {
       }
     } catch (_) {}
 
+    //four decimal places for latitude/longitude if no address is found
     return '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
   }
 
+  //Converts the API JSON into an [AnimalReport].
   factory AnimalReport.fromJson(Map<String, dynamic> json) {
-    int? extractedUserId;
-    if (json['userId'] != null) {
-      extractedUserId = int.tryParse(json['userId'].toString());
-    } else if (json['user'] != null && json['user'] is Map) {
-      extractedUserId = int.tryParse(json['user']['id']?.toString() ?? '');
-    }
-
-    String? extractedName = json['userName'];
-    if ((extractedName == null || extractedName.isEmpty) &&
-        json['user'] != null &&
-        json['user'] is Map) {
-      extractedName =
-          json['user']['name']?.toString() ??
-          json['user']['nameUser']?.toString();
-    }
-    String? extractedPhoto =
-        json['userPhotoUrl'] ?? json['photoUrl'] ?? json['avatarUrl'];
-    if ((extractedPhoto == null || extractedPhoto.isEmpty) &&
-        json['user'] != null &&
-        json['user'] is Map) {
-      extractedPhoto =
-          json['user']['profileImageUrl']?.toString() ??
-          json['user']['photoUrl']?.toString() ??
-          json['user']['avatarUrl']?.toString() ??
-          json['user']['userPhotoUrl']?.toString();
-    }
-
     return AnimalReport(
       id: (json['id'] as num).toInt(),
-      userId: extractedUserId,
-      userName: extractedName,
-      userPhotoUrl: extractedPhoto,
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
+      userId: (json['userId'] as num?)?.toInt(),
+      userName: json['userName'] as String?,
+      userPhotoUrl: json['userProfileImgUrl'] as String?,
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
       type: _parseType(json['type']),
       status: _parseStatus(json['status']),
       imageUrl: json['imageUrl'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'].toString())
-          : null,
+      createdAt: DateTime.tryParse(
+        json['createdAt']?.toString() ?? '',
+      )?.toLocal(),
+      contact: json['contact'] as String?,
     );
   }
-
   static ReportType _parseType(dynamic value) {
     if (value == 'FOUND') return ReportType.FOUND;
     if (value == 'ABANDONED') return ReportType.ABANDONED;
@@ -160,10 +146,12 @@ class AnimalReport {
   }
 }
 
+//Service that communicates with the API
 class ReportService {
   final String baseUrl = 'https://acolhe-patinhas.duckdns.org/api';
   final ApiClient _client = ApiClient();
 
+  //list all reports, including those that are not public (OPEN)
   Future<List<AnimalReport>> listAll() async {
     final token = await TokenStorage.getAuthToken();
     final uri = Uri.parse('$baseUrl/report');
@@ -188,12 +176,14 @@ class ReportService {
     );
   }
 
+  // Creates a new report with the given data, including an optional image file.
   Future<AnimalReport> createReport({
     required String title,
     required String description,
     required ReportType type,
     required double latitude,
     required double longitude,
+    String? contact,
     XFile? imageFile,
   }) async {
     final token = await TokenStorage.getAuthToken();
@@ -211,6 +201,9 @@ class ReportService {
     request.fields['type'] = type.nameValue;
     request.fields['latitude'] = latitude.toStringAsFixed(6);
     request.fields['longitude'] = longitude.toStringAsFixed(6);
+    if (contact != null && contact.isNotEmpty) {
+      request.fields['contact'] = contact; // <-- ENVIANDO PARA O BACKEND
+    }
 
     if (imageFile != null) {
       final bytes = await imageFile.readAsBytes();
@@ -253,6 +246,7 @@ class ReportService {
     return 'Verifique os dados preenchidos no formulário.';
   }
 
+  // Deletes a report by its ID.
   Future<void> deleteReport(int reportId) async {
     final token = await TokenStorage.getAuthToken();
     final uri = Uri.parse('$baseUrl/report/$reportId');
@@ -272,6 +266,7 @@ class ReportService {
     }
   }
 
+  // Updates the status of a report by its ID.
   Future<void> updateReportStatus({
     required int reportId,
     required String status,
