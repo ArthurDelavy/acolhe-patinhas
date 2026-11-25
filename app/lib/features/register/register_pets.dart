@@ -388,10 +388,10 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
     );
   }
 
-  Future<void> _pickPetImage() async {
+Future<void> _pickPetImageFromSource(ImageSource source) async {
     try {
       final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 70,
@@ -411,6 +411,42 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
         ),
       );
     }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: _orange),
+                  title: const Text('Escolher da Galeria'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickPetImageFromSource(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: _orange),
+                  title: const Text('Tirar Foto com a Câmera'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickPetImageFromSource(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _submitForm() async {
@@ -536,12 +572,12 @@ class _RegisterPetsScreenState extends State<RegisterPetsScreen> {
     );
   }
 
-  Widget _buildPhotoPicker() {
+Widget _buildPhotoPicker() {
     const double size = 120;
 
     return Center(
       child: GestureDetector(
-        onTap: _pickPetImage,
+        onTap: _showImageSourceDialog,
         child: Stack(
           alignment: Alignment.bottomRight,
           children: [

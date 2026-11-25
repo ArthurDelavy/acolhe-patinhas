@@ -404,12 +404,16 @@ class _FeedScreenState extends State<FeedScreen>
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final keyboardInset = MediaQuery.of(ctx).viewInsets.bottom;
+            final systemBottom = MediaQuery.of(ctx).viewPadding.bottom;
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 16,
                 right: 16,
                 top: 16,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+                bottom:
+                    (keyboardInset > 0 ? keyboardInset : systemBottom) + 20,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
