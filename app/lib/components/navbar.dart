@@ -77,7 +77,7 @@ class _NavbarComponentState extends State<NavbarComponent> {
     super.dispose();
   }
 
-  Future<void> _checkPermission() async {
+Future<void> _checkPermission() async {
     final isAdmin = await TokenStorage.hasPermission('animal:create');
 
     if (!mounted) return;
@@ -85,6 +85,16 @@ class _NavbarComponentState extends State<NavbarComponent> {
     setState(() {
       _isAdmin = isAdmin;
       _isLoading = false;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final canScroll =
+          _scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent > 0;
+      if (_showIndicator != canScroll) {
+        setState(() => _showIndicator = canScroll);
+      }
     });
   }
 
@@ -124,65 +134,73 @@ class _NavbarComponentState extends State<NavbarComponent> {
               ? const SizedBox(height: 56)
               : Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Visibility(
-                      visible: _showIndicator,
-                      maintainSize: true,
-                      maintainAnimation: true,
-                      maintainState: true,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 12, bottom: 2),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Deslize',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                    if (_showIndicator)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12, bottom: 2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Deslize',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 2),
-                            Icon(
-                              Icons.arrow_forward,
-                              color: Colors.white.withOpacity(0.9),
-                              size: 12,
-                            ),
-                          ],
+                              const SizedBox(width: 2),
+                              Icon(
+                                Icons.arrow_forward,
+                                color: Colors.white.withOpacity(0.9),
+                                size: 12,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    SingleChildScrollView(
-                      controller: _scrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: visibleItems.map((item) {
-                          final originalIndex = _allItems.indexOf(item);
-                          final isSelected =
-                              widget.currentIndex == originalIndex;
-
-                          return InkWell(
-                            onTap: () => _navigate(item.route),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 22,
-                                vertical: 10,
-                              ),
-                              child: Icon(
-                                item.icon,
-                                size: 28,
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.white.withOpacity(0.6),
-                              ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          controller: _scrollController,
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
                             ),
-                          );
-                        }).toList(),
-                      ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: visibleItems.map((item) {
+                                final originalIndex = _allItems.indexOf(item);
+                                final isSelected =
+                                    widget.currentIndex == originalIndex;
+
+                                return InkWell(
+                                  onTap: () => _navigate(item.route),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 22,
+                                      vertical: 10,
+                                    ),
+                                    child: Icon(
+                                      item.icon,
+                                      size: 28,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.white.withOpacity(0.6),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

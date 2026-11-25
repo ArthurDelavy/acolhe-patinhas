@@ -75,103 +75,105 @@ class _AuthScreenState extends State<AuthScreen> {
           maxChildSize: 0.95,
           expand: false,
           builder: (context, scrollController) {
-            return Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
+            return SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Termos de Compromisso',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D3142),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Termos de Compromisso',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D3142),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: FutureBuilder<String>(
-                      future: _authService.fetchTermContent(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: secondaryColor,
-                            ),
-                          );
-                        }
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: FutureBuilder<String>(
+                        future: _authService.fetchTermContent(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: secondaryColor,
+                              ),
+                            );
+                          }
 
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                'Erro ao carregar o termo:\n${snapshot.error}',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 13,
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text(
+                                  'Erro ao carregar o termo:\n${snapshot.error}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 13,
+                                  ),
                                 ),
+                              ),
+                            );
+                          }
+
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Center(
+                              child: Text('Nenhum texto encontrado no termo.'),
+                            );
+                          }
+
+                          return SingleChildScrollView(
+                            controller: scrollController,
+                            physics: const BouncingScrollPhysics(),
+                            child: Text(
+                              snapshot.data!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF2D3142),
+                                height: 1.5,
                               ),
                             ),
                           );
-                        }
-
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(
-                            child: Text('Nenhum texto encontrado no termo.'),
-                          );
-                        }
-
-                        return SingleChildScrollView(
-                          controller: scrollController,
-                          physics: const BouncingScrollPhysics(),
-                          child: Text(
-                            snapshot.data!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF2D3142),
-                              height: 1.5,
-                            ),
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: secondaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: secondaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Fechar',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Fechar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },
@@ -467,331 +469,339 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'AcolhePatinhas',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF2D3142),
-                        letterSpacing: -0.5,
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 12,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'AcolhePatinhas',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF2D3142),
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Em parceria, Associação Acolher',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[500],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Em parceria, Associação Acolher',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[500],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                    AnimatedCrossFade(
-                      duration: const Duration(milliseconds: 200),
-                      crossFadeState: anonymousEntry
-                          ? CrossFadeState.showSecond
-                          : CrossFadeState.showFirst,
-                      firstChild: Column(
-                        children: [
-                          // Espaço no topo para o rótulo (label) não cortar ao flutuar
-                          const SizedBox(height: 6),
-                          _buildInput(
-                            label: 'E-mail',
-                            hint: 'Digite seu e-mail',
-                            icon: Icons.email_outlined,
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            autofillHints: const [AutofillHints.email],
-                            validator: (value) {
-                              if (anonymousEntry) return null;
-                              if (value == null || value.isEmpty)
-                                return 'Digite seu e-mail';
-                              if (!Validators.isValidEmail(value))
-                                return 'Digite um e-mail válido';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(
-                            height: 18,
-                          ), // Espaçamento levemente aumentado para a label do próximo campo
-                          _buildInput(
-                            label: 'Senha',
-                            hint: 'Digite sua senha',
-                            icon: Icons.lock_outline,
-                            controller: _passwordController,
-                            obscureText: obscurePassword,
-                            textInputAction: TextInputAction.done,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                color: Colors.grey[500],
-                                size: 20,
-                              ),
-                              onPressed: () => setState(
-                                () => obscurePassword = !obscurePassword,
-                              ),
+                      const SizedBox(height: 32),
+                      AnimatedCrossFade(
+                        duration: const Duration(milliseconds: 200),
+                        crossFadeState: anonymousEntry
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                        firstChild: Column(
+                          children: [
+                            // Espaço no topo para o rótulo (label) não cortar ao flutuar
+                            const SizedBox(height: 6),
+                            _buildInput(
+                              label: 'E-mail',
+                              hint: 'Digite seu e-mail',
+                              icon: Icons.email_outlined,
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.email],
+                              validator: (value) {
+                                if (anonymousEntry) return null;
+                                if (value == null || value.isEmpty)
+                                  return 'Digite seu e-mail';
+                                if (!Validators.isValidEmail(value))
+                                  return 'Digite um e-mail válido';
+                                return null;
+                              },
                             ),
+                            const SizedBox(
+                              height: 18,
+                            ), // Espaçamento levemente aumentado para a label do próximo campo
+                            _buildInput(
+                              label: 'Senha',
+                              hint: 'Digite sua senha',
+                              icon: Icons.lock_outline,
+                              controller: _passwordController,
+                              obscureText: obscurePassword,
+                              textInputAction: TextInputAction.done,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: Colors.grey[500],
+                                  size: 20,
+                                ),
+                                onPressed: () => setState(
+                                  () => obscurePassword = !obscurePassword,
+                                ),
+                              ),
+                              validator: (value) {
+                                if (anonymousEntry) return null;
+                                if (value == null || value.isEmpty)
+                                  return 'Digite sua senha';
+                                if (!Validators.isValidPassword(value))
+                                  return 'A senha deve ter pelo menos 6 caracteres, um número e um caractere especial';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(24),
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.white,
+                                      builder: (context) =>
+                                          const AuthRegisterModal(),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(50, 30),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Novo? Cadastre-se',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: secondaryColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    final email = _emailController.text.trim();
+                                    final resetDone =
+                                        await showModalBottomSheet<bool>(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(24),
+                                            ),
+                                          ),
+                                          backgroundColor: Colors.white,
+                                          builder: (context) =>
+                                              ForgotPasswordModal(
+                                                initialEmail:
+                                                    Validators.isValidEmail(
+                                                      email,
+                                                    )
+                                                    ? email
+                                                    : null,
+                                              ),
+                                        );
+                                    if (resetDone == true)
+                                      _passwordController.clear();
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(50, 30),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Esqueceu a senha?',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: secondaryColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        secondChild: Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _buildInput(
+                            label: 'Nome',
+                            hint: 'Digite seu nome',
+                            icon: Icons.person_outline,
+                            controller: _nameController,
+                            textInputAction: TextInputAction.done,
                             validator: (value) {
-                              if (anonymousEntry) return null;
-                              if (value == null || value.isEmpty)
-                                return 'Digite sua senha';
-                              if (!Validators.isValidPassword(value))
-                                return 'A senha deve ter pelo menos 6 caracteres, um número e um caractere especial';
+                              if (!anonymousEntry) return null;
+                              if (value == null || value.trim().isEmpty)
+                                return 'Digite seu nome';
                               return null;
                             },
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(24),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoggingIn
+                              ? null
+                              : () async {
+                                  if (anonymousEntry) {
+                                    if (_formKey.currentState!.validate()) {
+                                      setState(() => _isLoggingIn = true);
+                                      try {
+                                        await TokenStorage.clear();
+                                        await _authService.loginAnonymous();
+                                        if (!mounted) return;
+                                        Navigator.pushReplacementNamed(
+                                          context,
+                                          '/feed',
+                                        );
+                                      } catch (e) {
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Erro ao entrar como anônimo.',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      } finally {
+                                        if (mounted)
+                                          setState(() => _isLoggingIn = false);
+                                      }
+                                    }
+                                  } else {
+                                    _login();
+                                  }
+                                },
+                          style:
+                              ElevatedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                elevation: 3,
+                                shadowColor: secondaryColor.withOpacity(0.3),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ).copyWith(
+                                backgroundColor: WidgetStateProperty.all(
+                                  Colors.transparent,
+                                ),
+                              ),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [primaryColor, secondaryColor],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Container(
+                              alignment: Alignment.center,
+                              child: _isLoggingIn
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      anonymousEntry
+                                          ? 'Entrar como Anônimo'
+                                          : 'Entrar',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
                                     ),
-                                    backgroundColor: Colors.white,
-                                    builder: (context) =>
-                                        const AuthRegisterModal(),
-                                  );
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(50, 30),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: const Text(
-                                  'Novo? Cadastre-se',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: secondaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              color: Colors.grey.shade300,
+                              thickness: 1,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'OU',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade400,
                               ),
-                              TextButton(
-                                onPressed: () async {
-                                  final email = _emailController.text.trim();
-                                  final resetDone =
-                                      await showModalBottomSheet<bool>(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        shape: const RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.vertical(
-                                            top: Radius.circular(24),
-                                          ),
-                                        ),
-                                        backgroundColor: Colors.white,
-                                        builder: (context) =>
-                                            ForgotPasswordModal(
-                                              initialEmail:
-                                                  Validators.isValidEmail(email)
-                                                  ? email
-                                                  : null,
-                                            ),
-                                      );
-                                  if (resetDone == true)
-                                    _passwordController.clear();
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(50, 30),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: const Text(
-                                  'Esqueceu a senha?',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: secondaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              color: Colors.grey.shade300,
+                              thickness: 1,
+                            ),
                           ),
                         ],
                       ),
-                      secondChild: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _buildInput(
-                          label: 'Nome',
-                          hint: 'Digite seu nome',
-                          icon: Icons.person_outline,
-                          controller: _nameController,
-                          textInputAction: TextInputAction.done,
-                          validator: (value) {
-                            if (!anonymousEntry) return null;
-                            if (value == null || value.trim().isEmpty)
-                              return 'Digite seu nome';
-                            return null;
-                          },
+                      const SizedBox(height: 20),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() => anonymousEntry = !anonymousEntry);
+                          _formKey.currentState?.reset();
+                        },
+                        icon: Icon(
+                          anonymousEntry
+                              ? Icons.arrow_back
+                              : Icons.person_off_outlined,
+                          size: 18,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoggingIn
-                            ? null
-                            : () async {
-                                if (anonymousEntry) {
-                                  if (_formKey.currentState!.validate()) {
-                                    setState(() => _isLoggingIn = true);
-                                    try {
-                                      await TokenStorage.clear();
-                                      await _authService.loginAnonymous();
-                                      if (!mounted) return;
-                                      Navigator.pushReplacementNamed(
-                                        context,
-                                        '/feed',
-                                      );
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Erro ao entrar como anônimo.',
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    } finally {
-                                      if (mounted)
-                                        setState(() => _isLoggingIn = false);
-                                    }
-                                  }
-                                } else {
-                                  _login();
-                                }
-                              },
-                        style:
-                            ElevatedButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              elevation: 3,
-                              shadowColor: secondaryColor.withOpacity(0.3),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ).copyWith(
-                              backgroundColor: WidgetStateProperty.all(
-                                Colors.transparent,
-                              ),
-                            ),
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [primaryColor, secondaryColor],
-                            ),
+                        label: Text(
+                          anonymousEntry
+                              ? 'Cancelar entrada anônima'
+                              : 'Entrar anônimo',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          foregroundColor: secondaryColor,
+                          side: BorderSide(
+                            color: primaryColor.withOpacity(0.4),
+                            width: 1.2,
+                          ),
+                          shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Container(
-                            alignment: Alignment.center,
-                            child: _isLoggingIn
-                                ? const SizedBox(
-                                    width: 22,
-                                    height: 22,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(
-                                    anonymousEntry
-                                        ? 'Entrar como Anônimo'
-                                        : 'Entrar',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                          textStyle: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color: Colors.grey.shade300,
-                            thickness: 1,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'OU',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade400,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: Colors.grey.shade300,
-                            thickness: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        setState(() => anonymousEntry = !anonymousEntry);
-                        _formKey.currentState?.reset();
-                      },
-                      icon: Icon(
-                        anonymousEntry
-                            ? Icons.arrow_back
-                            : Icons.person_off_outlined,
-                        size: 18,
-                      ),
-                      label: Text(
-                        anonymousEntry
-                            ? 'Cancelar entrada anônima'
-                            : 'Entrar anônimo',
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        foregroundColor: secondaryColor,
-                        side: BorderSide(
-                          color: primaryColor.withOpacity(0.4),
-                          width: 1.2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -171,6 +171,74 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  void _editDescriptionDialog() {
+    if (widget.userId != null) return;
+    final controller = TextEditingController(
+      text: _userProfile?.description ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Editar Bio'),
+        content: TextField(
+          controller: controller,
+          minLines: 3,
+          maxLines: 4,
+          maxLength: 150,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'Conte um pouco sobre você...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                elevation: 0,
+              ),
+              onPressed: () async {
+                final newBio = controller.text.trim();
+                Navigator.pop(context);
+                try {
+                  final updated = await _profileService.updateDescription(
+                    newBio,
+                  );
+                  if (mounted) {
+                    setState(() => _userProfile = updated);
+                    _snack('Bio atualizada com sucesso!');
+                  }
+                } catch (e) {
+                  _snack('Erro ao atualizar a bio.');
+                }
+              },
+              child: const Text(
+                'Salvar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _editEmailDialog() {
     if (widget.userId != null) return;
     final emailController = TextEditingController(
@@ -362,12 +430,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-               onPressed: () async {
+                  onPressed: () async {
                     await TokenStorage.clear();
                     if (!mounted) return;
                     Navigator.pushNamedAndRemoveUntil(
                       context,
-                      '/',
+                      '/login',
                       (route) => false,
                     );
                   },
@@ -413,6 +481,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildBio(isOwnProfile),
                   const _SectionTitle('Informações'),
                   _buildInfoCard(isOwnProfile),
                   const SizedBox(height: 32),
@@ -655,7 +724,59 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildInfoCard(bool isOwnProfile) {
+  Widget _buildBio(bool isOwnProfile) {
+    final bio = (_userProfile?.description ?? '').trim();
+
+    // No perfil de outra pessoa, sem bio, não mostra nada
+    if (bio.isEmpty && !isOwnProfile) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionTitle('Bio'),
+          Container(
+            width: double.infinity,
+            decoration: _card(),
+            padding: const EdgeInsets.fromLTRB(20, 14, 6, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      bio.isEmpty ? 'Adicione uma bio ao seu perfil...' : bio,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: bio.isEmpty ? Colors.black38 : Colors.black87,
+                        fontStyle: bio.isEmpty
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                      ),
+                    ),
+                  ),
+                ),
+                if (isOwnProfile)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: _secondary,
+                      size: 20,
+                    ),
+                    onPressed: _editDescriptionDialog,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+ Widget _buildInfoCard(bool isOwnProfile) {
     final email = _userProfile?.email ?? 'Não informado';
 
     return Container(
@@ -664,6 +785,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         children: [
           ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 4,
+            ),
             leading: CircleAvatar(
               backgroundColor: _primary.withOpacity(0.15),
               child: const Icon(
@@ -676,12 +801,17 @@ class _ProfileScreenState extends State<ProfileScreen>
               'E-mail',
               style: TextStyle(fontSize: 12, color: Colors.black45),
             ),
-            subtitle: Text(
-              email,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
+            subtitle: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                email,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             trailing: isOwnProfile
@@ -723,7 +853,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           await TokenStorage.clear();
 
           if (mounted) {
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
           }
         },
         style: OutlinedButton.styleFrom(

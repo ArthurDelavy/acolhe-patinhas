@@ -130,7 +130,7 @@ class ListPetsScreen extends StatefulWidget {
   const ListPetsScreen({
     super.key,
     this.isAdminMode = false,
-    this.navIndex = 1,
+    this.navIndex = 2,
   });
 
   @override

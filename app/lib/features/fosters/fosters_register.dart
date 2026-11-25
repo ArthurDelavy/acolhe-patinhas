@@ -7,11 +7,6 @@ import '../../utils/validators.dart';
 const Color _orange = Color(0xFFE27B1D);
 const LatLng _defaultCenter = LatLng(-29.2361, -51.8697);
 
-const LinearGradient _headerGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFFFFA94D), Color(0xFFFF8C42)],
-);
 
 List<Widget> _mapLayers(LatLng? point) => [
   TileLayer(
@@ -593,14 +588,32 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
   Widget build(BuildContext context) {
     final initial = widget.selected;
 
-    return Scaffold(
+     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 48,
         title: const Text(
           'Arraste o mapa até o local',
-          style: TextStyle(fontSize: 16),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        backgroundColor: _orange,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFFA94D),
+                Color(0xFFFF8C42),
+              ],
+            ),
+          ),
+        ),
       ),
       body: Stack(
         children: [
@@ -640,26 +653,52 @@ class _MapPickerScreenState extends State<_MapPickerScreen> {
                   : const Icon(Icons.my_location),
             ),
           ),
-          Positioned(
+        Positioned(
             left: 16,
             right: 16,
             bottom: 16,
-            // A tela do mapa já estava utilizando o SafeArea corretamente no botão flutuante!
             child: SafeArea(
               child: SizedBox(
                 height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: () =>
-                      Navigator.pop(context, _controller.camera.center),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _orange,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                child: Material(
+                  borderRadius: BorderRadius.circular(16),
+                  clipBehavior: Clip.antiAlias,
+                  child: Ink(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFFFA94D),
+                          Color(0xFFFF8C42),
+                        ],
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () => Navigator.pop(
+                        context,
+                        _controller.camera.center,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Confirmar local',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  icon: const Icon(Icons.check),
-                  label: const Text('Confirmar local'),
                 ),
               ),
             ),

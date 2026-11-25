@@ -709,66 +709,213 @@ class _EditPetScreenState extends State<EditPetScreen> {
 
     final bool? confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Confirmar baixa'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                border: Border.all(color: Colors.amber.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.amber.shade900),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Esta ação inativa o cadastro e arquiva o pet no histórico.',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.amber.shade900,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        backgroundColor: const Color(0xFFF7E8DF),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFE0BD),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.archive_outlined,
+                        color: Color(0xFFD96A12),
+                        size: 21,
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Confirmar baixa',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF30251F),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
-                ],
-              ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    border: Border.all(color: Colors.amber.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Colors.amber.shade900,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          'Esta ação inativa o cadastro e arquiva o pet no histórico.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.3,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Deseja realmente dar baixa em "${_nameController.text}"?',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    color: Color(0xFF40342D),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 11,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE8D4C8)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.assignment_outlined,
+                            size: 17,
+                            color: Color(0xFFD96A12),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                children: [
+                                  const TextSpan(
+                                    text: 'Motivo: ',
+                                    style: TextStyle(fontWeight: FontWeight.w700),
+                                  ),
+                                  TextSpan(text: reasonName.toString()),
+                                ],
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF40342D),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 16,
+                            color: Color(0xFFD96A12),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Data: ',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF40342D),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              _dischargeDateController.text,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF40342D),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF9A541F),
+                          minimumSize: const Size.fromHeight(44),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        child: const Text(
+                          'CANCELAR',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange[800],
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          minimumSize: const Size.fromHeight(44),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'CONFIRMAR BAIXA',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Tem certeza que deseja dar baixa no pet "${_nameController.text}"?',
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Motivo: $reasonName',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-            Text(
-              'Data: ${_dischargeDateController.text}',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCELAR'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange[800],
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'CONFIRMAR BAIXA',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
       ),
     );
 

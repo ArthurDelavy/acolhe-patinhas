@@ -41,11 +41,11 @@ class MyApp extends StatelessWidget {
         '/report': (context) => const ReportScreen(),
         '/registerPets': (context) => const RegisterPetsScreen(),
         '/user_pets': (context) =>
-            const ListPetsScreen(isAdminMode: false, navIndex: 1),
+            const ListPetsScreen(isAdminMode: false, navIndex: 2),
         '/admin_pets': (context) =>
             const ListPetsScreen(isAdminMode: true, navIndex: 3),
         '/list_pets': (context) =>
-            const ListPetsScreen(isAdminMode: false, navIndex: 1),
+            const ListPetsScreen(isAdminMode: false, navIndex: 2),
         '/about-profile': (context) => const AboutScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/fosters': (context) => const FostersScreen(),

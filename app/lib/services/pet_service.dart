@@ -36,21 +36,23 @@ class PetService {
     return data as Map<String, dynamic>;
   }
 
-  static Future<List<Map<String, dynamic>>> fetchSpecies() async {
-    final data = await _get('/animal/reference/specie');
-    return List<Map<String, dynamic>>.from(data);
-  }
+static Future<List<Map<String, dynamic>>> fetchSpecies() async {
+  final data = await _get('/animal/reference/specie');
+  print('ESPÉCIES RETORNADAS PELA API: $data');
+  return List<Map<String, dynamic>>.from(data);
+}
 
-  static Future<List<Map<String, dynamic>>> fetchBreeds() async {
-    final data = await _get('/animal/reference/breed');
-    return List<Map<String, dynamic>>.from(data);
-  }
+static Future<List<Map<String, dynamic>>> fetchBreeds() async {
+  final data = await _get('/animal/reference/breed');
+  print('RAÇAS RETORNADAS PELA API: $data');
+  return List<Map<String, dynamic>>.from(data);
+}
 
-  static Future<List<Map<String, dynamic>>> fetchColors() async {
-    final data = await _get('/animal/reference/color');
-    return List<Map<String, dynamic>>.from(data);
-  }
-
+static Future<List<Map<String, dynamic>>> fetchColors() async {
+  final data = await _get('/animal/reference/color');
+  print('CORES RETORNADAS PELA API: $data');
+  return List<Map<String, dynamic>>.from(data);
+}
   static Future<List<Map<String, dynamic>>> fetchDischargeReasons() async {
     final data = await _get('/animal/reference/dischargeReason');
     return List<Map<String, dynamic>>.from(data);

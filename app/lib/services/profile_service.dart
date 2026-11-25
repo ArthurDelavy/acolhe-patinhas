@@ -9,6 +9,7 @@ class UserProfile {
   final String name;
   final String email;
   final String? profileImageUrl;
+  final String? description;
   final String role; //admin, verified, user
   final bool isVerified;
 
@@ -17,6 +18,7 @@ class UserProfile {
     required this.name,
     required this.email,
     this.profileImageUrl,
+    this.description,
     required this.role,
     required this.isVerified,
   });
@@ -29,6 +31,7 @@ class UserProfile {
       email: json['email'] ?? '',
       profileImageUrl:
           json['profileImageUrl'] ?? json['userPhotoUrl'] ?? json['photoUrl'],
+      description: json['description'] as String?,
       role: roleStr,
       isVerified:
           json['verified'] ?? (roleStr == 'VERIFIED' || roleStr == 'ADMIN'),
@@ -81,6 +84,29 @@ class ProfileService {
     }
 
     throw Exception('Erro ao atualizar o nome.');
+  }
+
+  Future<UserProfile> updateDescription(String newDescription) async {
+    final token = await TokenStorage.getAuthToken();
+
+    final response = await _client.patch(
+      Uri.parse('$baseUrl/user/me/description'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'description': newDescription}),
+    );
+
+    if (response.statusCode == 200) {
+      return UserProfile.fromJson(jsonDecode(response.body));
+    }
+
+    if (response.statusCode == 400) {
+      throw Exception('Descrição inválida.');
+    }
+
+    throw Exception('Erro ao atualizar a descrição.');
   }
 
   Future<void> requestEmailChange(String newEmail) async {
